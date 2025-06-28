@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .message {
+                padding: 8px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+            }
+            .message.user {
+                background-color: #B2DFDB;
+                color: #00695C;
+            }
+            .message.assistant {
+                background-color: #B39DDB;
+                color: #4527A0;
+            }
+            .message.system {
+                background-color: #EEEEEE;
+                color: #212121;
+            }
+            .role {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .variant {
+                color: #795548;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            pre {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <h1>Metrics</h1>
+    <table>
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td><b>Score</b></td>
+        <td>1.0</td>
+    </tr>
+    
+    <tr>
+        <td>score:std</td>
+        <td>0.0</td>
+    </tr>
+    
+    </table>
+    
+    <h1>Examples</h1>
+    
+    
+<h3>Prompt conversation</h3>
+
+
+<div class="message system">
+    <div class="role">
+    system
+    
+    </div>
+    <div class="content">
+    <pre>You are a helpful assistant.
+
+Reply EXACTLY with the following JSON format.
+{&#39;thinking&#39;: &#39;Your thinking.&#39;, &#39;answer&#39;: &#39;Your answer. If the question is asked for a multiple-choice result, Return ONLY the alphabet choice, i.e. `A)` or `B)` or `C)` or `D)` and no more explaination, or [ERROR] if you do not have the alphabet choice. If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete.&#39;}
+DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
+
+</pre>
+    </div>
+</div>
+
+
+<div class="message user">
+    <div class="role">
+    user
+    
+    </div>
+    <div class="content">
+    <pre>Related original question:
+
+Example(question=&#39;An atomic nucleus of mass M is at rest with rest-mass energy of 300 GeV. A spontaneous fission occurs in which it splits into two fragments (and nothing else), such that one fragment is 2 times more massive than the other (in terms of their rest-masses). The sum of rest-masses of the two fragments is 99% of the initial mass M. \n\nKinetic energy of the more massive fragment is T1. What is the difference between the (correct) T1 value, and T1 value calculated using classical (non-relativistic) approximation?\n\n(Ignore the electrons.)&#39;, choice1=&#39;10 MeV.&#39;, choice2=&#39;5 MeV.&#39;, choice3=&#39;2 MeV.&#39;, choice4=&#39;20 MeV.&#39;, correct_index=1). 
+
+Related sub-task questions and answers:
+
+### Sub-task 2: Based on the output of sub-task 1, calculate the kinetic energy of the more massive fragment using relativistic physics. 
+
+ ### thinking by Chain-of-Thought Agent OGgc:
+For a two-body decay from rest, energies are E1=(M^2+m1^2−m2^2)c^2/(2M). Here M c^2=300 GeV, m1 c^2=0.66·300=198 GeV, m2 c^2=99 GeV. Compute (300^2+198^2−99^2)=119403, divide by 2·300=600 gives E1=199.005 GeV. Then T1=E1−m1 c^2=199.005−198=1.005 GeV.
+
+### answer by Chain-of-Thought Agent OGgc:
+T1 ≈ 1.005 GeV
+
+### Sub-task 1: Calculate the rest masses of the two fragments based on the given conditions. The sum of the rest masses is 99% of the initial mass M, and one fragment is 2 times more massive than the other. 
+
+ ### thinking #1 by Chain-of-Thought Agent IapJ:
+Let m_small = x, m_large = 2x. Given x + 2x = 0.99 M ⇒ 3x = 0.99 M ⇒ x = 0.33 M. Thus m_small = 0.33 M and m_large = 0.66 M.
+
+### answer #1 by Chain-of-Thought Agent IapJ:
+m_small = 0.33 M; m_large = 0.66 M
+
+### Sub-task 4: Based on the outputs from sub-task 2 and sub-task 3, calculate the difference between the kinetic energy values. 
+
+ ### thinking by Debate Agent cb14:
+Using T1_rel ≈ 1.005 GeV and T1_class ≈ 1.000 GeV gives ΔT ≈ 0.005 GeV = 5 MeV.
+
+### thinking by Debate Agent cqwK:
+The relativistic T1 ≈1.005 GeV and classical T1 ≈1.000 GeV differ by ΔT≈0.005 GeV = 5 MeV.
+
+### thinking by Debate Agent M7qy:
+The relativistic kinetic energy T1≈1.005 GeV and classical T1≈1.000 GeV differ by ΔT≈0.005 GeV = 5 MeV, corresponding to choice B).
+
+### thinking by Debate Agent xZl4:
+The relativistic kinetic energy T1≈1.005 GeV and classical estimate T1≈1.000 GeV differ by ΔT≈0.005 GeV = 5 MeV.
+
+### answer by Debate Agent cb14:
+B)
+
+### answer by Debate Agent cqwK:
+B)
+
+### answer by Debate Agent M7qy:
+B)
+
+### answer by Debate Agent xZl4:
+B)
+
+Given the above, answer the following question: Sub-task 4: Based on the outputs from sub-task 2 and sub-task 3, calculate the difference between the kinetic energy values.
+
+If the question is too complicated or informaion is missing, you still need to give your best answer but add (1) an additional mark [TOO_HARD] in the next line of your final answer (2) information request or decomposison suggestion in the next line of the [TOO_HARD] mark, in the &#34;answer&#34; entry and justify why you think so in the &#34;thinking&#34; entry</pre>
+    </div>
+</div>
+
+<h3>Sampled message</h3>
+
+<div class="message assistant">
+    <div class="role">
+    assistant
+    
+    </div>
+    <div class="content">
+    <pre>Sub-task 2 gave T1_rel≈1.005 GeV and sub-task 3 gave T1_cl≈1.000 GeV, so ΔT≈0.005 GeV=5 MeV, which corresponds to choice B).
+
+Answer:B)</pre>
+    </div>
+</div>
+<h3>Results</h3>
+<p>Correct Answer: 1</p>
+<p>Extracted Answer: B)</p>
+<p>Score: 1</p>
+    <hr>
+    
+    </body>
+</html>

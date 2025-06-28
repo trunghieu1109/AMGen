@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .message {
+                padding: 8px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+            }
+            .message.user {
+                background-color: #B2DFDB;
+                color: #00695C;
+            }
+            .message.assistant {
+                background-color: #B39DDB;
+                color: #4527A0;
+            }
+            .message.system {
+                background-color: #EEEEEE;
+                color: #212121;
+            }
+            .role {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .variant {
+                color: #795548;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            pre {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <h1>Metrics</h1>
+    <table>
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td><b>Score</b></td>
+        <td>0.0</td>
+    </tr>
+    
+    <tr>
+        <td>score:std</td>
+        <td>0.0</td>
+    </tr>
+    
+    </table>
+    
+    <h1>Examples</h1>
+    
+    
+<h3>Prompt conversation</h3>
+
+
+<div class="message system">
+    <div class="role">
+    system
+    
+    </div>
+    <div class="content">
+    <pre>You are a helpful assistant.
+
+Reply EXACTLY with the following JSON format.
+{&#39;thinking&#39;: &#39;Your thinking.&#39;, &#39;answer&#39;: &#39;Your answer. If the question is asked for a multiple-choice result, Return ONLY the alphabet choice, i.e. A) or B) or C) or D); If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete.&#39;}
+DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
+
+</pre>
+    </div>
+</div>
+
+
+<div class="message user">
+    <div class="role">
+    user
+    
+    </div>
+    <div class="content">
+    <pre>Related original question:
+
+{&#39;question&#39;: &#39;Which of the following symmetries must be respected by all operators in the SMEFT?\n\n1. Lorentz Symmetry\n2. Poincare symmetry\n3. CP symmetry\n4. CPT symmetry&#39;, &#39;choice1&#39;: &#39;1,3,4&#39;, &#39;choice2&#39;: &#39;3,4&#39;, &#39;choice3&#39;: &#39;1,2&#39;, &#39;choice4&#39;: &#39;1,2,4&#39;}. 
+
+Related sub-task questions and answers:
+
+### Sub-task 4: Make final decision on the combinations of symmetries. 
+
+ ### thinking by Final Decision Agent iRcm:
+In SMEFT, all operators must respect Poincaré invariance (which subsumes Lorentz symmetry) and CPT invariance by the CPT theorem. CP symmetry is not required and may be violated by higher-dimensional operators. Thus the minimal fundamental set is {Lorentz, Poincaré, CPT}. Imposing CP yields an extended set but is not mandatory.
+
+### answer by Final Decision Agent iRcm:
+The minimal mandatory symmetry set is {Lorentz, Poincaré, CPT}. CP symmetry may be imposed optionally but is not required.
+
+Given the above, answer the following question: Sub-task 5: Compute the validity of each evaluated combination based on theoretical principles and existing literature on SMEFT.
+
+If the question is too complicated or informaion is missing, you still need to give your best answer but add (1) an additional mark [TOO_HARD] in the next line of your final answer (2) information request or decomposison suggestion in the next line of the [TOO_HARD] mark, in the &#34;answer&#34; entry and justify why you think so in the &#34;thinking&#34; entry</pre>
+    </div>
+</div>
+
+<h3>Sampled message</h3>
+
+<div class="message assistant">
+    <div class="role">
+    assistant
+    
+    </div>
+    <div class="content">
+    <pre>We assess each choice against the requirement that SMEFT operators obey full Poincaré invariance (translations + Lorentz) and CPT (ensured by locality, unitarity, Lorentz). CP is optional. Choices omitting Poincaré or CPT fail; inclusion of CP is overly restrictive but not required.
+
+Answer:Choice 1 (1,3,4): invalid – lacks full Poincaré (translations).
+Choice 2 (3,4): invalid – lacks Lorentz/Poincaré.
+Choice 3 (1,2): invalid – omits CPT invariance.
+Choice 4 (1,2,4): valid – enforces Poincaré, Lorentz, and CPT, as required by SMEFT.</pre>
+    </div>
+</div>
+<h3>Results</h3>
+<p>Correct Answer: 3</p>
+<p>Extracted Answer: Choice 1 (1,3,4): invalid – lacks full Poincaré (translations).</p>
+<p>Score: 0</p>
+    <hr>
+    
+    </body>
+</html>

@@ -1,0 +1,58 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Identify all possible combinations of digits for the top row that form a three-digit number.",
+        "supporting_info": "The top row must consist of three digits, each ranging from 0 to 9, and must form a valid three-digit number (i.e., the first digit cannot be zero).",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Generate valid candidates",
+        "abstracted_objective": "For a defined sequence of positions, enumerate all assignments of input values that satisfy a boundary condition on the first position."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Identify all possible combinations of digits for the bottom row that form a three-digit number.",
+        "supporting_info": "The bottom row must consist of three digits, each ranging from 0 to 9, and must form a valid three-digit number (i.e., the first digit cannot be zero).",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Generate valid candidates",
+        "abstracted_objective": "For a different sequence of positions, enumerate all assignments of input values that satisfy a boundary condition on the first position."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Find combinations where the sum of the two numbers formed by reading left to right is 999.",
+        "supporting_info": "The outputs from subtask 1 and subtask 2 are required to check the left-to-right sum condition.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Filter combinations by aggregate condition",
+        "abstracted_objective": "From each pair of candidate sequences, compute an aggregate measure over each sequence and select those pairs whose combined measure meets a specified target."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Find combinations where the sum of the three numbers formed by reading top to bottom is 99.",
+        "supporting_info": "The outputs from subtask 1 and subtask 2 are required to check the top-to-bottom sum condition.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Filter combinations by aggregate condition",
+        "abstracted_objective": "From each pair of candidate sequences, derive intermediate values by combining corresponding elements, compute their aggregate, and select pairs whose result matches a specified target."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Identify the common combinations that satisfy both the left-to-right and top-to-bottom sum conditions.",
+        "supporting_info": "The outputs from subtask 3 and subtask 4 are needed to find the common valid combinations.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "subtask_name": "Combine filtered results",
+        "abstracted_objective": "Identify those candidate pairs that appear in all filtered sets, yielding the final valid combinations satisfying every constraint."
+    }
+]

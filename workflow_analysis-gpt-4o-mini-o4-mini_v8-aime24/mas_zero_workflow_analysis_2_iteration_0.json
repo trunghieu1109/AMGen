@@ -1,0 +1,45 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways to color the vertices of the octagon.",
+        "supporting_info": "The octagon has 8 vertices, and each vertex can be colored either red or blue with equal probability.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Compute the total count of all possible assignments for a fixed number of binary choices.",
+        "subtask_name": "aggregate_configuration_count"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Identify the number of colorings that allow for a rotation such that all blue vertices map to positions originally occupied by red vertices.",
+        "supporting_info": "This requires the output from Sub-task 1 to determine which colorings are valid under the specified rotation condition.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Count the number of assignments that satisfy a specified mapping constraint under a transformation.",
+        "subtask_name": "aggregate_constrained_configurations"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability that a valid rotation exists based on the outputs of Sub-task 1 and Sub-task 2.",
+        "supporting_info": "The total number of colorings from Sub-task 1 and the valid colorings from Sub-task 2 are needed to compute the probability.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Compute the ratio of constrained assignments to the total assignments to quantify the proportion meeting the constraint.",
+        "subtask_name": "derive_relative_measure"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Simplify the probability fraction obtained in Sub-task 3 and ensure that m and n are relatively prime, then find m+n.",
+        "supporting_info": "The output from Sub-task 3 is required to perform the simplification and check for coprimality of the resulting integers.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Simplify a computed ratio to its lowest terms and calculate the sum of its numerator and denominator.",
+        "subtask_name": "express_metric_as_ratio_sum"
+    }
+]

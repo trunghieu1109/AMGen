@@ -1,0 +1,34 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate Aya's walking speed s based on the information that when she walks at s km/h, the walk takes 4 hours including t minutes spent in the coffee shop.",
+        "supporting_info": "Aya walks 9 kilometers at a speed of s km/h, which takes 4 hours total, including t minutes in the coffee shop.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Derive a rate parameter based on a known total duration and an additive fixed time component",
+        "subtask_name": "Infer rate from total process time"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the time spent in the coffee shop t using the information that when she walks at s+2 km/h, the walk takes 2 hours and 24 minutes including t minutes in the coffee shop.",
+        "supporting_info": "The output from Sub-task 1 provides the value of s, which is necessary to calculate t. The total time for the walk at s+2 km/h is 2 hours and 24 minutes.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Determine the value of a constant time offset using a modified rate and a known total duration",
+        "subtask_name": "Isolate fixed time component"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the time it takes for Aya to walk 9 km at s+1/2 km/h, including the t minutes spent in the coffee shop.",
+        "supporting_info": "The outputs from Sub-task 1 and Sub-task 2 provide the values of s and t, which are necessary to calculate the total time for the walk at the new speed of s+1/2 km/h.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Calculate the overall duration for a process at a specified rate, incorporating the fixed time offset",
+        "subtask_name": "Compute total duration at new rate"
+    }
+]

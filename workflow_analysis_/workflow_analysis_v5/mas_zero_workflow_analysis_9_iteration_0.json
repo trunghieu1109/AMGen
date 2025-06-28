@@ -1,0 +1,66 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen needs to choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Calculate total combinations",
+        "abstracted_objective": "Calculate the total number of ways to select a subset of elements from a larger set."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The output from subtask 1 is required to calculate the total combinations, and Jen's chosen numbers are assumed to be distinct.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Determine subset match combinations",
+        "abstracted_objective": "Determine the number of ways to select a subset such that a minimum number of elements match with a predefined subset."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize, which is defined as having at least 2 matches with the randomly chosen numbers.",
+        "supporting_info": "This calculation requires the outputs from subtasks 1 and 2 to determine the total ways to win a prize and the total combinations.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Calculate probability of partial match",
+        "abstracted_objective": "Calculate the probability of achieving a partial match between two subsets based on previous calculations."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "The calculation is based on the assumption that all chosen numbers must be the same as Jen's, and it requires no additional context.",
+        "agent_collaboration": "Debate",
+        "dependencies": [],
+        "subtask_name": "Calculate full match combinations",
+        "abstracted_objective": "Calculate the number of ways to select a subset such that all elements match with a predefined subset."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize, which is defined as having all 4 matches with the randomly chosen numbers.",
+        "supporting_info": "This calculation requires the outputs from subtasks 3 and 4 to determine the total ways to win the grand prize and the total ways to win a prize.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "subtask_name": "Calculate probability of full match",
+        "abstracted_objective": "Calculate the probability of achieving a full match between two subsets based on previous calculations."
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "This requires the outputs from subtask 5 to identify the values of m and n, and it assumes that the calculations are correct.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "subtask_name": "Determine ratio and sum",
+        "abstracted_objective": "Identify the components of a ratio from a probability calculation and compute their sum."
+    }
+]

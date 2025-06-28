@@ -1,0 +1,48 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate all possible combinations of digits for the top row of the grid, which must form a valid three-digit number.",
+        "supporting_info": "The top row must be comprised of digits from 0 to 9, where the first digit cannot be zero. The resultant number must be part of a valid solution that sums to 999 when combined with the bottom row.",
+        "agent_collaboration": "CoT",
+        "dependencies": []
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Generate all possible combinations of digits for the bottom row of the grid, ensuring that it also forms a valid three-digit number.",
+        "supporting_info": "Similar to the top row, the bottom row must use digits from 0 to 9, with constraints on the first digit. This number will need to combine with the top row's number to meet the left-to-right sum condition.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1"
+        ]
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Verify for valid combinations from subtask 1 and 2 where the sum of numbers formed by reading the two rows left to right equals 999.",
+        "supporting_info": "This verification requires utilizing the outputs from subtask 1 and subtask 2 to check pairs of top and bottom row combinations to see if they meet the sum requirement.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ]
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Verify combinations from subtasks 1 and 2 to ensure that the sum of the three numbers formed by reading down the columns equals 99.",
+        "supporting_info": "This requires checking combinations using the digits from both rows to see if the vertical summation meets the specified condition, relying on the same inputs as the previous verification step.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ]
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Identify the common digit combinations from the outputs of subtasks 3 and 4 that meet both the left-to-right and top-to-bottom sum conditions.",
+        "supporting_info": "This final step aggregates results from the earlier verification steps to find unique combinations that satisfy both constraints. Martials from subtasks 3 and 4 provide input.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ]
+    }
+]

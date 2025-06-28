@@ -1,0 +1,19 @@
+Question: Find the number of rectangles that can be formed inside a fixed regular dodecagon ($12$-gon) where each side of the rectangle lies on either a side or a diagonal of the dodecagon. The diagram below shows three of those rectangles.
+[asy] unitsize(0.6 inch); for(int i=0; i<360; i+=30) { dot(dir(i), 4+black); draw(dir(i)--dir(i+30)); } draw(dir(120)--dir(330)); filldraw(dir(210)--dir(240)--dir(30)--dir(60)--cycle, mediumgray, linewidth(1.5)); draw((0,0.366)--(0.366,0), linewidth(1.5)); [/asy]
+Iteration: abstract_workflow_2_21
+proposed answer: We count all rectangles whose sides lie along sides or diagonals of the regular 12-gon and whose angles are right angles. A well‐known characterization is that each rectangle has one diagonal as a diameter (joining opposite vertices) and the other two vertices are a pair of antipodes that subtend a right angle at the diameter’s endpoints. Equivalently, if the diameter joins vertices i and i+6, we pick a step k (1≤k≤5) to locate the third vertex at i+k, the fourth at i+k+6. The side‐lengths in “steps” are k and 6−k, which indeed satisfy the right‐angle condition because chords of lengths k and 6−k inscribe complementary arcs summing to 180°.
+
+Step 1: Possible (k,6−k) with 1≤k≤5 are (1,5),(2,4),(3,3),(4,2),(5,1). Pairs (1,5) and (5,1) produce congruent rectangles but are obtained by swapping k↔6−k; counting both in our method is fine because they are distinct as ordered k choices but lead to the same multiset of side‐lengths and same total count when summed.
+
+Step 2: For each k, we vary the base index i. Two choices of i that differ by 6 give the same set of four vertices (just swapping the diameter endpoints), so only i=1…6 produce distinct rectangles for each fixed k.
+
+Step 3: However, when k=3 the four vertices lie at i,i+3,i+6,i+9, a square. Shifting i by 4 yields the same quadruple (since gcd(3,12)=3), so only i=1,2,3 give distinct squares for k=3, a total of 3.
+
+Step 4: For k=1,2,4,5 we get exactly 6 distinct rectangles each (i=1…6). That is 4×6=24.
+Step 5: For k=3 we get 3 rectangles.
+
+Total rectangles = 24+3 = 27.
+
+Answer:27
+Extracted answer: 27
+Correct answer: 315

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .message {
+                padding: 8px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+            }
+            .message.user {
+                background-color: #B2DFDB;
+                color: #00695C;
+            }
+            .message.assistant {
+                background-color: #B39DDB;
+                color: #4527A0;
+            }
+            .message.system {
+                background-color: #EEEEEE;
+                color: #212121;
+            }
+            .role {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .variant {
+                color: #795548;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            pre {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <h1>Metrics</h1>
+    <table>
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td><b>Score</b></td>
+        <td>1.0</td>
+    </tr>
+    
+    <tr>
+        <td>score:std</td>
+        <td>0.0</td>
+    </tr>
+    
+    </table>
+    
+    <h1>Examples</h1>
+    
+    
+<h3>Prompt conversation</h3>
+
+
+<div class="message system">
+    <div class="role">
+    system
+    
+    </div>
+    <div class="content">
+    <pre>You are a helpful assistant.
+
+Reply EXACTLY with the following JSON format.
+{&#39;thinking&#39;: &#39;Your thinking.&#39;, &#39;answer&#39;: &#39;Your answer. If the question is asked for a multiple-choice result, Return ONLY the alphabet choice, i.e. `A)` or `B)` or `C)` or `D)` and no more explaination, or [ERROR] if you do not have the alphabet choice. If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete.&#39;}
+DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
+
+</pre>
+    </div>
+</div>
+
+
+<div class="message user">
+    <div class="role">
+    user
+    
+    </div>
+    <div class="content">
+    <pre>Related original question:
+
+Example(question=&#39;There has been an outbreak of an viral infectious disease in your city. You have been asked to design a molecular diagnostic kit for quick detection of this retrovirus. How would you go about designing this kit?&#39;, choice1=&#39;First you identify the virus by performing DNA sequencing. You then develop a PCR kit for  quick and accurate diagnosis&#39;, choice2=&#39;First you identify the IgG antibodies for the infection. You then develop an ELISA kit targeting IgG antibodies for quick \n and accurate diagnosis.&#39;, choice3=&#39;First you identify the virus using the information about the symptoms, provided by the affected patients. You then design a nested PCR kit based on the information for quick diagnosis.&#39;, choice4=&#39;First you identify the virus by performing cDNA sequencing.  You then develop a real time PCR kit for quick and accurate diagnosis.&#39;, correct_index=3). 
+
+Related sub-task questions and answers:
+
+### Sub-task 1: Understand the characteristics of retroviruses and explain why cDNA sequencing is appropriate for their identification. 
+
+ ### thinking by Chain-of-Thought Agent XE9J:
+The question asks why cDNA sequencing is appropriate for retrovirus identification. Retroviruses have RNA genomes that must be reverse transcribed into DNA before sequencing or PCR-based detection, so cDNA is the correct template. No missing information.
+
+### answer by Chain-of-Thought Agent XE9J:
+Retroviruses carry their genetic information as RNA and use reverse transcriptase to convert RNA into DNA. By extracting viral RNA from patient samples, reverse-transcribing it into complementary DNA (cDNA) and then sequencing this cDNA, you directly determine the viral genome sequence. This approach yields stable DNA templates for high-fidelity sequencing and primer/probe design, enabling the development of a sensitive and specific real-time PCR diagnostic kit.
+
+### Sub-task 2: Make a final decision on the best diagnostic method. 
+
+ ### thinking by Final Decision Agent HEYR:
+Retroviruses have RNA genomes and replicate via reverse transcription. Antibody-based assays like ELISA detect host responses that appear days to weeks post-infection, delaying early diagnosis. Real-time RT-PCR directly detects viral RNA (after reverse transcription), offering high sensitivity, specificity, and rapid turnaround even at low viral loads, making it superior for quick and accurate diagnosis of retroviruses.
+
+### answer by Final Decision Agent HEYR:
+The best diagnostic method is real-time RT-PCR.
+
+### Sub-task 3: Based on the outputs from sub-task 1 and sub-task 2, analyze the provided choices and determine the correct sequence of actions for designing the diagnostic kit. 
+
+ ### thinking #1 by Chain-of-Thought Agent tede (yourself):
+We need to choose the option that leverages cDNA sequencing (appropriate for retroviral RNA genomes) and uses real-time PCR for rapid detection. This aligns with sub-task 1 (use cDNA for primer design) and sub-task 2 (real-time RT-PCR is the best method).
+
+### answer #1 by Chain-of-Thought Agent tede (yourself):
+D)
+
+### Sub-task 3: Critique the decision and provide feedback. 
+
+ ### feedback #1 by Critic Agent nKc0:
+The chosen approach of first generating cDNA (to convert the retroviral RNA genome into DNA) and then using real-time PCR for detection is sound. It correctly accounts for the need to reverse-transcribe viral RNA into cDNA before amplification, and real-time PCR offers rapid, sensitive, and quantitative diagnosis. This sequence aligns well with the requirements for designing a quick and accurate molecular diagnostic kit for a retrovirus.
+
+### Sub-task 3: Based on the outputs from sub-task 1 and sub-task 2, analyze the provided choices and determine the correct sequence of actions for designing the diagnostic kit. 
+
+ ### thinking #2 by Chain-of-Thought Agent tede (yourself):
+Retroviruses have RNA genomes requiring reverse transcription to cDNA before PCR. Real-time RT-PCR offers rapid, sensitive detection. Among options, only choice4 uses cDNA sequencing then real-time PCR.
+
+### answer #2 by Chain-of-Thought Agent tede (yourself):
+D)
+
+### Sub-task 3: Critique the decision and provide feedback. 
+
+ ### feedback #2 by Critic Agent nKc0:
+The choice to use cDNA sequencing followed by real-time PCR is well founded: retroviruses carry RNA genomes, so reverse transcription to cDNA is mandatory before amplification, and real-time PCR delivers rapid, sensitive, and quantitative results. To strengthen the kit design, ensure primers and probes target conserved viral regions, include internal (housekeeping) and external positive/negative controls, and rigorously validate the assay’s sensitivity, specificity, and limit of detection.
+
+### Sub-task 3: Based on the outputs from sub-task 1 and sub-task 2, analyze the provided choices and determine the correct sequence of actions for designing the diagnostic kit. 
+
+ ### thinking #3 by Chain-of-Thought Agent tede (yourself):
+Retroviruses have RNA genomes that must be reverse-transcribed into cDNA for amplification. Real-time RT-PCR provides rapid, sensitive, and specific detection suitable for early diagnosis. Among the options, only choice4 describes cDNA sequencing followed by real-time PCR, aligning with the optimal strategy.
+
+### answer #3 by Chain-of-Thought Agent tede (yourself):
+D)
+
+### Sub-task 3: Critique the decision and provide feedback. 
+
+ ### feedback #3 by Critic Agent nKc0:
+The selected approach correctly addresses that retroviruses carry RNA genomes which must first be reverse‐transcribed into cDNA, and that real‐time PCR (RT‐PCR) offers the fastest, most sensitive, and specific detection method. One minor note: full cDNA sequencing isn’t strictly required if reference sequences are available—you would typically design primers from conserved viral regions rather than sequence every isolate. Nonetheless, of the given options, choice4 best captures the necessary steps.
+
+Given the above, answer the following question: Sub-task 3: Based on the outputs from sub-task 1 and sub-task 2, analyze the provided choices and determine the correct sequence of actions for designing the diagnostic kit.
+
+If the question is too complicated or informaion is missing, you still need to give your best answer but add (1) an additional mark [TOO_HARD] in the next line of your final answer (2) information request or decomposison suggestion in the next line of the [TOO_HARD] mark, in the &#34;answer&#34; entry and justify why you think so in the &#34;thinking&#34; entry</pre>
+    </div>
+</div>
+
+<h3>Sampled message</h3>
+
+<div class="message assistant">
+    <div class="role">
+    assistant
+    
+    </div>
+    <div class="content">
+    <pre>Retroviruses have RNA genomes and require reverse transcription to cDNA before amplification, and real-time PCR offers rapid, sensitive detection, which aligns with choice 4.
+
+Answer:D)</pre>
+    </div>
+</div>
+<h3>Results</h3>
+<p>Correct Answer: 3</p>
+<p>Extracted Answer: D)</p>
+<p>Score: 1</p>
+    <hr>
+    
+    </body>
+</html>

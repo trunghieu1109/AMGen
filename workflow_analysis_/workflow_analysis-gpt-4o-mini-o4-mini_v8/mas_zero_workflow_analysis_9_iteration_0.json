@@ -1,0 +1,66 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen must choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Determine the total count of distinct input selections of a specified size drawn from a larger collection.",
+        "subtask_name": "identify constrained combinations"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The calculation requires knowledge of combinations and the results from subtask 1 to find the total ways to achieve at least 2 matches.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Compute the number of distinct input selections that share at least a threshold number of elements with a fixed reference selection.",
+        "subtask_name": "identify constrained combinations"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize (at least 2 matches) based on the outputs from subtask 1 and subtask 2.",
+        "supporting_info": "This requires the total ways to win a prize from subtask 2 and the total ways to pick numbers from subtask 1.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Compute the ratio between a constrained selection count and the total selection count to derive a primary scalar measure.",
+        "subtask_name": "compute adjusted aggregate measure"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "This requires understanding of combinations and the context of matching all chosen numbers.",
+        "agent_collaboration": "Debate",
+        "dependencies": [],
+        "abstracted_objective": "Determine the number of distinct input selections that exactly match a given reference selection.",
+        "subtask_name": "identify constrained combinations"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize (all 4 matches) based on the outputs from subtask 3 and subtask 4.",
+        "supporting_info": "This requires the total ways to win the grand prize from subtask 4 and the probability of winning a prize from subtask 3.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "abstracted_objective": "Compute the ratio of an exact-match selection count to a previously derived primary measure, yielding a secondary scalar variable.",
+        "subtask_name": "derive secondary variable"
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "This requires the probability from subtask 5 and involves simplifying the fraction to find m and n.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "abstracted_objective": "Simplify a scalar ratio into its reduced integer components and compute the sum of those components.",
+        "subtask_name": "simplify ratio and aggregate components"
+    }
+]

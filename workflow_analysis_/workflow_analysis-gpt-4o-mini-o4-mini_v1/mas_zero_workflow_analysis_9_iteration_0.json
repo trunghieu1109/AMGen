@@ -1,0 +1,66 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen needs to choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Compute total configurations",
+        "abstracted_objective": "Determine the total number of distinct groups of a fixed size that can be formed from the given set of input values."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The output from subtask 1 is required to calculate the total combinations and the specific combinations that meet the matching criteria.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Filter configurations by overlap constraint",
+        "abstracted_objective": "Identify and count all group selections whose overlap with a reference group meets or exceeds a specified threshold."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize, which is defined as having at least 2 matches with the randomly chosen numbers.",
+        "supporting_info": "This calculation requires the outputs from subtasks 1 and 2 to determine the total ways to win and the ways to win a prize.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Compute probability",
+        "abstracted_objective": "Calculate the probability of satisfying the first specified condition by dividing the count of valid configurations (from subtask_2) by the total configuration count (from subtask_1)."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "The calculation is based on the total number of combinations available in set S and requires no additional inputs from previous subtasks.",
+        "agent_collaboration": "Debate",
+        "dependencies": [],
+        "subtask_name": "Filter configurations by exact overlap",
+        "abstracted_objective": "Identify and count all group selections that exactly match the reference group."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize, which is defined as having all 4 matches with the randomly chosen numbers.",
+        "supporting_info": "This calculation requires the outputs from subtasks 3 and 4 to determine the total ways to win the grand prize and the total ways to win a prize.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "subtask_name": "Compute probability",
+        "abstracted_objective": "Calculate the probability of satisfying the second specified condition by dividing the count of exact‐match configurations (from subtask_4) by the total configuration count (from subtask_1)."
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "This requires the outputs from subtask 5 to identify the values of m and n and perform the final computation.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "subtask_name": "Compute conditional probability and simplify",
+        "abstracted_objective": "Given the two probabilities from subtask_3 and subtask_5, derive the conditional probability of the second condition given the first, express it as a reduced fraction, and compute the sum of its numerator and denominator."
+    }
+]

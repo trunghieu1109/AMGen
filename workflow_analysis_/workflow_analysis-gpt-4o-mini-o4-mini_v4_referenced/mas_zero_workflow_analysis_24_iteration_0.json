@@ -1,0 +1,58 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Solve for x in terms of y and z given the equation log2(x/(yz)) = 1/2.",
+        "supporting_info": "The equation log2(x/(yz)) = 1/2 implies that x = (yz) * 2^(1/2).",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Derive first component expression",
+        "abstracted_objective": "Express one target component as a function of two other components based on a specified transformation constraint."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Solve for y in terms of x and z given the equation log2(y/(xz)) = 1/3.",
+        "supporting_info": "The equation log2(y/(xz)) = 1/3 implies that y = (xz) * 2^(1/3). The output from subtask 1 is needed to express y in terms of x and z.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Derive second component expression",
+        "abstracted_objective": "Express a second target component as a function of two other components based on a specified transformation constraint."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Solve for z in terms of x and y given the equation log2(z/(xy)) = 1/4.",
+        "supporting_info": "The equation log2(z/(xy)) = 1/4 implies that z = (xy) * 2^(1/4). The outputs from subtasks 1 and 2 are required to express z in terms of x and y.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Derive third component expression",
+        "abstracted_objective": "Express the remaining component as a function of two other components based on a specified transformation constraint."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Compute |log2(x^4y^3z^2)| based on the outputs of subtasks 1, 2, and 3.",
+        "supporting_info": "The values of x, y, and z obtained from the previous subtasks are necessary to compute the logarithmic expression. The formula for the logarithm of a product will be used.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2",
+            "subtask_3"
+        ],
+        "subtask_name": "Compute composite measure",
+        "abstracted_objective": "Aggregate the derived component expressions via a specified transformation and determine its non-negative measure."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Verify and refine the solution for |log2(x^4y^3z^2)| to ensure its correctness.",
+        "supporting_info": "The final expression from subtask 4 needs to be critically evaluated for accuracy. Feedback from a critic agent will be used to refine the solution if necessary.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_4"
+        ],
+        "subtask_name": "Validate and refine result",
+        "abstracted_objective": "Verify the computed measure against defined accuracy criteria and perform refinements if necessary."
+    }
+]

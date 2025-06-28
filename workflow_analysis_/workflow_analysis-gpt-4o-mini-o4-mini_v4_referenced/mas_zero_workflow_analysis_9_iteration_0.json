@@ -1,0 +1,66 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen must choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Enumerate total configurations",
+        "abstracted_objective": "Count the total number of distinct configurations by selecting a fixed-size subset from an input set."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The calculation requires knowledge of the total combinations from subtask 1 and the specific conditions for matching numbers.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Enumerate partial-match configurations",
+        "abstracted_objective": "Count the number of configurations that satisfy a partial correspondence with a predefined reference set under a specified match threshold."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize (at least 2 matches) based on the outputs from subtasks 1 and 2.",
+        "supporting_info": "This requires the total combinations from subtask 1 and the successful combinations from subtask 2.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Compute event probability",
+        "abstracted_objective": "Determine the probability of a defined event by comparing the count of favorable configurations to the total configuration count."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "This requires understanding the total combinations and the specific condition of all matches.",
+        "agent_collaboration": "Debate",
+        "dependencies": [],
+        "subtask_name": "Enumerate full-match configurations",
+        "abstracted_objective": "Count the number of configurations that exactly correspond to a predefined reference set across all elements."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize (all 4 matches) based on the outputs from subtasks 3 and 4.",
+        "supporting_info": "This requires the probability of winning a prize from subtask 3 and the total ways to win the grand prize from subtask 4.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "subtask_name": "Compute conditional probability",
+        "abstracted_objective": "Calculate the conditional probability of one event given another by forming the ratio of their probabilities."
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "This requires the probability from subtask 5 and involves finding the values of m and n.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "subtask_name": "Simplify ratio and aggregate components",
+        "abstracted_objective": "Reduce a probability ratio to its simplest integer form and compute a summary metric by combining the numerator and denominator."
+    }
+]

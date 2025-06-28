@@ -1,0 +1,66 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen must choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Compute total configuration count",
+        "abstracted_objective": "Compute the total number of configurations for selecting a fixed-size subset from a given set of elements."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The calculation requires knowledge of combinations and the results from subtask 1.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Determine partial configuration count",
+        "abstracted_objective": "Compute the number of configurations such that each selected subset shares at least a specified number of elements with a reference subset."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize (at least 2 matches) based on the outputs from subtasks 1 and 2.",
+        "supporting_info": "This requires the total ways from subtask 1 and the ways with at least 2 matches from subtask 2.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Compute configuration measure",
+        "abstracted_objective": "Calculate the measure of a specified outcome as the ratio of favorable configurations to the total configuration count."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "This requires understanding of combinations and the context of matching all numbers.",
+        "agent_collaboration": "Debate",
+        "dependencies": [],
+        "subtask_name": "Determine exact configuration count",
+        "abstracted_objective": "Compute the number of configurations whose selected subset exactly matches a given reference subset."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize (all 4 matches) based on the outputs from subtasks 3 and 4.",
+        "supporting_info": "This requires the probability of winning a prize from subtask 3 and the ways to win the grand prize from subtask 4.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "subtask_name": "Compute conditional configuration measure",
+        "abstracted_objective": "Calculate the conditional measure of a specialized event given a broader event, using a previously computed measure and an exact configuration count."
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "This requires the probability from subtask 5 and involves simplifying the fraction to find m and n.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "subtask_name": "Simplify ratio representation",
+        "abstracted_objective": "Reduce a computed ratio to its simplest form and derive a summary metric by combining its numerator and denominator."
+    }
+]

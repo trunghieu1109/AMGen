@@ -1,0 +1,171 @@
+async def forward_153(self, taskInfo):
+
+    from collections import Counter
+    
+    print("Task Requirement: ", taskInfo)
+    
+    sub_tasks = []
+    agents = []
+
+    # Stage 1: Analyze spectral data
+    # Sub-task 1: Analyze mass spectrometry data
+    cot_instruction_1 = "Sub-task 1: Analyze the mass spectrometry data to determine the molecular weight and isotopic pattern of the compound."
+    cot_agent_1 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
+                            model=self.node_model, temperature=0.0)
+    thinking1, answer1 = await cot_agent_1([taskInfo], cot_instruction_1, is_sub_task=True)
+    agents.append(f"CoT agent {cot_agent_1.id}, analyzing mass spectrometry data, thinking: {thinking1.content}; answer: {answer1.content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking1.content}; answer - {answer1.content}")
+    print("Subtask 1 answer: ", sub_tasks[-1])
+
+    # Sub-task 2: Interpret IR spectrum
+    cot_instruction_2 = "Sub-task 2: Interpret the IR spectrum to identify functional groups present in the compound."
+    cot_agent_2 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
+                            model=self.node_model, temperature=0.0)
+    thinking2, answer2 = await cot_agent_2([taskInfo], cot_instruction_2, is_sub_task=True)
+    agents.append(f"CoT agent {cot_agent_2.id}, interpreting IR spectrum, thinking: {thinking2.content}; answer: {answer2.content}")
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking2.content}; answer - {answer2.content}")
+    print("Subtask 2 answer: ", sub_tasks[-1])
+
+    # Sub-task 3: Analyze 1H NMR data
+    cot_instruction_3 = "Sub-task 3: Analyze the 1H NMR data to determine the chemical environment of hydrogen atoms in the compound."
+    cot_agent_3 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
+                            model=self.node_model, temperature=0.0)
+    thinking3, answer3 = await cot_agent_3([taskInfo], cot_instruction_3, is_sub_task=True)
+    agents.append(f"CoT agent {cot_agent_3.id}, analyzing 1H NMR data, thinking: {thinking3.content}; answer: {answer3.content}")
+    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking3.content}; answer - {answer3.content}")
+    print("Subtask 3 answer: ", sub_tasks[-1])
+
+    # Stage 2: Compare with given choices
+    # Sub-task 4: Compare mass spectrometry data
+    cot_sc_instruction_4 = "Sub-task 4: Compare the mass spectrometry data with the molecular weights of the given choices to narrow down potential candidates."
+    N_4 = self.max_sc
+    cot_agents_4 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
+                              model=self.node_model, temperature=0.5) for _ in range(N_4)]
+    possible_answers_4 = []
+    thinkingmapping_4 = {}
+    answermapping_4 = {}
+    
+    for i in range(N_4):
+        thinking4, answer4 = await cot_agents_4[i]([taskInfo, thinking1, answer1], cot_sc_instruction_4, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_4[i].id}, comparing mass spectrometry data, thinking: {thinking4.content}; answer: {answer4.content}")
+        possible_answers_4.append(answer4.content)
+        thinkingmapping_4[answer4.content] = thinking4
+        answermapping_4[answer4.content] = answer4
+    
+    answer4 = Counter(possible_answers_4).most_common(1)[0][0]
+    thinking4 = thinkingmapping_4[answer4]
+    answer4 = answermapping_4[answer4]
+    sub_tasks.append(f"Sub-task 4 output: thinking - {thinking4.content}; answer - {answer4.content}")
+    print("Subtask 4 answer: ", sub_tasks[-1])
+
+    # Sub-task 5: Match IR spectrum functional groups
+    cot_sc_instruction_5 = "Sub-task 5: Match the identified functional groups from the IR spectrum with the functional groups present in the given choices."
+    N_5 = self.max_sc
+    cot_agents_5 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
+                              model=self.node_model, temperature=0.5) for _ in range(N_5)]
+    possible_answers_5 = []
+    thinkingmapping_5 = {}
+    answermapping_5 = {}
+    
+    for i in range(N_5):
+        thinking5, answer5 = await cot_agents_5[i]([taskInfo, thinking2, answer2], cot_sc_instruction_5, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_5[i].id}, matching IR spectrum functional groups, thinking: {thinking5.content}; answer: {answer5.content}")
+        possible_answers_5.append(answer5.content)
+        thinkingmapping_5[answer5.content] = thinking5
+        answermapping_5[answer5.content] = answer5
+    
+    answer5 = Counter(possible_answers_5).most_common(1)[0][0]
+    thinking5 = thinkingmapping_5[answer5]
+    answer5 = answermapping_5[answer5]
+    sub_tasks.append(f"Sub-task 5 output: thinking - {thinking5.content}; answer - {answer5.content}")
+    print("Subtask 5 answer: ", sub_tasks[-1])
+
+    # Sub-task 6: Compare 1H NMR data
+    cot_sc_instruction_6 = "Sub-task 6: Compare the chemical shifts and splitting patterns from the 1H NMR data with the expected patterns for the given choices."
+    N_6 = self.max_sc
+    cot_agents_6 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
+                              model=self.node_model, temperature=0.5) for _ in range(N_6)]
+    possible_answers_6 = []
+    thinkingmapping_6 = {}
+    answermapping_6 = {}
+    
+    for i in range(N_6):
+        thinking6, answer6 = await cot_agents_6[i]([taskInfo, thinking3, answer3], cot_sc_instruction_6, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_6[i].id}, comparing 1H NMR data, thinking: {thinking6.content}; answer: {answer6.content}")
+        possible_answers_6.append(answer6.content)
+        thinkingmapping_6[answer6.content] = thinking6
+        answermapping_6[answer6.content] = answer6
+    
+    answer6 = Counter(possible_answers_6).most_common(1)[0][0]
+    thinking6 = thinkingmapping_6[answer6]
+    answer6 = answermapping_6[answer6]
+    sub_tasks.append(f"Sub-task 6 output: thinking - {thinking6.content}; answer - {answer6.content}")
+    print("Subtask 6 answer: ", sub_tasks[-1])
+
+    # Stage 3: Integrate findings and select structure
+    # Sub-task 7: Integrate findings
+    debate_instruction_7 = "Sub-task 7: Integrate the findings from mass spectrometry, IR, and NMR analyses to make a structural suggestion for the unidentified compound."
+    debate_agents_7 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
+                                   model=self.node_model, role=role, temperature=0.5) 
+                      for role in self.debate_role]
+    N_max_7 = self.max_round
+    
+    all_thinking7 = [[] for _ in range(N_max_7)]
+    all_answer7 = [[] for _ in range(N_max_7)]
+    
+    for r in range(N_max_7):
+        for i, agent in enumerate(debate_agents_7):
+            if r == 0:
+                thinking7, answer7 = await agent([taskInfo, thinking4, answer4, thinking5, answer5, thinking6, answer6], 
+                                           debate_instruction_7, r, is_sub_task=True)
+            else:
+                input_infos_7 = [taskInfo, thinking4, answer4, thinking5, answer5, thinking6, answer6] + all_thinking7[r-1] + all_answer7[r-1]
+                thinking7, answer7 = await agent(input_infos_7, debate_instruction_7, r, is_sub_task=True)
+            
+            agents.append(f"Debate agent {agent.id}, round {r}, integrating findings, thinking: {thinking7.content}; answer: {answer7.content}")
+            all_thinking7[r].append(thinking7)
+            all_answer7[r].append(answer7)
+    
+    final_decision_agent_7 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
+                                         model=self.node_model, temperature=0.0)
+    thinking7, answer7 = await final_decision_agent_7([taskInfo] + all_thinking7[-1] + all_answer7[-1], 
+                                                 "Sub-task 7: Make final decision on structural suggestion.", 
+                                                 is_sub_task=True)
+    agents.append(f"Final Decision agent, integrating findings, thinking: {thinking7.content}; answer: {answer7.content}")
+    sub_tasks.append(f"Sub-task 7 output: thinking - {thinking7.content}; answer - {answer7.content}")
+    print("Subtask 7 answer: ", sub_tasks[-1])
+
+    # Sub-task 8: Select most likely structure
+    debate_instruction_8 = "Sub-task 8: Select the most likely structure from the given choices based on the integrated spectral data analysis."
+    debate_agents_8 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
+                                   model=self.node_model, role=role, temperature=0.5) 
+                      for role in self.debate_role]
+    N_max_8 = self.max_round
+    
+    all_thinking8 = [[] for _ in range(N_max_8)]
+    all_answer8 = [[] for _ in range(N_max_8)]
+    
+    for r in range(N_max_8):
+        for i, agent in enumerate(debate_agents_8):
+            if r == 0:
+                thinking8, answer8 = await agent([taskInfo, thinking7, answer7], 
+                                           debate_instruction_8, r, is_sub_task=True)
+            else:
+                input_infos_8 = [taskInfo, thinking7, answer7] + all_thinking8[r-1] + all_answer8[r-1]
+                thinking8, answer8 = await agent(input_infos_8, debate_instruction_8, r, is_sub_task=True)
+            
+            agents.append(f"Debate agent {agent.id}, round {r}, selecting most likely structure, thinking: {thinking8.content}; answer: {answer8.content}")
+            all_thinking8[r].append(thinking8)
+            all_answer8[r].append(answer8)
+    
+    final_decision_agent_8 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
+                                         model=self.node_model, temperature=0.0)
+    thinking8, answer8 = await final_decision_agent_8([taskInfo] + all_thinking8[-1] + all_answer8[-1], 
+                                                 "Sub-task 8: Make final decision on most likely structure.", 
+                                                 is_sub_task=True)
+    agents.append(f"Final Decision agent, selecting most likely structure, thinking: {thinking8.content}; answer: {answer8.content}")
+    sub_tasks.append(f"Sub-task 8 output: thinking - {thinking8.content}; answer - {answer8.content}")
+    print("Subtask 8 answer: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking8, answer8, sub_tasks, agents)
+    return final_answer

@@ -1,0 +1,66 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen must choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "subtask_name": "Count all subset configurations",
+        "abstracted_objective": "Determine the total number of ways to select a subset of a specified size from a collection of distinct items."
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The calculation requires knowledge of combinations and the results from subtask 1.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "subtask_name": "Count configurations meeting overlap threshold",
+        "abstracted_objective": "Determine the number of ways to select a subset that contains at least a given number of elements in common with a reference subset."
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize (at least 2 matches) based on the outputs from subtask 1 and subtask 2.",
+        "supporting_info": "This requires the total ways from subtask 1 and the ways with at least 2 matches from subtask 2.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "subtask_name": "Compute threshold event probability",
+        "abstracted_objective": "Calculate the probability of obtaining a selection that meets a specified overlap criterion by relating the count of favorable configurations to the total count."
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "This requires understanding of combinations and the context of matching all numbers.",
+        "agent_collaboration": "Debate",
+        "dependencies": [],
+        "subtask_name": "Count full overlap configurations",
+        "abstracted_objective": "Determine the number of ways to select a subset that exactly matches a reference subset in all specified elements."
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize (all 4 matches) based on the outputs from subtask 3 and subtask 4.",
+        "supporting_info": "This requires the probability of winning a prize from subtask 3 and the ways to win the grand prize from subtask 4.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "subtask_name": "Compute exact match probability",
+        "abstracted_objective": "Calculate the probability of achieving a complete match between a selected subset and a reference subset."
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "This requires the probability from subtask 5 and involves finding relatively prime integers m and n.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "subtask_name": "Formulate and simplify conditional ratio",
+        "abstracted_objective": "Express the conditional probability of one event given another as a simplified ratio and combine its components into a single summary value."
+    }
+]
