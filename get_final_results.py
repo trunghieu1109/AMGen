@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "results/workflow_search/aime24/abstract_workflow_v9/gpt-4.1-mini_gpt-4o-mini-2024-07-18"
+directory = "results/workflow_search/gpqa_diamond/abstract_workflow_refined/gpt-4.1-mini_gpt-4o-mini-2024-07-18"
 total_score = 0
 total_time = 0
 max_cost = float('-inf')
@@ -13,11 +13,15 @@ file_name = [0] * 30
 for filename in os.listdir(directory):
     if filename.endswith(".json"):
         filepath = os.path.join(directory, filename)
-        cnt += 1
-        # print(filename)
         file_name.append(filename)
         number = int(filename.split('_')[-1].split('.')[0])
         file_name[number] = 1
+        
+        if number < 150:
+            continue
+        
+        cnt += 1
+        # print(filename)
         with open(filepath, "r") as f:
             data = json.load(f)
             max_score = 0

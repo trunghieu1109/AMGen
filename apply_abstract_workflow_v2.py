@@ -19,6 +19,7 @@ import re
 
 from typing import Any
 from datasets import load_dataset
+from prompts.abstract_based_prompt import INTERACTION_PATTERN
 import pandas as pd
 import common
 from common import HTML_JINJA, get_init_archive, get_prompt, get_reflexion_prompt, SingleEvalResult, get_reflexion_after_eval
@@ -100,40 +101,6 @@ async def forward(self, taskInfo):
     logs.append(subtask_desc1)
     
     print("Subtask 1 answer: ", sub_tasks[-1])
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    """
-    <This section is just to describe content in one stage. Do not include them in generated code>
-    [Stage 2: <Fill the stage 2's stage_name>]
-    [Objective] 
-    - <Describe in detail the abstracted objective of stage 2.>
-    - <Describe in detail the abstracted objective of stage 2.>
-    [Agent Collaborations]
-    - <Describe in detail the agent collaboration of stage 2.>
-    - It could be more than 2 subtasks in this stage, based on your fine-grained task decomposition.
-    """
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    """
-    <This section is just to describe content in one stage. Do not include them in generated code>
-    [Stage 3: <Fill the stage 3's stage_name>]
-    [Objective] 
-    - <Describe in detail the abstracted objective of stage 3.>
-    - <Describe in detail the abstracted objective of stage 3.>
-    [Agent Collaborations]
-    - <Describe in detail the agent collaboration of stage 3.>
-    - It could be more than 2 subtasks in this stage, based on your fine-grained task decomposition.
-    """
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
 
     <Continue with next stages>
     
@@ -327,7 +294,6 @@ class AgentSystem():
 async def evaluate_forward_fn(args, example_id, forward_str):
     # dynamically define forward()
     # modified from https://github.com/luchris429/DiscoPOP/blob/main/scripts/launch_evo.py
-
 
     print('forward_str: ',forward_str)
 
@@ -531,65 +497,6 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         if n != 0:
             continue
         
-#         user_prompt_generate_workflow = f"""
-# You are a meticulous static code analyzer specialized in detecting the use of undeclared variables in Python functions.
-# Your task is to examine the provided Python function and ensure that:
-# 1. Every variable is declared before it is used, including:
-# - Local variables
-# - Function parameters
-# - Arguments passed to internal function calls
-# - Loop variables, list comprehension variables, etc.
-# 2. If any variable is used before being declared, or is never declared within the scope of the function, you must provide a detailed report that includes:
-# - The name of the variable
-# - The line where the issue occurs
-# - A precise explanation of why the variable is considered undeclared
-# 3. Also, watch out for:
-# - Typos or incorrect references to variable names
-# - Function calls using undeclared variables as arguments
-
-# Example (for testing purposes):
-
-# ```python
-# def example(a, b):
-#     total = a + b
-    
-#     total += c  # 'c' is undeclared
-    
-#     for i in range(n):  # 'n' is undeclared
-#         sum += i
-        
-#     return total + sum  # 'sum' is undeclared
-# ```
-
-# Note: This function is injected into a class, so `self....` is declared and it not an error.
-
-# Function:
-# {workflow['code']}
-
-# Reply EXACTLY with the following JSON format. Return `thought`, which is your thought and `is_error`, which is `True` or `False`.
-# {{
-#     "thought": "Your thought.", 
-#     "is_error": True | False
-# }}
-
-# DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
-#         """
-        
-#         msg_list = [
-#             # {"role": "system", "content": system_prompt},
-#             {"role": "user", "content": user_prompt_generate_workflow},
-#         ]
-
-#         checking = get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'is_error'], 0.0)
-        
-#         print(f"Workflow: {workflow_id}, iteration: {n}, is_error = {checking['is_error']} \n thought: {checking['thought']}")
-        
-#         if str(checking['is_error']) == 'True':
-#             judge_path = os.path.join(args.save_dir, f"{expr_name}_{workflow_id}_iteration{n}_full_response")
-#             with open(judge_path, 'w') as judge_file:
-#                 judge_file.write(f'Question: {task_queue[0].content}\nIteration: {n}\nVariables Checking: {checking['thought']}')
-#             continue
-        
         judge_path = os.path.join(args.save_dir, f"{expr_name}_{workflow_id}_iteration{n}_{args.option}_judge")
         reponse_path = os.path.join(args.save_dir, f"{expr_name}_{workflow_id}_iteration{n}_{args.option}_reponse")
 
@@ -622,7 +529,6 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         else:
             acc_list = acc_model_verifier_list
 
-
         if args.defer_verifier:
             fitness_str = bootstrap_confidence_interval([0.0])
             workflow["acc"] = np.mean([0.0])
@@ -637,7 +543,6 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         print(f"acc_list:", acc_list)
         print(f"mean acc_list:", np.mean(acc_list))
         print(f"bootstrap_confidence_interval: {fitness_str}")
-
 
         if 'swe_bench' in args.dataset:
             extracted_answer = final_reponse[0].split('\n\nAnswer:', 1)[-1].strip()
@@ -695,8 +600,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_refined/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_refined/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_refined_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_refined_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -707,159 +612,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     reponse_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_reponse")
     os.makedirs(os.path.dirname(judge_path), exist_ok=True)
     
-    interaction_pattern = """
-Sample agent iteraction pattern:
-Chain-of-Thought: 
-```python
-    cot_instruction = "Sub-task 1: Consider/calculate all possible cases of [problem #1], with context ...."
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    subtask_desc1 = {{
-        "subtask_id": "subtask_1",
-        "instruction": cot_instruction,
-        "context": ["user query"],
-        "agent_collaboration": "CoT"
-    }}
-    thinking1, answer1 = await cot_agent([taskInfo], cot_instruction, is_sub_task=True)
-    agents.append(f"CoT agent {{cot_agent.id}}, consider/calculate all possible scenarios of [problem #1], thinking: {{thinking1.content}}; answer: {{answer1.content}}")
-    sub_tasks.append(f"Sub-task 1 output: thinking - {{thinking1.content}}; answer - {{answer1.content}}")
-    subtask_desc1['response'] = {{
-        "thinking": thinking1,
-        "answer": answer1
-    }}
-    logs.append(subtask_desc1)
-```
-
-Self-Consistency Chain-of-Thought:
-```python
-    cot_sc_instruction = "Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
-    N = self.max_sc
-    cot_agents = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                              model=self.node_model, temperature=0.5) for _ in range(N)]
-    possible_answers = []
-    thinkingmapping = {{}}
-    answermapping = {{}}
-    subtask_desc2 = {{
-        "subtask_id": "subtask_2",
-        "instruction": cot_sc_instruction,
-        "context": ["user query", "thinking of subtask 1", "answer of subtask 1"],
-        "agent_collaboration": "SC_CoT"
-    }}
-    for i in range(N):
-        # Each CoT-SC agent tries to calculate all possible cases independently
-        thinking2, answer2 = await cot_agents[i]([taskInfo, thinking1, answer1], cot_sc_instruction, is_sub_task=True)
-        agents.append(f"CoT-SC agent {{cot_agents[i].id}}, consider all possible cases of [problem #2], thinking: {{thinking2.content}}; answer: {{answer2.content}}")
-        possible_answers.append(answer2.content)
-        thinkingmapping[answer2.content] = thinking2
-        answermapping[answer2.content] = answer2
-        
-    # The most common answer is chosen for consistency and accuracy.
-    answer2_content = Counter(possible_answers).most_common(1)[0][0]
-    thinking2 = thinkingmapping[answer2_content]
-    answer2 = answermapping[answer2_content]
-    sub_tasks.append(f"Sub-task 2 output: thinking - {{thinking2.content}}; answer - {{answer2.content}}")
-    subtask_desc2['response'] = {{
-        "thinking": thinking2,
-        "answer": answer2
-    }}
-    logs.append(subtask_desc2)
-```
-
-Reflexion:
-```python
-    cot_reflect_instruction = "Sub-task 3: Based on the outputs from Sub-task 1 and Sub-task 2, filter the valid scenarios that meet the [conditions stated in the queries]."
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    critic_agent = LLMAgentBase(["feedback", "correct"], "Critic Agent", 
-                               model=self.node_model, temperature=0.0)
-    N_max = self.max_round
-    
-    # Input for CoT agent
-    cot_inputs = [taskInfo, thinking1, answer1, thinking2, answer2]
-    
-    subtask_desc3 = {{
-        "subtask_id": "subtask_3",
-        "instruction": cot_reflect_instruction,
-        "context": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"],
-        "agent_collaboration": "Reflexion"
-    }}
-    
-    # Generate the first version
-    thinking3, answer3 = await cot_agent(cot_inputs, cot_reflect_instruction, 0, is_sub_task=True)
-    agents.append(f"Reflexion CoT agent {{cot_agent.id}}, filter valid scenarios of [problem], thinking: {{thinking3.content}}; answer: {{answer3.content}}")
-
-    for i in range(N_max):
-        # Critic agent debates and criticizes pros and cons of previous version
-        feedback, correct = await critic_agent([taskInfo, thinking3, answer3], 
-                                       "please review the [valid scenarios] filtering and provide its limitations.", 
-                                       i, is_sub_task=True)
-        agents.append(f"Critic agent {{critic_agent.id}}, providing feedback, thinking: {{feedback.content}}; answer: {{correct.content}}")
-        if correct.content == "True":
-            break
-        
-        # Include previous version and feedback from critic agent as input
-        cot_inputs.extend([thinking3, answer3, feedback])
-        
-        # Generate new version based on previous version and feedback
-        thinking3, answer3 = await cot_agent(cot_inputs, cot_reflect_instruction, i + 1, is_sub_task=True)
-        agents.append(f"Reflexion CoT agent {{cot_agent.id}}, refining valid scenarios of [problem], thinking: {{thinking3.content}}; answer: {{answer3.content}}")
-    sub_tasks.append(f"Sub-task 3 output: thinking - {{thinking3.content}}; answer - {{answer3.content}}")
-    subtask_desc3['response'] = {{
-        "thinking": thinking3,
-        "answer": answer3
-    }}
-    logs.append(subtask_desc3)
-```
-
-Debate:
-```python
-    debate_instruction_5 = "Sub-task 5: Based on the output of Sub-task 4, convert [intermediate output] into [specific format] and calculate [the final answer]"
-    debate_agents_5 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
-                                   model=self.node_model, role=role, temperature=0.5) 
-                      for role in self.debate_role]
-    N_max_5 = self.max_round
-    
-    all_thinking5 = [[] for _ in range(N_max_5)]
-    all_answer5 = [[] for _ in range(N_max_5)]
-    
-    subtask_desc5 = {{
-        "subtask_id": "subtask_5",
-        "instruction": debate_instruction_5,
-        "context": ["user query", "thinking of subtask 4", "answer of subtask 4",
-        "agent_collaboration": "Debate"
-    }}
-    
-    for r in range(N_max_5):
-        # N_max_5 rounds of debating
-        for i, agent in enumerate(debate_agents_5):
-            # Each agent proposes its solution
-            if r == 0:
-                thinking5, answer5 = await agent([taskInfo, thinking4, answer4], 
-                                           debate_instruction_5, r, is_sub_task=True)
-            else:
-                # Generate next solution based on comments and counter-arguments from other debaters
-                input_infos_5 = [taskInfo, thinking4, answer4] + all_thinking5[r-1] + all_answer5[r-1]
-                thinking5, answer5 = await agent(input_infos_5, debate_instruction_5, r, is_sub_task=True)
-            
-            agents.append(f"Debate agent {{agent.id}}, round {{r}}, converting [intermediate output] and calculating [final output], thinking: {{thinking5.content}}; answer: {{answer_5.content}}")
-            all_thinking5[r].append(thinking5)
-            all_answer5[r].append(answer5)
-    
-    # Final decision agent makes final decision
-    final_decision_agent_5 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                         model=self.node_model, temperature=0.0)
-    thinking5, answer5 = await final_decision_agent_5([taskInfo] + all_thinking5[-1] + all_answer5[-1], 
-                                                 "Sub-task 5: Make final decision on [final output].", 
-                                                 is_sub_task=True)
-    agents.append(f"Final Decision agent, calculating [final output], thinking: {{thinking5.content}}; answer: {{answer5.content}}")
-    sub_tasks.append(f"Sub-task 5 output: thinking - {{thinking5.content}}; answer - {{answer5.content}}")
-    subtask_desc5['response'] = {{
-        "thinking": thinking5,
-        "answer": answer5
-    }}
-    logs.append(subtask_desc5)
-```
-    """
+    interaction_pattern = INTERACTION_PATTERN
 
     print('file_path: ',file_path)
     print('msg_path: ',msg_path)
@@ -951,21 +704,15 @@ Return your result in valid JSON format with the following structure. Each eleme
     for idx in cluster_id:
         if str(idx) not in mas_chain:
             mas_chain.append(str(idx))
-            
-    # compare to available abstracted workflow via levenshtein distance
+
     sorted_chains = sorted(default_mas_chain, key=lambda mas: levenshtein_array_to_array(mas_chain, mas))
 
-    # Lấy 2 chuỗi giống nhất
     closest_2 = sorted_chains[:1]
-    
-    # get 2 the most similar workflow
+
     workflow_index = []
     for idx, awd in enumerate(abstract_workflow):
         if str(awd['chain']) == str(closest_2[0]):
             workflow_index.append(idx)
-            
-        # if str(awd['chain']) == str(closest_2[1]):
-        #     workflow_index.append(idx)
 
     print("workflow index: ", workflow_index)
     
@@ -973,10 +720,6 @@ Return your result in valid JSON format with the following structure. Each eleme
     
     print("Filtered workflow: ", [fw['name'] for fw in filterd_workflow])
     task_content = task_queue[0].content
-    
-    # task_content = task_content.replace("'", "")
-    # task_content = task_content.replace("{", "")
-    # task_content = task_content.replace("}", "")
     
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
     
@@ -987,31 +730,34 @@ Return your result in valid JSON format with the following structure. Each eleme
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/abstract_workflow_refined/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/abstract_workflow_refined_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
     final_results = []
     max_score = 0
-    for aw_id, aw in enumerate(filterd_workflow):
-        evaluation = []
-        task_decomposition = None
-        next_solution = {
-            'code': ""
-        }
-        for attempt in range (0, max_attempt):
-            print(f'============Initial Archive: {aw["name"]}=================')
-            default_global_n = get_global("global_n")
-            default_global_n[str(example_id)] = f"{aw["name"]}_{example_id}"
-            set_global("global_n", default_global_n)
+    logs = []
+    # for aw_id, aw in enumerate(filterd_workflow):
+    aw_id = 0
+    aw = filterd_workflow[0]
+    
+    evaluation = []
+    task_decomposition = None
+    next_solution = {
+        'code': ""
+    }
+    print(f'============Initial Archive: {aw["name"]}=================')
+    default_global_n = get_global("global_n")
+    default_global_n[str(example_id)] = f"{aw["name"]}_{example_id}"
+    set_global("global_n", default_global_n)
 
-            global_n = get_global("global_n")
-            global_n = global_n[str(example_id)]
-            global_ns.append(global_n)
-            
-            # decompose query into multiple subtasks
-            
-            user_prompt = f"""
+    global_n = get_global("global_n")
+    global_n = global_n[str(example_id)]
+    global_ns.append(global_n)
+    
+    # decompose query into multiple subtasks
+    
+    user_prompt = f"""
 You are an agent specialized in task decomposition. Your task is to analyze the provided query thoroughly and decompose it into subtasks and their dependencies to address the query effectively. You must incorporate feedback from previous decomposition attempts (evaluation) to improve the quality of the decomposition, avoiding past mistakes and addressing any identified issues.
 [Query]
 {task_queue_tmp[0].content}
@@ -1025,30 +771,9 @@ You are an agent specialized in task decomposition. Your task is to analyze the 
 3. For each subtask, include:
     3.1. Objective: Clearly state the purpose of the subtask, incorporating all relevant context or conditions from previous subtasks to enhance performance.
     3.2. Dependencies: Specify which subtasks must be completed before the current subtask, ensuring proper sequencing.
-4. Analyze the evaluation from previous decomposition attempts to identify weaknesses, redundancies, or gaps. Use this feedback to refine the decomposition, ensuring:
-    4.1. Subtasks address any issues highlighted in the evaluation (e.g., overly broad tasks, missing dependencies, or unclear objectives).
-    4.2. The decomposition improves upon previous attempts by being more precise, efficient, or comprehensive.
-5. Incorporate domain expert feedback:
-    5.1. Carefully review all feedback and evaluation from previous attempts.
-    [Evaluation]
-    {evaluation}
-    5.2. Leverage any suggestions or expert critique to address prior issues such as:
-        5.2.1. Missing dependencies.
-        5.2.2. Overly broad or abstract subtasks.
-        5.2.3. Redundant steps.
-        5.2.4. Gaps in logic or execution order.
-6. Refine the current decomposition by ensuring:
-    6.1. Improved granularity, clarity, and logical sequencing over previous attempts.
-    6.2. Outputs from one subtask are well-formed and suitable as inputs to the next, enhancing interoperability between subtasks.
-    6.3. If a reasoning flaw is identified by expert evaluation, guide the agents' instructions to avoid repeating the same mistake.
-    6.4. Use feedbacks from experts to guide agents's instructions.
-7. If the evaluation is empty, treat this as the first attempt and focus on creating a clear, logical, and detailed decomposition.
-8. Follow the provided workflow description to structure the decomposition process.
-9. Ensure the decomposition is tailored to the query’s intent and context, leveraging any available information from previous tasks or the query itself.
-10. Consider output format of each subtask, so that they could pass their output to other agents effectively.
-
-[Previous Task Decomposition]
-{task_decomposition}
+4. Follow the provided workflow description to structure the decomposition process.
+5. Ensure the decomposition is tailored to the query’s intent and context.
+6. Consider output format of each subtask, so that they could pass their output to other agents effectively.
 
 <Abstract Workflow Description>
 {aw['flow']}
@@ -1056,6 +781,7 @@ You are an agent specialized in task decomposition. Your task is to analyze the 
 
 Return in JSON format, contains 'task_decomposition'. 
 {{
+    'thought': "Your thought while decomposing task -> to subtasks",
     'task_decomposition': {{
         'stage_1': {{
             'subtask_1': {{
@@ -1079,80 +805,60 @@ Return in JSON format, contains 'task_decomposition'.
         }}
     }}
 }}
-        """
-        
-            msg_list = [
-                {"role": "user", "content": user_prompt},
-            ]
+    """
 
-            task_decomposition ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['task_decomposition'], 0.0)
-            for k, v in task_decomposition['task_decomposition'].items():
-                for ks, vs in v.items():
-                    vs['objective'] = vs['objective'].replace("{", "")
-                    vs['objective'] = vs['objective'].replace("}", "")
-                    vs['objective'] = vs['objective'].replace("'", "")
-            print("\n============= Task Decomposition: =============\n", task_decomposition['task_decomposition'])
-            stage_desc = str(aw).replace("subtask", "stage")
-            # generate new workflow that concretized for this query
-            user_prompt_generate_workflow = f"""
+    msg_list = [
+        {"role": "user", "content": user_prompt},
+    ]
+
+    task_decomposition ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'task_decomposition'], 0.0)
+    for k, v in task_decomposition['task_decomposition'].items():
+        for ks, vs in v.items():
+            vs['objective'] = vs['objective'].replace("{", "")
+            vs['objective'] = vs['objective'].replace("}", "")
+            vs['objective'] = vs['objective'].replace("'", "")
+    print("\n============= Task Decomposition: =============\n", task_decomposition['task_decomposition'])
+    stage_desc = str(aw).replace("subtask", "stage")
+    # generate new workflow that concretized for this query
+    user_prompt_generate_workflow = f"""
 You are tasked with instantiating a concrete version of an abstract multi-stage workflow to solve complex queries using agent-based reasoning techniques (e.g., Chain-of-Thought, Self-Consistency, Reflexion, Debate). The workflow must be customized for the provided query and incorporate feedback from previous attempts to improve contextual usage, reasoning processes, and overall effectiveness.
 
 [Important Notes]
-
-1. The Abstract Workflow is an example implementation. You may adapt the agent interaction patterns (e.g., CoT, Self-Consistency CoT, Debate, Reflexion) to best suit the query’s complexity and requirements.
-2. DO NOT USE LATEX FORMAT in the generated workflow.
-3. Ensure the final part includes the make_final_answer function.
-4. The generated code must include sufficient subtasks as planned in the task decomposition.
-5. Incorporate feedback from the evaluation to address issues related to contextual usage and reasoning processes.
-6. A stage may include multiple steps if necessary to achieve the query’s objectives.
-
-[Feedback from Previous Attempt]
-{evaluation}
-
-[Previous workflow]
-{next_solution['code']} 
-Apply the feedbacks and suggestions from domain experts to improve your workflow. 
+1. You may adapt the agent interaction patterns (e.g., CoT, Self-Consistency CoT, Debate, Reflexion) to best suit the query’s complexity and requirements.
+2. The generated code must include sufficient subtasks as planned in the task decomposition.
+3. A stage may include multiple steps if necessary to achieve the query’s objectives.
 
 [Instructions]
 You must follow the requirements below when generating the concrete workflow:
-
 1. Return Format
 Reply EXACTLY in the following JSON format. The generated code MUST be in function format (i.e., forward function) without comments.
 {{
-"code": "Your code."
+    "thought": "Your thought while generating code",
+    "code": "Your code."
 }}
+You must remove commnets from generated code.
 Ensure the response is a well-formed JSON object and includes all required fields.
 
 2. Workflow Decomposition
-    2.1. Follow the provided task decomposition to structure the workflow. 
-    [Task Decomposition] {task_decomposition['task_decomposition']}
-    2.2. Ensure each subtask is implemented as a step in the workflow, with clear objectives and dependencies as specified in the decomposition.
+2.1. Follow the provided task decomposition to structure the workflow. 
+[Task Decomposition] 
+{task_decomposition['task_decomposition']}
 
 3. Agent Collaboration Patterns
-    3.1. Implement agent interaction structures such as Chain-of-Thought (CoT), Self-Consistency CoT (SC-CoT), Reflexion, or Debate, selecting the most appropriate pattern for each subtask based on its complexity and the query’s requirements.
-    3.2. Retain variables like self.node_model, self.debate_role, self.max_sc, and self.max_round with their correct roles.
-    3.3. Refer to the provided interaction pattern examples for implementation guidance. 
-    [Interaction Pattern] {interaction_pattern}
+3.1. Implement agent interaction structures such as Chain-of-Thought (CoT), Self-Consistency CoT (SC-CoT), Reflexion, or Debate, selecting the most appropriate pattern for each subtask based on its complexity and the query’s requirements.
+3.2. Retain variables like self.node_model, self.debate_role, self.max_sc, and self.max_round with their correct roles.
+3.3. Refer to the provided interaction pattern examples for implementation guidance. 
+[Interaction Pattern] {interaction_pattern}
 
 4. Placeholder Replacement
-    4.1. Replace placeholders (e.g., [final answer], [condition #1]) with specific information relevant to the subtask. For example, if the query involves calculating the speed of a nucleus, replace [final answer] with “the speed of the nucleus.”
-    4.2. Ensure reasoning goals are fully grounded in the query’s context for clarity and relevance.
+4.1. Replace placeholders (e.g., [final answer], [condition #1]) with specific information relevant to the subtask. For example, if the query involves calculating the speed of a nucleus, replace [final answer] with “the speed of the nucleus.”
+4.2. Ensure reasoning goals are fully grounded in the query’s context for clarity and relevance.
 
-5. Logic Preservation
-Maintain the structure and logic of the abstract workflow:
-    5.1. Preserve the same number of stages.
-    5.2. Ensure stage transitions align with the inference objectives.
-    5.3. Synthesize the final answer from intermediate steps.
-    5.4. Print the result of each subtask using print("Step x: ", sub_tasks[-1]).
-    5.5. Include from collections import Counter in the code.
-6. Remove the comments:
-    6.1. Avoid using comments in the generated code to keep it clean and concise.
-
-7. Logging:
+5. Logging:
 Log each subtask in the logs list, including:
-    7.1. `subtask_id`, `instruction`, `context`, and `agent_collaboration` before agent execution.
-    7.2. `response` (including `thinking` and `answer`) after agent execution.
-    7.3. Ensure you logs enough information.
+5.1. `subtask_id`, `instruction`, `context`, and `agent_collaboration` before agent execution.
+5.2. `response` (including `thinking` and `answer`) after agent execution.
+
 [Your Task]
 Generate a concrete agentic workflow in Python code format, based on the Abstract Workflow, tailored to the query and informed by the evaluation feedback.
 
@@ -1164,270 +870,370 @@ Generate a concrete agentic workflow in Python code format, based on the Abstrac
 
 [Query]
 {task_queue_tmp[0].content}
-            """
-            
-            msg_list = [
-                {"role": "user", "content": user_prompt_generate_workflow},
-            ]
+    """
+    
+    msg_list = [
+        {"role": "user", "content": user_prompt_generate_workflow},
+    ]
 
-            next_solution ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['code'], 0.0)
-            print("================ Generated Multi-agent system ================\n", next_solution['code'])
-            next_solution['code'] = next_solution['code'].replace("{{", "{")
-            next_solution['code'] = next_solution['code'].replace("}}", "}")
-            print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
-            # evaluate multi agent system
-            try:
-                next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
-                acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
-            except Exception as e:
-                print("Error: ", str(e))
-                error_trace = traceback.format_exc()
-                print("Full error trace:\n", error_trace)
+    next_solution ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'code'], 0.0)
+    print("================ Generated Multi-agent system ================\n", next_solution['code'])
+    next_solution['code'] = next_solution['code'].replace("{{", "{")
+    next_solution['code'] = next_solution['code'].replace("}}", "}")
+    print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
+    # evaluate multi agent system
+    try:
+        next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
+        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+    except Exception as e:
+        print("Error: ", str(e))
+        error_trace = traceback.format_exc()
+        print("Full error trace:\n", error_trace)
+        return -1, -1, ""
+    
+    with open("logs.pkl", "wb") as f:
+        pkl.dump(logs, f)
+    
+    judge_path = os.path.join(args.save_dir, f"{expr_name}_{aw['name']}_{example_id}_full_response")
+    with open(judge_path, 'w') as judge_file:
+        judge_file.write(f'Question: {task_queue[0].content}\nIteration: {aw['name']}\nFull Response:{raw_results}')
+
+    if global_use_oracle_verifier:
+        acc_list = acc_oracle_verifier_list
+    else:
+        acc_list = acc_model_verifier_list
+
+    print(f"acc_list:", acc_list)
+    print(f"mean acc_list:", np.mean(acc_list))
+    
+    extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
+
+    if '[TOO_HARD]' in extracted_answer:
+        extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
+
+    # save results
+    converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_{aw["name"]}_{example_id}_first_gen_converted.py')
+    with open(converted_code_filename, "w") as fh:
+        fh.write(next_solution['code'])    
+    
+    print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
+
+    with open(oracle_acc_result_path, "a+") as fh:
+        fh.write(f'experiemnt {example_id}: 1 (initial {aw["name"]}): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+    
+    max_score = max(max_score, acc_oracle_verifier_list[0])
+    # evaluation stage
+    if max_score == 0:
+        subtask_desc = logs
+            
+        reasoning_refinement_prompt = f"""
+    Based on feedback from professors, the current answer of this workflow is wrong. So, you need try to find the cause of this failure and then suggest the potential methods to improve the performance.
+
+    # Input
+    You will receive the following:
+    [User query]
+    {task_queue_tmp[0].content}
+    [Subtask Description]
+    {subtask_desc}
+    [Current Answer]
+    {current_ans}
+    [Output format]
+    {output_description}
+
+    # Tasks
+    Perform the following tasks:
+    1. Reasoning Verification:
+    - Review the reasoning steps of each subtask.
+    - Identify logical errors, false assumptions, or steps that led to incorrect results.
+    2. Context Sufficiency Evaluation:
+    - Assess whether the input context for each subtask is sufficient for correct execution.
+    - Identify missing, ambiguous, or irrelevant information.
+    - Suggest improvements or additions to the context.
+    3. Agent Interaction Analysis:
+    - Evaluate how agents communicate (e.g., sequentially, in parallel).
+    - Determine if failures were due to poor collaboration or lack of information sharing.
+    4. Collaboration Pattern Recommendation:
+    For each subtask, suggest a suitable pattern:
+    - CoT: Step-by-step reasoning.
+    - SC-CoT: Multiple reasoning paths with consistency check.
+    - Debate: Agents argue different strategies.
+    - Reflexion: Agents reflect to catch and fix errors.
+    Briefly justify the choice.
+    5. Output Validation:
+    - Check whether outputs follow the required format.
+    - Assess accuracy and completeness of outputs.
+    - Identify any mistakes or omissions.
+    6. Workflow Improvement Suggestions:
+    - Decompose Subtasks: Break down complex steps.
+    - Change Collaboration Patterns: Apply more effective reasoning models.
+    - Rewrite Instructions: Make prompts more specific and clear.
+    - Refine Context: Ensure better flow between subtasks
+
+    Return output in **JSON Format**:  
+    {{
+        "feedback": "Provide a detailed, step-by-step reviewing the reasoning process to identify errors and evaluation in the agentic workflow.",
+        "suggestion": "Specific, actionable recommendations to improve the agentic workflow"
+    }}
+        """
+        
+        msg_list = [
+            {"role": "user", "content": reasoning_refinement_prompt},
+        ]
+
+        verifier_hub = [
+            'o4-mini',
+            'gpt-4o-mini-2024-07-18'
+        ]
+        
+        tasks = [
+            (verifier_model, asyncio.create_task(
+                get_json_response_from_gpt(copy.deepcopy(msg_list), verifier_model, ['suggestion', 'feedback'], 0.0)
+            ))
+            for verifier_model in verifier_hub
+        ]
+        
+        # Run all tasks in parallel and gather results
+        results = await asyncio.gather(*[task for _, task in tasks], return_exceptions=True)
+        evaluation = []
+        # Process results in order of verifiers
+        for (verifier_model, _), result in zip(tasks, results):
+            if isinstance(result, Exception):
+                print(f"================ Error for {verifier_model} ================\n", str(result))
                 continue
+            mas_feedback, _ = result
+            evaluation.append({
+                "model_name": verifier_model,
+                "evaluation": mas_feedback
+            })
+
+        synthesizer_prompt = f"""
+    Your task is to analyze the feedback and suggestions provided by a set of verifiers, resolve any conflicts, and generate a unified feedback and suggestion that is clear, concise, and actionable. 
+    The input evaluations come from a list of verifier models (verifier_hub) and are stored in an evaluation list, where each entry contains feedback and suggestion fields.
+
+    [Input Context]
+    These feedback come from many verifiers:
+    {evaluation}
+
+    Query: The original query or task context: {task_queue_tmp[0].content}
+
+    [Instructions]
+    1. Analyze Evaluations:
+        1.1. Review the feedback and suggestion from each verifier in the evaluation list.
+        1.2. Identify common themes, agreements, or contradictions across the verifiers’ outputs.
+        1.3. Assess the relevance and quality of each feedback and suggestion relative to the query context.
+    2. Resolve Conflicts:
+        2.1. If verifiers provide conflicting feedback or suggestions, prioritize based on:
+        2.2. Relevance to the query’s intent and context.
+        2.3. Consistency with common themes across verifiers.
+        2.4. The credibility or specificity of the verifier’s output (e.g., prefer detailed, actionable suggestions over vague ones).
+        2.5. If no clear resolution is possible, include a balanced summary of conflicting points and propose a reasonable compromise.
+    3. Synthesize Output:
+        3.1. Combine the feedback into a single, defailed narrative, avoiding redundancy.
+        3.2. Combine the suggestions into a single, actionable recommendation that integrates the best ideas from all verifiers and addresses the query’s goals.    
+        3.3. Ensure the output is clear, avoids jargon unless necessary, and is structured for easy understanding.
+    The Synthesized output must be detailed (failure in which subtasks?, why it was failed?, does the problem come from reasoning process?, does the problem come from agent collaboration patterns?)
+    About the suggestions, for each of them, describe detailed how to modify.
+    4. Output Format:
+    Return the result in JSON format with the following structure:
+    {{
+        "combined_feedback": "Issues or observations from all verifiers that are limitations of current workflow.",
+        "combined_suggestion": "A single, actionable recommendation integrating the best suggestions."
+    }}
+    Ensure the response is well-formed JSON and contains both required fields.
+
+    [Your Task]
+    Given the evaluations from the verifier models and the query context, generate a single JSON object containing the combined_feedback and combined_suggestion by synthesizing the inputs. Ensure the output is tailored to the query and leverages all relevant insights from the evaluations.
+        """
+
+        msg_list = [
+            {"role": "user", "content": synthesizer_prompt},
+        ]
+
+        synthesized_evaluation ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), verifier_model, ['combined_feedback', 'combined_suggestion'], 0.0)
+        print(f"================ MAS Refinement Feedback ================\n", synthesized_evaluation['combined_feedback'])
+        print(f"================ MAS Refinement Suggestion ================\n", synthesized_evaluation['combined_suggestion'])
+        evaluation = [synthesized_evaluation]   
+        
+        user_prompt = f"""
+    You are an agent specialized in task decomposition. Your task is to analyze the provided query thoroughly and decompose it into subtasks and their dependencies to address the query effectively. You must incorporate feedback from previous decomposition attempts (evaluation) to improve the quality of the decomposition, avoiding past mistakes and addressing any identified issues.
+    [Query]
+    {task_queue_tmp[0].content}
+
+    [Output format]
+    {output_description}
+
+    [Instruction]
+    1. Decompose the query into fine-grained, detailed subtasks. Ensure the subtasks are simple, specific, and aligned with the model's capabilities, avoiding overly complex steps.
+    2. Each subtask must be corresponding to only one single objective. Do not group multiple objective in a subtask.
+    3. Structure the subtasks in a multi-turn reasoning sequence (e.g., step 1 → step 2), ensuring logical progression.
+    4. For each subtask, include:
+        4.1. Objective: Clearly state the purpose of the subtask, incorporating all relevant context or conditions from previous subtasks to enhance performance.
+        4.2. Dependencies: Specify which subtasks must be completed before the current subtask, ensuring proper sequencing.
+    5. Analyze the evaluation from previous decomposition attempts to identify weaknesses, redundancies, or gaps. Use this feedback to refine the decomposition, ensuring:
+        5.1. Subtasks address any issues highlighted in the evaluation (e.g., overly broad tasks, missing dependencies, or unclear objectives).
+        5.2. The decomposition improves upon previous attempts by being more precise, efficient, or comprehensive.
+    6. Incorporate domain expert feedback:
+        6.1. Carefully review all feedback and evaluation from previous attempts.
+        [Evaluation]
+        {evaluation}
+        6.2. Leverage any suggestions or expert critique to address prior issues such as:
+            6.2.1. Missing dependencies.
+            6.2.2. Overly broad or abstract subtasks.
+            6.2.3. Redundant steps.
+            6.2.4. Gaps in logic or execution order.
+    7. Refine the current decomposition by ensuring:
+        7.1. Improved granularity, clarity, and logical sequencing over previous attempts.
+        7.2. Outputs from one subtask are well-formed and suitable as inputs to the next, enhancing interoperability between subtasks.
+        7.3. If a reasoning flaw is identified by expert evaluation, guide the agents' instructions to avoid repeating the same mistake.
+        7.4. Use feedbacks from experts to guide agents's instructions.
+    8. If the evaluation is empty, treat this as the first attempt and focus on creating a clear, logical, and detailed decomposition.
+    9. Ensure the decomposition is tailored to the query’s intent and context, leveraging any available information from previous tasks or the query itself.
+    10. Consider output format of each subtask, so that they could pass their output to other agents effectively.
+
+    [Previous Task Decomposition]
+    {task_decomposition}
+
+    Return in JSON format, contains 'task_decomposition' and 'thought. 
+    {{
+        'thought': "Your thought while decomposing task to subtasks",
+        'task_decomposition': {{
+            'stage_1': {{
+                'subtask_1': {{
+                    'objective': "",
+                    'dependencies': []
+                }},
+                'subtask_2': {{
+                    'objective': "",
+                    'dependencies': [subtask_1]
+                }}
+            }},
+            'stage_2': {{
+                'subtask_3': {{
+                    'objective': "",
+                    'dependencies': [...]
+                }},
+                'subtask_4': {{
+                    'objective': "",
+                    'dependencies': [...]
+                }}
+            }}
+        }}
+    }}
+        """
+        
+        msg_list = [
+            {"role": "user", "content": user_prompt},
+        ]
+
+        task_decomposition ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'task_decomposition'], 0.0)     
+        
+        print(task_decomposition["task_decomposition"])
+        
+        user_prompt_generate_workflow = f"""
+    You are tasked with instantiating a concrete version of an abstract multi-stage workflow to solve complex queries using agent-based reasoning techniques (e.g., Chain-of-Thought, Self-Consistency, Reflexion, Debate). The workflow must be customized for the provided query and incorporate feedback from previous attempts to improve contextual usage, reasoning processes, and overall effectiveness.
+
+    [Important Notes]
+    1. You may adapt the agent interaction patterns (e.g., CoT, Self-Consistency CoT, Debate, Reflexion) to best suit the query’s complexity and requirements.
+    2. The generated code must include sufficient subtasks as planned in the task decomposition.
+    3. A stage may include multiple steps if necessary to achieve the query’s objectives.
+
+    [Instructions]
+    You must follow the requirements below when generating the concrete workflow:
+
+    1. Return Format
+    Reply EXACTLY in the following JSON format. The generated code MUST be in function format (i.e., forward function) without comments.
+    {{
+        "thought": "Your thought while generating code."
+        "code": "Your code."
+    }}
+    You must remove commnets from generated code.
+    Ensure the response is a well-formed JSON object and includes all required fields.
+
+    2. Workflow Decomposition
+        2.1. Follow the provided task decomposition to structure the workflow. 
+        [Task Decomposition] {task_decomposition['task_decomposition']}
+        2.2. Ensure each subtask is implemented as a step in the workflow, with clear objectives and dependencies as specified in the decomposition.
+
+    3. Agent Collaboration Patterns
+        3.1. Implement agent interaction structures such as Chain-of-Thought (CoT), Self-Consistency CoT (SC-CoT), Reflexion, or Debate, selecting the most appropriate pattern for each subtask based on its complexity and the query’s requirements.
+        3.2. Retain variables like self.node_model, self.debate_role, self.max_sc, and self.max_round with their correct roles.
+        3.3. Refer to the provided interaction pattern examples for implementation guidance. 
+    [Interaction Pattern] {interaction_pattern}
+
+    4. Apply the feedback from previous reasoning process to enhance reasoning process of generated workflow.
+    Here are evaluation from experts
+    {evaluation[0]['combined_feedback']}
+
+    5. Placeholder Replacement
+        5.1. Replace placeholders (e.g., [final answer], [condition #1]) with specific information relevant to the subtask. For example, if the query involves calculating the speed of a nucleus, replace [final answer] with “the speed of the nucleus.”
+        5.2. Ensure reasoning goals are fully grounded in the query’s context for clarity and relevance.
+
+    6. Logging:
+    Log each subtask in the logs list, including:
+        6.1. `subtask_id`, `instruction`, `context`, and `agent_collaboration` before agent execution.
+        6.2. `response` (including `thinking` and `answer`) after agent execution.
+        6.3. Ensure you logs enough information.
+    [Your Task]
+    Generate a concrete agentic workflow in Python code format, based on the Abstract Workflow, tailored to the query and informed by the evaluation feedback.
+
+    [Workflow Template]
+    {ABSTRACTED_WORKFLOW_TEMPLATE}
+
+    [Query]
+    {task_queue_tmp[0].content}
+        """
+        
+        msg_list = [
+            {"role": "user", "content": user_prompt_generate_workflow},
+        ]
+
+        next_solution ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'code'], 0.0)
+        print("================ Generated Multi-agent system ================\n", next_solution['code'])
+        next_solution['code'] = next_solution['code'].replace("{{", "{")
+        next_solution['code'] = next_solution['code'].replace("}}", "}")
+        print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
+        # evaluate multi agent system
+        try:
+            next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
+            acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+        except Exception as e:
+            print("Error: ", str(e))
+            error_trace = traceback.format_exc()
+            print("Full error trace:\n", error_trace)
+        
+        judge_path = os.path.join(args.save_dir, f"{expr_name}_{aw['name']}_{example_id}_full_response")
+        with open(judge_path, 'w') as judge_file:
+            judge_file.write(f'Question: {task_queue[0].content}\nIteration: {aw['name']}\nFull Response:{raw_results}')
+
+        if global_use_oracle_verifier:
+            acc_list = acc_oracle_verifier_list
+        else:
+            acc_list = acc_model_verifier_list
             
-            # print("========== LOGS ===========\n", logs)
-            
-            subtask_desc = logs
-            
-            if not acc_oracle_verifier_list[0] and attempt < max_attempt - 1:
-                # TODO refine this workflow
-                # pass
-                prev_context = []
-                reasoning_refinement_prompt = f"""
-You are a Verification Agent tasked with reviewing the reasoning process of previous agents to identify errors, evaluate the sufficiency of subtask contexts, assess agent interactions, and suggest improvements to the agentic workflow. Your goal is to ensure the accuracy and completeness of the responses to the user query.
-Based on feedback from professors, the current answer of this workflow is wrong. So, you need try to find the cause of this failure and then suggest the potential methods to improve the performance.
+        print(f"acc_list:", acc_list)
+        print(f"mean acc_list:", np.mean(acc_list))
+       
+        extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
 
-# Input
-You will receive the following:
-1. User Query: The original query provided by the user.
-[User query]
-{task_queue_tmp[0].content}
-2. Subtasks Description:
-    2.1. Instruction: The instructions provided for each subtask.
-    2.2. Context: The context or input data used for each subtask.
-    2.3. Response: The reasoning process (thinking steps) and the final answer for each subtask.
-    2.4. Current Answer: The final answer provided to the user query.
-[Subtask Description]
-{subtask_desc}
+        if '[TOO_HARD]' in extracted_answer:
+            extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
+        # save results
 
-[Current Answer]
-{current_ans}
-3. Agent Interaction Details: Information on how agents collaborated to produce the response (e.g., sequential, parallel, or iterative interactions).
-4. Output Format: the output format of current query.
-[Output format]
-{output_description}
+        converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_{aw["name"]}_{example_id}_converted.py')
+        with open(converted_code_filename, "w") as fh:
+            fh.write(next_solution['code'])    
 
-# Tasks
-Perform the following tasks:
-1. Reasoning Verification:
-    1.1. Review the reasoning process (thinking steps) of each subtask.
-    1.2. Identify any logical errors, incorrect assumptions, or missteps in the reasoning process.
-    1.3. Pinpoint the specific step or reasoning flaw that led to the incorrect final answer, if applicable.
-2. Context Sufficiency Evaluation:
-    2.1. Assess whether the context provided for each subtask is sufficient to complete the task accurately.
-    2.2. Identify any missing information, ambiguous context, or irrelevant details that may have affected the subtask's outcome.
-    2.3. Suggest additional context or data that could improve the subtask's execution.
-3. Agent Interaction Analysis:
-    3.1. Evaluate the interaction between agents (e.g., how outputs from one subtask feed into another).
-    3.2. Determine if the collaboration pattern used (e.g., sequential, parallel) was effective or if it contributed to errors.
-    3.3. If a subtask failed, assess whether the failure was due to poor agent collaboration or insufficient information sharing.
-4. Collaboration Pattern Recommendation:
-    4.1. If a subtask failed or produced suboptimal results, evaluate whether adopting a different agent collaboration pattern could improve reasoning. Consider the following patterns:
-    4.2. Chain-of-Thought (CoT): Structured step-by-step reasoning.
-    4.3. Self-Consistency Chain-of-Thought (SC CoT): Generating multiple reasoning paths and selecting the most consistent.
-    4.4. Debate: Agents argue different perspectives to refine the solution.
-    4.5. Reflexion: Agents reflect on their reasoning to identify and correct errors.
-Recommend the most suitable pattern for each subtask, with a brief justification.
-5. Output Validation:
-    5.1. Verify whether the output of each subtask adheres to the specified output format.
-    5.2. Check if the output is accurate, complete, and aligned with the subtask's instructions and the user query.
-    5.3. Identify any discrepancies or errors in the output.
-6. Workflow Improvement Suggestions: Based on your analysis, provide actionable recommendations to improve the agentic workflow. Consider the following approaches:
-    6.1. Decompose Subtasks: Break down complex subtasks into smaller, more manageable tasks that can be assigned to other agents.
-    6.2. Change Collaboration Patterns: Suggest alternative collaboration patterns (e.g., CoT, SC CoT, Debate, Reflexion) for specific subtasks to enhance reasoning.
-    6.3. Rewrite Instructions: Propose clearer, more specific instructions for subtasks to reduce ambiguity and improve execution.
-    6.4. Refine Context: Recommend ways to improve the context of subtasks, such as reconnecting outputs from one subtask to the input of another for better coherence.
+        print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
 
-7. Output Requirements:  
-Return a JSON object with two fields: 'feedback' and 'suggestion'.  
-- **Feedback**: Provide a detailed, step-by-step reviewing the reasoning process of previous agents to identify errors and evaluation about the sufficiency of subtask contexts, assess agent interactions, and suggest improvements to the agentic workflow.
-- **Suggestion**: Offer actionable recommendations to improve the agentic workflow.
-
-**JSON Format**:  
-{{
-    "feedback": "Detailed evaluation of the agent’s context usage, reasoning process, collaboration effectiveness, instruction adherence, logical soundness, and output format effectiveness.",
-    "suggestion": "Specific, actionable recommendations to improve the agentic workflow"
-}}
-
-# Guidelines
-1. Be thorough and specific in identifying errors and proposing solutions.
-2. Use clear, concise language to describe issues and recommendations.
-3. Ensure recommendations are practical and actionable.
-4. If no errors are found in a subtask, explicitly state that it was executed correctly.
-5. Prioritize suggestions that address the root cause of errors in the reasoning process.
-                """
+        with open(oracle_acc_result_path, "a+") as fh:
+            fh.write(f'experiemnt {example_id}: 1 (initial {aw["name"]}): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+        
+        max_score = max(max_score, acc_oracle_verifier_list[0])
+    
+    print("score: ", acc_oracle_verifier_list[0])
+    print("Current answer: ", current_ans)
+    print("ground truth: ", ground_truth)
                 
-                msg_list = [
-                    {"role": "user", "content": reasoning_refinement_prompt},
-                ]
-
-                verifier_hub = [
-                    'o4-mini',
-                    'gpt-4o-mini-2024-07-18'
-                ]
-
-                # mas_feedback ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), verifier_model, ['suggestion', 'feedback'], 0.0)
-                # print("================ MAS Refinement Feedback ================\n", mas_feedback['feedback'])
-                # print("================ MAS Refinement suggestion ================\n", mas_feedback['suggestion'])
-                # evaluation.append(mas_feedback)
-                
-                tasks = [
-                    (verifier_model, asyncio.create_task(
-                        get_json_response_from_gpt(copy.deepcopy(msg_list), verifier_model, ['suggestion', 'feedback'], 0.0)
-                    ))
-                    for verifier_model in verifier_hub
-                ]
-                
-                # Run all tasks in parallel and gather results
-                results = await asyncio.gather(*[task for _, task in tasks], return_exceptions=True)
-                
-                # Process results in order of verifiers
-                for (verifier_model, _), result in zip(tasks, results):
-                    if isinstance(result, Exception):
-                        print(f"================ Error for {verifier_model} ================\n", str(result))
-                        continue
-                    mas_feedback, _ = result
-                    evaluation.append({
-                        "model_name": verifier_model,
-                        "evaluation": mas_feedback
-                    })
-            
-                synthesizer_prompt = f"""
-You are an advanced agent specialized in synthesizing evaluations from multiple verifier models to produce a single, cohesive feedback and suggestion output. Your task is to analyze the feedback and suggestions provided by a set of verifiers, resolve any conflicts, and generate a unified feedback and suggestion that is clear, concise, and actionable. The input evaluations come from a list of verifier models (verifier_hub) and are stored in an evaluation list, where each entry contains feedback and suggestion fields.
-
-[Input Context]
-1. Evaluations: A list of evaluation results, where each evaluation is a dictionary containing:
-- feedback: A string describing issues or observations about the query or task performance.
-- suggestion: A string proposing improvements or next steps.
-These feedback come from many verifiers:
-{evaluation}
-
-Query: The original query or task context: {task_queue_tmp[0].content}
-
-[Instructions]
-1. Analyze Evaluations:
-    1.1. Review the feedback and suggestion from each verifier in the evaluation list.
-    1.2. Identify common themes, agreements, or contradictions across the verifiers’ outputs.
-    1.3. Assess the relevance and quality of each feedback and suggestion relative to the query context.
-2. Resolve Conflicts:
-    2.1. If verifiers provide conflicting feedback or suggestions, prioritize based on:
-    2.2. Relevance to the query’s intent and context.
-    2.3. Consistency with common themes across verifiers.
-    2.4. The credibility or specificity of the verifier’s output (e.g., prefer detailed, actionable suggestions over vague ones).
-    2.5. If no clear resolution is possible, include a balanced summary of conflicting points and propose a reasonable compromise.
-3. Synthesize Output:
-    3.1. Combine the feedback into a single, defailed narrative, avoiding redundancy.
-    3.2. Combine the suggestions into a single, actionable recommendation that integrates the best ideas from all verifiers and addresses the query’s goals.    
-    3.3. Ensure the output is clear, avoids jargon unless necessary, and is structured for easy understanding.
-The Synthesized output must be detailed (failure in which subtasks?, why it was failed?, does the problem come from reasoning process?, does the problem come from agent collaboration patterns?)
-Provide a bullet-point formatted list including all the feedbacks and suggestions from experts.
-About the suggestions, for each of them, describe detailed how to modify.
-4. Output Format:
-Return the result in JSON format with the following structure:
-{{
-    "combined_feedback": "Issues or observations from all verifiers that are limitations of current workflow.",
-    "combined_suggestion": "A single, actionable recommendation integrating the best suggestions."
-}}
-Ensure the response is well-formed JSON and contains both required fields.
-
-5. Handle Edge Cases:
-    5.1. If the evaluation list is empty, return a default response indicating no feedback is available:
-    5.2. If only one verifier provides output, use its feedback and suggestion directly, but rephrase for clarity if needed.
-    5.3. If feedback or suggestions are vague or incomplete, infer reasonable conclusions based on the query context and available data.
-
-6. Incorporate Query Context:
-    6.1 Ensure the combined feedback and suggestion are grounded in the query’s intent and context, addressing the specific task or problem posed.
-
-[Your Task]
-Given the evaluations from the verifier models and the query context, generate a single JSON object containing the combined_feedback and combined_suggestion by synthesizing the inputs. Ensure the output is tailored to the query and leverages all relevant insights from the evaluations.
-                """
-                
-                msg_list = [
-                    {"role": "user", "content": synthesizer_prompt},
-                ]
-
-                synthesized_evaluation ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), verifier_model, ['combined_feedback', 'combined_suggestion'], 0.0)
-                print(f"================ MAS Refinement Feedback ================\n", synthesized_evaluation['combined_feedback'])
-                print(f"================ MAS Refinement Suggestion ================\n", synthesized_evaluation['combined_suggestion'])
-                evaluation = [synthesized_evaluation]
-                # break
-            else:
-                attempt = 100000
-                    # break
-            
-            judge_path = os.path.join(args.save_dir, f"{expr_name}_{aw['name']}_{example_id}_full_response")
-            with open(judge_path, 'w') as judge_file:
-                judge_file.write(f'Question: {task_queue[0].content}\nIteration: {aw['name']}\nFull Response:{raw_results}')
-
-            if global_use_oracle_verifier:
-                acc_list = acc_oracle_verifier_list
-            else:
-                acc_list = acc_model_verifier_list
-
-
-            if args.defer_verifier:
-                fitness_str = bootstrap_confidence_interval([0.0])
-                aw["acc"] = np.mean([0.0])
-
-            else:
-                fitness_str = bootstrap_confidence_interval(acc_list)
-                aw["acc"] = np.mean(acc_list)
-
-            aw["fitness"] = fitness_str
-            aw["total_cost"] = get_global("global_COST_TOTAL")
-
-            print(f"acc_list:", acc_list)
-            print(f"mean acc_list:", np.mean(acc_list))
-            print(f"bootstrap_confidence_interval: {fitness_str}")
-
-            if 'swe_bench' in args.dataset:
-                extracted_answer = final_reponse[0].split('\n\nAnswer:', 1)[-1].strip()
-                if '<patch>' in extracted_answer:
-                    extracted_answer = extract_xml(extracted_answer, 'patch').strip()   
-            else:
-                extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
-
-            if '[TOO_HARD]' in extracted_answer:
-                extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
-            memory.append({extracted_answer:fitness_str})
-            print(f'save json to {mem_path}')
-            with open(mem_path, 'w') as json_file:
-                json.dump(memory, json_file, indent=4)
-
-            # save results
-
-            report_filename = os.path.join(args.save_dir, f'{expr_name}_{aw["name"]}_{example_id}_{args.option}_debug.html')
-            converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_{aw["name"]}_{example_id}_converted.py')
-            print(f"Writing report to {report_filename}")
-            # with open(report_filename, "w") as fh:
-            #     fh.write(common.make_report(results))
-            
-            with open(converted_code_filename, "w") as fh:
-                fh.write(next_solution['code'])    
-            
-            # metrics = results.metrics | {"score": results.score}
-            # print('metrics: ',metrics)
-            print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
-
-            with open(oracle_acc_result_path, "a+") as fh:
-                fh.write(f'experiemnt {example_id}: 1 (initial {aw["name"]}): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
-            
-            max_score = max(max_score, acc_oracle_verifier_list[0])
-            
-            if attempt == 100000:
-                break
-            
-            
     end_time_ = time.time()
     total_time = end_time_ - start_time_        
     
@@ -1441,7 +1247,7 @@ Given the evaluations from the verifier models and the query context, generate a
     with open(final_results_path, "w") as f:
         json.dump(final_results, f, indent=4)
             
-    return acc_oracle_verifier_list[0], total_time, result_path
+    return max_score, total_time, ""
         
 async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
 

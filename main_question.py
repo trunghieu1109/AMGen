@@ -3,7 +3,7 @@ from datasets import load_dataset
 import pandas as pd
 from common import HTML_JINJA, SingleEvalResult
 import search
-import apply_abstract_workflow
+import apply_abstract_workflow_v3
 import re
 import os
 import common
@@ -143,7 +143,7 @@ class DataScorer:
         else:
             raise NotImplementedError
 
-    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, response_path, response_dict, instance_id, code_snippet):
+    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, instance_id, code_snippet):
 
         if 'swe_bench' in self.dataset:
             extracted_answer = response_text.split('\n\nAnswer:', 1)[-1].strip()
@@ -160,16 +160,16 @@ class DataScorer:
         with open(judge_path, 'a+') as judge_file:
             judge_file.write(f'Question: {question}\nIteration: {n}\nproposed answer: {response_text}\nExtracted answer: {extracted_answer}\nCorrect answer: {answer}\n')
             
-        with open(response_path, 'w') as json_file:
-            response_dict.append({
-                'example_id':example_id, 
-                'problem': question, 
-                'correct_answer': answer, 
-                'n':n, 
-                'response': response_text, 
-                'sub_tasks_text': sub_tasks_text})
+        # with open(response_path, 'w') as json_file:
+        #     response_dict.append({
+        #         'example_id':example_id, 
+        #         'problem': question, 
+        #         'correct_answer': answer, 
+        #         'n':n, 
+        #         'response': response_text, 
+        #         'sub_tasks_text': sub_tasks_text})
 
-            json.dump(response_dict, json_file, indent=4)
+        #     json.dump(response_dict, json_file, indent=4)
             
 
         if use_oracle_verifier:
@@ -337,7 +337,8 @@ async def run_main():
                     'name': item['name'],
                     'flow': item['flow'],
                     'code': code_content,
-                    'chain': item['chain']
+                    'chain': item['chain'],
+                    'code_path': item['code_path']
                 })
         else:
             print(f'Không tìm thấy file tại đường dẫn: {code_path}')
@@ -376,7 +377,7 @@ async def run_main():
         dataset = load_dataset("simplescaling/aime24_nofigures")
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
-        # examples = examples[:1]
+        examples = [examples[0]]
         test_size = 0.6
         
         val_set, test_set = split_array(examples, test_size)
@@ -442,7 +443,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'abstract_base_methods_v6/question/meta_agent/'
+        args.expr_name = f'abstract_base_methods_dev_v2/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
@@ -467,15 +468,23 @@ async def run_main():
         set_global("global_questions", global_questions)
         set_global("global_response_dict", global_response_dict)
         set_global("global_instance_id", instance_id)
-
-        score, total_time, save_path = await apply_abstract_workflow.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
-        # score, total_time, save_path = await apply_abstract_workflow.run_single_agent_baselines(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "reflexion")
+        
+        score = 0
+        total_time = 0
+        save_path = ""
+        retries = 0
+        while retries < 2:
+            score, total_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+            if score > -1:
+                break
+            retries += 1
+        # score, total_time, save_path = await apply_abstract_workflow_v3.run_single_agent_baselines(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "reflexion")
         save_path_ = save_path
         final_results[str(example_id)] = {
             'score': score,
             'total_time': total_time
         }
-        # await apply_abstract_workflow.test_mas_zero_workflow(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, converted_mas_zero_workflow)
+        # await apply_abstract_workflow_v3.test_mas_zero_workflow(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, converted_mas_zero_workflow)
     
     start_time = time.time()
     
