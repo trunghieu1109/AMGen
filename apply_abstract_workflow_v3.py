@@ -99,8 +99,6 @@ async def forward(self, taskInfo):
         "answer": answer1
     }}
     logs.append(subtask_desc1)
-    
-    print("Subtask 1 answer: ", sub_tasks[-1])
 
     <Continue with next stages>
     
@@ -408,8 +406,8 @@ async def evaluate_forward_fn(args, example_id, forward_str):
 
 async def high_level_task_decomposition(meta_model, query):
     task_high_level_decomposition = f"""
-You are an expert LLM assistant trained to decompose user queries to only many core subtasks list. 
-Your task is to decompose user queries to only many core subtasks list.
+You are an expert LLM assistant trained to decompose user queries to only many high-level subtasks list. 
+Your task is to decompose user queries to only many high-level subtasks list.
 
 Maximum 4 subtasks.
 
@@ -449,6 +447,7 @@ You are an agent specialized in task decomposition. Your task is to analyze the 
 3. For each subtask, include:
     3.1. Objective: Clearly state the purpose of the subtask, incorporating all relevant context or conditions from previous subtasks to enhance performance.
     3.2. Dependencies: Specify which subtasks must be completed before the current subtask, ensuring proper sequencing.
+    3.3. Agent Collaboration: Identify suitable agent collaboration patterns (e.g CoT, SC_CoT, Reflexion, Debate) as used in <Agent Collaboration and Subtask Dependencies>.
 4. Follow the provided workflow description to structure the decomposition process.
 5. Ensure the decomposition is tailored to the query’s intent and context.
 6. Consider output format of each subtask, so that they could pass their output to other agents effectively.
@@ -608,11 +607,15 @@ Briefly justify the choice.
 - Check whether outputs follow the required format.
 - Assess accuracy and completeness of outputs.
 - Identify any mistakes or omissions.
-6. Workflow Improvement Suggestions:
+6. Verification:
+- Are there many verification steps in this workflow to cross-validate the output?
+
+7. Workflow Improvement Suggestions:
 - Decompose Subtasks: Break down complex steps.
 - Change Collaboration Patterns: Apply more effective reasoning models.
 - Rewrite Instructions: Make prompts more specific and clear.
 - Refine Context: Ensure better flow between subtasks
+- Verify Output: Add one or many verification steps to current workflow to vefify output of subtasks.
 
 Return output in **JSON Format**:  
 {{
@@ -714,6 +717,7 @@ You are an agent specialized in task decomposition. Your task is to analyze the 
 4. For each subtask, include:
     4.1. Objective: Clearly state the purpose of the subtask, incorporating all relevant context or conditions from previous subtasks to enhance performance.
     4.2. Dependencies: Specify which subtasks must be completed before the current subtask, ensuring proper sequencing.
+    4.3. Choose the suitable agent collaboratino patterns (e.g CoT, SC_CoT, Reflexion, Debate) so that it meet the feedback and suggestions from experts.
 5. Analyze the evaluation from previous decomposition attempts to identify weaknesses, redundancies, or gaps. Use this feedback to refine the decomposition, ensuring:
     5.1. Subtasks address any issues highlighted in the evaluation (e.g., overly broad tasks, missing dependencies, or unclear objectives).
     5.2. The decomposition improves upon previous attempts by being more precise, efficient, or comprehensive.
@@ -745,20 +749,24 @@ Return in JSON format, contains 'task_decomposition' and 'thought.
         'stage_1': {{
             'subtask_1': {{
                 'objective': "",
+                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
                 'dependencies': []
             }},
             'subtask_2': {{
                 'objective': "",
+                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
                 'dependencies': [subtask_1]
             }}
         }},
         'stage_2': {{
             'subtask_3': {{
                 'objective': "",
+                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
                 'dependencies': [...]
             }},
             'subtask_4': {{
                 'objective': "",
+                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
                 'dependencies': [...]
             }}
         }}
@@ -1090,6 +1098,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
 
     # choose the most similar abtracted workflow, based on levenshtein distance
     sorted_chains = sorted(default_mas_chain, key=lambda mas: levenshtein_array_to_array(mas_chain, mas))
+    
+    print(mas_chain)
+    print(sorted_chains)
     closest_1 = sorted_chains[:1]
 
     workflow_index = []

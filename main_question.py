@@ -377,7 +377,7 @@ async def run_main():
         dataset = load_dataset("simplescaling/aime24_nofigures")
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
-        examples = [examples[0]]
+        examples = [examples[2]]
         test_size = 0.6
         
         val_set, test_set = split_array(examples, test_size)

@@ -81,7 +81,7 @@ Reflexion:
 
     for i in range(N_max):
         # Critic agent debates and criticizes pros and cons of previous version
-        feedback, correct = await critic_agent([taskInfo, thinking3, answer3], 
+        feedback, correct = await critic_agent(cot_inputs + [thinking3, answer3], 
                                        "please review the [valid scenarios] filtering and provide its limitations.", 
                                        i, is_sub_task=True)
         agents.append(f"Critic agent {{critic_agent.id}}, providing feedback, thinking: {{feedback.content}}; answer: {{correct.content}}")
