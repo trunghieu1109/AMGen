@@ -4,7 +4,7 @@ import json
 import os
 import random
 from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 from tqdm.asyncio import tqdm_asyncio
 import traceback
 import time
@@ -82,11 +82,22 @@ async def forward(self, taskInfo):
     <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
     
     # Sub-task 1: Analyze first expression/data component with self-consistency
-    cot_instruction = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
-    cot_agent, thinking1, answer1, subtask_desc1 = await self.cot("subtask_1", cot_instruction, [taskInfo], ['thinking', 'answer'], 0.0, "user input"):
-    agents.append(f"CoT agent {{cot_agent.id}}, analyzing [expression #1], thinking: {{thinking1.content}}; answer: {{answer1.content}}")
-    sub_tasks.append(f"Sub-task 1 output: thinking - {{thinking1.content}}; answer - {{answer1.content}}")
-    logs.append(subtask_desc1)
+        # Sub-task 1: Analyze first expression/data component with self-consistency
+    cot_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    cot_agent_desc = {{
+        'instruction': cot_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"]
+    }}
+    results1 = await self.cot(
+        subtask_id="subtask_1", 
+        cot_agent_desc=cot_agent_desc
+    )
+    
+    agents.append(f"CoT agent {{results1['cot_agent'].id}}, analyzing [expression #1], thinking: {{results1['thinking'].content}}; answer: {{results1['answer'].content}}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {{results1['thinking'].content}}; answer - {{results1['answer'].content}}")
+    logs.append(results1['subtask_desc'])
 
     <Continue with next stages>
     
@@ -105,7 +116,7 @@ async def forward(self, taskInfo):
     
     <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
     
-    final_answer = await self.make_final_answer(thinkingn, answern, sub_tasks, agents)
+    final_answer = await self.make_final_answer(resultsn['thinking'], resultsn['answer'], sub_tasks, agents)
     return final_answer, logs
 '''
 
@@ -249,11 +260,9 @@ class LLMAgentBase():
     async def __call__(self, input_infos: list, instruction, iteration_idx=-1, is_sub_task=False):
         return await self.query(input_infos, instruction, iteration_idx=iteration_idx,  is_sub_task=is_sub_task)
 
-
-
-
 class AgentSystem():
     def __init__(self) -> None:
+        self.process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
         pass
 
     async def make_final_answer(self, thinking, answer, sub_tasks=None, agents=None):
@@ -476,7 +485,7 @@ class AgentSystem():
         }
         
     async def specific_format(self, subtask_id, formatter_desc):
-        formatter_agent = LLMAgentBase(['thinking', 'answer'], "SpecificFormatter Agent", self.node_model, temperature=formatter_desc['temperature'])
+        formatter_agent = LLMAgentBase(['thinking', 'answer'], "SpecificFormatter Agent", model=self.node_model, temperature=formatter_desc['temperature'])
        
         subtask_desc = {
             "subtask_id": subtask_id,
@@ -508,7 +517,7 @@ class AgentSystem():
             "agent_collaboration": "AggregateAgent"
         }
         
-        thinking, answer = await formatter_agent(aggregate_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await aggregate_agent(aggregate_desc['input'], subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "answer": answer
@@ -545,9 +554,106 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
         return {
             'code_generate_agent': code_generate_agent,
             'thinking': thinking,
-            'code': code,
+            'answer': code,
             'subtask_desc': subtask_desc
         }
+        
+    async def run_code(self, code):
+        try:
+            # Create a new global namespace
+            global_namespace = {}
+
+            disallowed_imports = [
+                "os",
+                "sys",
+                "subprocess",
+                "multiprocessing",
+                "matplotlib",
+                "seaborn",
+                "plotly",
+                "bokeh",
+                "ggplot",
+                "pylab",
+                "tkinter",
+                "PyQt5",
+                "wx",
+                "pyglet",
+            ]
+
+            # Check for prohibited imports
+            for lib in disallowed_imports:
+                if f"import {lib}" in code or f"from {lib}" in code:
+                    logger.info("Detected prohibited import: %s", lib)
+                    return "Error", f"Prohibited import: {lib} and graphing functionalities"
+
+            # Use exec to execute the code
+            exec(code, global_namespace)
+            # Assume the code defines a function named 'solve'
+            if "solve" in global_namespace and callable(global_namespace["solve"]):
+                result = global_namespace["solve"]()
+                return "Success", str(result)
+            else:
+                return "Error", "Function 'solve' not found"
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            tb_str = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            return "Error", f"Execution error: {str(e)}\n{''.join(tb_str)}"
+    
+    async def exec_code(self, code, timeout=30):
+        """
+        Asynchronously execute code and return an error if timeout occurs.
+        """
+        loop = asyncio.get_running_loop()
+
+        try:
+            # Use the class-level process pool
+            future = loop.run_in_executor(self.process_pool, self.run_code, code)
+            # Wait for the task to complete or timeout
+            result = await asyncio.wait_for(future, timeout=timeout)
+            return result
+        except asyncio.TimeoutError:
+            # Only cancel this specific future, not the entire process pool
+            future.cancel()
+            # Force garbage collection
+            import gc
+            gc.collect()
+            return "Error", "Code execution timed out"
+        except concurrent.futures.process.BrokenProcessPool:
+            # If the process pool is broken, recreate it
+            self.process_pool.shutdown(wait=False)
+            self.process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
+            return "Error", "Process pool broken, try again"
+        except Exception as e:
+            return "Error", f"Unknown error: {str(e)}"
+        
+    async def programmer(self, subtask_id, code_generate_desc):
+
+        code = None
+        output = None
+        feedback = ""
+        
+        for i in range(2):
+            results = await self.code_generate(subtask_id, code_generate_desc)
+            code = results.get("code")
+            if not code:
+                return {"code": code, "output": "No code generated"}
+            status, output = await self.exec_code(code)
+            if status == "Success":
+                return {"code": code, "output": output}
+            else:
+                print(f"Execution error on attempt {i + 1}, error message: {output}")
+                feedback = (
+                    f"\nThe result of the error from the code you wrote in the previous round:\n"
+                    f"Code: {code}\n\nStatus: {status}, {output}"
+                )
+                
+                code_generate_desc['instruction'] + feedback
+
+            # Force garbage collection after each iteration
+            import gc
+            gc.collect()
+
+        return {"code": code, "output": output}
 
 
 async def evaluate_forward_fn(args, example_id, forward_str):
@@ -1688,7 +1794,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
             
     return max_score, total_time, ""
         
-async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
+async def run_single_agent_baselines_v3(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
 
     questions = get_global("global_questions")
     questions = questions[str(example_id)]
@@ -1718,8 +1824,8 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-    result_path = f'results/{args.dataset}/single_agent_baselines/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines/{pattern}/{meta_model}_{global_node_model}_oracle.results'
+    result_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
+    oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1768,7 +1874,7 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
 
     global_ns = []
     
-    final_results_path = f'results/{args.dataset}/single_agent_baselines/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     final_results = []
@@ -1857,3 +1963,154 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
         json.dump(final_results, f, indent=4)
     
     return acc_oracle_verifier_list[0], total_time, result_path
+
+async def test_operator(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
+
+    questions = get_global("global_questions")
+    questions = questions[str(example_id)]
+    global_node_model = get_global("global_node_model")
+    
+    cost_per_query = get_global("global_COST_TOTAL_per_query")
+    cost_per_query[str(example_id)] = 0.0
+    set_global("global_COST_TOTAL_per_query", cost_per_query)
+
+    print(f"problem length: {len(questions)}")
+    max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
+
+    if args.dataset == 'gpqa_diamond':
+        task_queue = [Info(field_name, author, {"question": "41234123 + 412341234 = ?", "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
+    else:
+        task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
+
+    set_global("global_max_workers", max_workers)
+    result_path = expr_name + f"{args.dataset}/{pattern}"
+    expr_name = expr_name + f"{args.dataset}/{pattern}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
+
+    global_task_queue = get_global('global_task_queue')
+    global_task_queue[str(example_id)] = task_queue    
+    set_global("global_task_queue", global_task_queue)
+
+    next_solution_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_next_solution.json")
+    msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
+    mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
+    file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
+    result_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
+    oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_path = Path(oracle_acc_result_path)
+    oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result_acc_path = Path(result_path)
+    result_acc_path.parent.mkdir(parents=True, exist_ok=True)
+
+    judge_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_judge")
+    reponse_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_reponse")
+    os.makedirs(os.path.dirname(judge_path), exist_ok=True)
+
+    print('file_path: ',file_path)
+    print('msg_path: ',msg_path)
+    print('result_path: ',result_path)
+    print('next_solution_path: ',next_solution_path)
+    print('oracle_acc_result_path: ',oracle_acc_result_path)
+    print('judge_path: ',judge_path)
+    print('reponse_path: ',reponse_path)
+    print('mem_path: ',mem_path)
+    
+    global_judge_path = get_global('global_judge_path')
+    global_judge_path[str(example_id)] = judge_path
+
+    set_global("global_judge_path", global_judge_path)
+    
+    global_reponse_path = get_global('global_reponse_path')
+    global_reponse_path[str(example_id)] = reponse_path
+
+    set_global("global_reponse_path", global_reponse_path)
+
+    if os.path.exists(mem_path):
+        with open(mem_path, 'r') as json_file:
+            memory = json.load(json_file)
+    else:
+        memory = []
+
+    if os.path.exists(reponse_path):
+        with open(reponse_path, 'r') as json_file:
+            global_response = json.load(json_file)
+            
+        global_response_dict = get_global('global_response_dict')
+        global_response_dict[str(example_id)] = global_response
+        
+        set_global("global_response_dict", global_response_dict)
+
+    global_use_oracle_verifier = get_global("global_use_oracle_verifier")
+
+    global_ns = []
+    
+    final_results_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    result_path = Path(final_results_path)
+    result_path.parent.mkdir(parents=True, exist_ok=True)
+    final_results = []
+
+    judge_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_{args.option}_judge")
+    reponse_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_{args.option}_reponse")
+    print(f"================== Test single agent baselines {pattern} ===================")
+    default_global_n = get_global("global_n")
+    default_global_n[str(example_id)] = f"Baseline {pattern}"
+    set_global("global_n", default_global_n)
+
+    global_n = get_global("global_n")
+    global_n = global_n[str(example_id)]
+    global_ns.append(global_n)
+    
+    blocks = get_init_archive(['cot', 'sc_cot', 'reflexion', 'debate'])
+    workflow = blocks[pattern]
+    try:
+        workflow["code"] = '''
+async def forward(self, taskInfo):
+    print("Task Requirement: ", taskInfo)
+    # Initialize lists to keep track of sub-tasks and agents
+    sub_tasks = []
+    agents = []
+    logs =  []
+    
+    # Sub-task 1: Analyze first expression/data component with self-consistency
+    solutions = []
+    for i in range(0, 3):
+        cot_agent_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+        cot_agent_desc = {
+            'instruction': cot_agent_instruction1, 
+            'input': [taskInfo], 
+            'temperature': 0.0, 
+            'context': ["user query"]
+        }
+        results1 = await self.answer_generate(
+            subtask_id="subtask_1", 
+            cot_agent_desc=cot_agent_desc
+        )
+
+        solutions.append(results1['thinking'])
+    
+    aggregate_instruction2 = "Sub-task 2: From solutions generated in Subtask 1, aggregate these solutions and return the consistent and the best solution."
+    aggregate_desc = {
+        'instruction': aggregate_instruction2, 
+        'input': [taskInfo] + solutions, 
+        'temperature': 0.0, 
+        'context': ["user query", "solutions generated from subtask 1"]
+    }
+    results2 = await self.aggregate(
+        subtask_id="subtask_1", 
+        aggregate_desc=aggregate_desc
+    )
+    
+    agents.append(f"CoT agent {results2['aggregate_agent'].id}, analyzing [expression #1], thinking: {results2['thinking'].content}; answer: {results2['answer'].content}")
+    sub_tasks.append(f"Sub-task 2 output: thinking - {results2['thinking'].content}; answer - {results2['answer'].content}")
+    logs.append(results2['subtask_desc'])
+    
+    final_answer = await self.make_final_answer(results2['thinking'], results2['answer'], sub_tasks, agents)
+    return final_answer, logs
+'''
+        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, _, _, _, total_time = await evaluate_forward_fn(args, example_id, workflow["code"])
+    except Exception as e:
+        print("Error: ", str(e))
+        error_trace = traceback.format_exc()
+        print("Full error trace:\n", error_trace)
+    
+    return 0, 0, ""

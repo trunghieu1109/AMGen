@@ -106,3 +106,44 @@ Debate:
     logs.append(results5['subtask_desc'])
 ```
     """
+    
+ADDITIONAL = """
+AnswerGenerate
+```python
+    cot_agent_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    cot_agent_desc = {
+        'instruction': cot_agent_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"]
+    }
+    results1 = await self.answer_generate(
+        subtask_id="subtask_1", 
+        cot_agent_desc=cot_agent_desc
+    )
+
+    agents.append(f"CoT agent {results1['cot_agent'].id}, analyzing [expression #1], thinking: {results1['thinking'].content}; answer: {results1['answer'].content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}")
+    logs.append(results1['subtask_desc'])
+```
+
+SpecificFormat
+```python
+    formatter_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    formatter_desc = {
+        'instruction': formatter_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"],
+        'format': 'short and concise, without explaination'
+    }
+    results1 = await self.specific_format(
+        subtask_id="subtask_1", 
+        formatter_desc=formatter_desc
+    )
+
+    agents.append(f"CoT agent {results1['formatter_agent'].id}, analyzing [expression #1], thinking: {results1['thinking'].content}; answer: {results1['answer'].content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}")
+    logs.append(results1['subtask_desc'])
+```
+"""

@@ -1449,6 +1449,9 @@ Given the evaluations from the verifier models and the query context, generate a
         
 async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
 
+    # if example_id < 150:
+    #     return 0, 0, ""
+
     questions = get_global("global_questions")
     questions = questions[str(example_id)]
     global_node_model = get_global("global_node_model")
@@ -1460,7 +1463,7 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
     print(f"problem length: {len(questions)}")
     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
 
-    if args.dataset == 'gpqa_diamond':
+    if 'gpqa_diamond' in args.dataset:
         task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
     else:
         task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
@@ -1477,8 +1480,8 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-    result_path = f'results/{args.dataset}/single_agent_baselines/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines/{pattern}/{meta_model}_{global_node_model}_oracle.results'
+    result_path = f'results/{args.dataset}/single_agent_baselines_v2/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
+    oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines_v2/{pattern}/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1527,7 +1530,7 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
 
     global_ns = []
     
-    final_results_path = f'results/{args.dataset}/single_agent_baselines/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/single_agent_baselines_v2/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     final_results = []
