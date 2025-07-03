@@ -1,14 +1,14 @@
 import os
 import json
 
-directory = "results/workflow_search/gpqa_diamond/abstract_workflow_refined/gpt-4.1-mini_gpt-4o-mini-2024-07-18"
+directory = "results/workflow_search/gpqa_diamond/abstract_workflow_refined/gpt-4.1-mini_o4-mini"
 total_score = 0
 total_time = 0
 max_cost = float('-inf')
 
 cnt = 0
 
-file_name = [0] * 30
+file_name = [0] * 198
 
 for filename in os.listdir(directory):
     if filename.endswith(".json"):
@@ -33,10 +33,10 @@ for filename in os.listdir(directory):
             total_score += max_score
             
 print(cnt)
-for idx in range(0, 30):
+for idx in range(0, 198):
     if file_name[idx] == 0:
         print(idx)
 
 print(f"Total score: {total_score / cnt * 100}")
-print(f"Total time: {total_time / cnt}")
-print(f"Max cost: {max_cost / cnt}")
+print(f"Average time: {total_time / cnt}")
+print(f"Average cost: {max_cost / cnt}")

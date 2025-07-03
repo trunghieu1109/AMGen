@@ -323,6 +323,77 @@ debate_instruction_5 = "Sub-task 5: Based on the output of Sub-task 4, convert [
 ```
 '''
 
+PROMPT_FOR_OPERATOR = '''
+Here are the description of each operator in the workflow (e.g answer_generator, format, sc_ensemble, code_generator, ...)
+        
+ANSWER_GENERATION_PROMPT = """
+Think step by step and solve the problem.
+1. In the "thought" field, explain your thinking process in detail.
+2. In the "answer" field, provide the final answer concisely and clearly. The answer should be a direct response to the question, without including explanations or reasoning.
+Your task: {{input}}
+"""
+
+FORMAT_PROMPT = """
+For the question described as {{problem_description}},
+please extract a short and concise answer contains only one word/few words from the following solution: {{solution}}.
+Make sure there are no additional comments or explanations in your response.
+"""
+
+SC_ENSEMBLE_PROMPT = """
+Given the question described as follows: {{question}}
+Several solutions have been generated to address the given question. They are as follows:
+{{solutions}}
+
+Carefully evaluate these solutions and identify the answer that appears most frequently across them. This consistency in answers is crucial for determining the most reliable solution.
+
+In the "thought" field, provide a detailed explanation of your thought process. In the "solution_letter" field, output only the single letter ID (A, B, C, etc.) corresponding to the most consistent solution. Do not include any additional text or explanation in the "solution_letter" field.
+"""
+
+CODE_GENERATOR_PROMPT = """
+You are a professional Python programmer. Your task is to write complete, self-contained code based on a given mathematical problem and output the answer. The code should include all necessary imports and dependencies, and be ready to run without additional setup or environment configuration.
+
+Problem description: {{problem}}
+Other analysis: {{analysis}}
+{{feedback}}
+
+Your code should:
+1. Implement the calculation steps described in the problem.
+2. Define a function named `solve` that performs the calculation and returns the result. The `solve` function should not require any input parameters; instead, it should obtain all necessary inputs from within the function or from globally defined variables.
+3. `solve` function return the final calculation result.
+
+Please ensure your code is efficient, well-commented, and follows Python best practices. The output should be limited to basic data types such as strings, integers, and floats. It is prohibited to transmit images or other file formats. The code output is intended for a text-based language model.
+"""
+
+MD_ENSEMBLE_PROMPT = """
+Given the question described as follows: {{question}}
+Several solutions have been generated to address the given question. They are as follows:
+{{solutions}}
+
+Carefully evaluate these solutions and identify the solution that is more capable of solving the problem compared to other solutions, as this is crucial for problem-solving.
+
+In the "thought" field, provide a detailed explanation of your thought process. In the "solution_letter" field, output only the single letter ID (A, B, C, etc.) corresponding to the solution. Do not include any additional text or explanation in the "solution_letter" field.
+"""
+
+REVIEW_PROMPT = """
+Given a problem and a thoughtful solution, your task is to using critical thinking (questioning) to review the solution's correctness and provide a review result in boolean format.
+
+problem: {{problem}}
+solution: {{solution}}
+
+If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness.
+"""
+
+REVISE_PROMPT = """
+Given a problem and a thoughtful solution which is just reviewed as incorrect, your task is to revise the solution to solve the question and ensure the final code solution is wrapped with ```python```.
+
+problem: {{problem}}
+solution: {{solution}}
+feedback: {{feedback}}
+
+Ensure the output code is self-contained, and without any additional text or test cases.
+"""
+'''
+
 def levenshtein_array(a, b):
     n, m = len(a), len(b)
     dp = [[0] * (m+1) for _ in range(n+1)]
@@ -340,7 +411,7 @@ def levenshtein_array(a, b):
                 )
     return dp[n][m]
 
-def levenshtein_array_to_array(a: str, b: str) -> int:
+def levenshtein_array_to_array(a, b) -> int:
     n, m = len(a), len(b)
     dp = [[0] * (m + 1) for _ in range(n + 1)]
 
@@ -352,6 +423,13 @@ def levenshtein_array_to_array(a: str, b: str) -> int:
     for i in range(1, n + 1):
         for j in range(1, m + 1):
             cost = 0 if a[i - 1] == b[j - 1] else 1
+            if cost == 1 and isinstance(b[j - 1], list):
+                cost = 0 if a[i - 1] in b[j - 1] else 1
+                if cost == 1 and isinstance(a[i - 1], list):
+                    for subtask_idx in a[i - 1]:
+                        if subtask_idx in b[j - 1]:
+                            cost = 0
+                            
             dp[i][j] = min(
                 dp[i - 1][j] + 1,      # deletion
                 dp[i][j - 1] + 1,      # insertion
@@ -498,12 +576,21 @@ class MASAbstraction():
         print("================== Extracting Workflow ==================")
 
         analysis_prompt = f"""
-You are an expert LLM assistant specialized in analyzing multi-agent system (MAS) workflows. Given a natural language query and a concrete abstract workflow, your task is to return a structured JSON analysis that includes:
+You are an expert LLM assistant specialized in analyzing multi-agent system (MAS) workflows. Given a natural language query and a concrete abstract workflow, your task is to return a structured JSON analysis that abstract the provided workflow, including:
 
 - Objective: Clearly state the full objective of each subtask in the workflow. Do not include phrases like "Based on subtask..." — state the purpose directly and completely.
 - Supporting Information: List any assumptions, context, or input required by each subtask to achieve its objective.
-- Agent Collaboration: Specify the reasoning pattern used in the subtask: one of CoT (Chain-of-Thought), SC_CoT (Self-Consistency CoT), Debate, or `Reflexion).
+- Agent Collaboration: Specify the reasoning pattern used in each subtask. Notify these agent_collaboration patterns to identify the pattern for each subtask effectively:
+    + CoT (Chain-of-Thought): Step-by-step reasoning to solve a task. The agent explains intermediate logic instead of jumping directly to the answer.
+    + Debate: Two or more agents present their arguments and critique each other → a neutral agent (or majority vote) selects the best reasoning.
+    + Ensemble: Combine outputs from multiple independently-run of previous agents → aggregate results (e.g., average, vote, majority).
+    + SpecificFormat: Transform the output follows a specific format (e.g., concise, short, code snipnet, etc.).
+    + CodeGenerator: A specialized agent for generating code from natural language descriptions or structured reasoning.
+    + Review: An agent reviews another agent’s output to detect logic flaws, formatting issues, or incorrect answers.
+    + Revise: An agent modifies the output based on feedback from a review or reflection phase.
+    + If you not sure about the agent collaboration of a subtask, just choose CoT (which is the basic pattern).
 - Dependency: Identify which previous subtasks the current subtask depends on. Use subtask IDs (e.g., "subtask_1") in a list.
+
 
 [Query]
 {query}
@@ -511,22 +598,25 @@ You are an expert LLM assistant specialized in analyzing multi-agent system (MAS
 [Abstract Workflow]
 {mas}
 
+[Prompt for each operator]
+{PROMPT_FOR_OPERATOR}
+
 Return your result in valid JSON format with the following structure:
 {{
-    "thought": "....."
+    "thought": "Explain for your analysis."
     "subtasks": [
         {{
             "subtask_id": "subtask_1",
             "objective": "",
             "supporting_info": "",
-            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion,
+            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion | Ensemble | SpecificFormat | CodeGenerator | Review | Revise,
             "dependencies": []
         }},
         {{
             "subtask_id": "subtask_2",
             "objective": "",
             "supporting_info": "",
-            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion,
+            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion | Ensemble | SpecificFormat | CodeGenerator | Review | Revise,
             "dependencies": ["subtask_1"]
         }},
         .....
@@ -534,7 +624,7 @@ Return your result in valid JSON format with the following structure:
             "subtask_id": "subtask_n",
             "objective": "",
             "supporting_info": "",
-            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion,
+            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion | Ensemble | SpecificFormat | CodeGenerator | Review | Revise,
             "dependencies": ["subtask_x", "subtask_y", ...]
         }}
     ]
@@ -545,10 +635,13 @@ Return your result in valid JSON format with the following structure:
             {"role": "user", "content": analysis_prompt},
         ]
 
-        analysis,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4o-mini-2024-07-18", ['thought', 'subtasks'], 0.0)
+        analysis,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4o_chatgpt", ['thought', 'subtasks'], 0.0)
         
         print("============== Extracted workflow ==============")
         print(analysis['subtasks'])
+        
+        print("============== Thought ===============\n")
+        print(analysis['thought'])
         
         return analysis['subtasks']
     
@@ -1324,7 +1417,7 @@ async def main():
     # mas_zero_workflow = mas_zero_workflow[:750]
     # print(len(mas_zero_workflow))
     
-    with open("mas_zero_aime24.json", "r", encoding="utf-8") as f:
+    with open("aflow_DROP.json", "r", encoding="utf-8") as f:
         mas_zero_workflow = json.load(f)
         
     print("============= Read data successfully ==============")
@@ -1333,23 +1426,28 @@ async def main():
         mas_idx = int(idx / 5)
         iteration = int(mas['iteration'])
         
-        if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
+        if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
             continue 
         
         if iteration != 0:
             continue
         
+        if mas_idx != 0:
+            continue
+        
         print(f"Workflow {mas_idx}, iteration: {iteration}")
+        print(mas['code'])
+        
         subtask_list = await abstractor(mas['problem'], mas['code'])
     
-        with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json", "w", encoding="utf-8") as f:
-            json.dump(subtask_list, f, ensure_ascii=False, indent=4)
+        # with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json", "w", encoding="utf-8") as f:
+        #     json.dump(subtask_list, f, ensure_ascii=False, indent=4)
             
-    cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24")
-    cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
-    cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
-    cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
-    await abstractor.clustering_workflow("workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
+    # cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-drop")
+    # cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
+    # cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
+    # cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
+    # await abstractor.clustering_workflow("workflow_analysis-gpt-4o-mini-o4-mini_v8-drop", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
     
 if __name__ == "__main__":
     model_sampler_map = {

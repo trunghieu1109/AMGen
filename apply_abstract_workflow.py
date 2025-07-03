@@ -334,7 +334,8 @@ async def evaluate_forward_fn(args, example_id, forward_str):
     # if you want debug, remove the section so that you can see the detailed error line
     namespace = {}
     try:
-        exec(forward_str, globals(), namespace)
+        safe_forward_str = forward_str.replace("\\", "\\\\")
+        exec(safe_forward_str, globals(), namespace)
     except Exception as e:
         print("❌ Lỗi khi thực thi forward_str:", str(e))
         error_trace = traceback.format_exc()
@@ -665,7 +666,7 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
 
-    # if example_id not in [12, 20]:
+    # if example_id < 150:
     #     return 0, 0, ""
     start_time_ = time.time()
     questions = get_global("global_questions")
@@ -966,6 +967,9 @@ Return your result in valid JSON format with the following structure. Each eleme
             
         # if str(awd['chain']) == str(closest_2[1]):
         #     workflow_index.append(idx)
+
+    if len(workflow_index) == 0:
+        workflow_index = [random.randint(0, len(default_mas_chain))]
 
     print("workflow index: ", workflow_index)
     

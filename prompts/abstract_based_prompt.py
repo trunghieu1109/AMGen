@@ -2,152 +2,107 @@ INTERACTION_PATTERN = """
 Sample agent iteraction pattern:
 Chain-of-Thought: 
 ```python
-    cot_instruction = "Sub-task 1: Consider/calculate all possible cases of [problem #1], with context ...."
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    subtask_desc1 = {{
-        "subtask_id": "subtask_1",
-        "instruction": cot_instruction,
-        "context": ["user query"],
-        "agent_collaboration": "CoT"
+    # Sub-task 1: Analyze first expression/data component with self-consistency
+    cot_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    cot_agent_desc = {{
+        'instruction': cot_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"]
     }}
-    thinking1, answer1 = await cot_agent([taskInfo], cot_instruction, is_sub_task=True)
-    agents.append(f"CoT agent {{cot_agent.id}}, consider/calculate all possible scenarios of [problem #1], thinking: {{thinking1.content}}; answer: {{answer1.content}}")
-    sub_tasks.append(f"Sub-task 1 output: thinking - {{thinking1.content}}; answer - {{answer1.content}}")
-    subtask_desc1['response'] = {{
-        "thinking": thinking1,
-        "answer": answer1
-    }}
-    logs.append(subtask_desc1)
+    results1 = await self.cot(
+        subtask_id="subtask_1", 
+        cot_agent_desc=cot_agent_desc
+    )
+    
+    agents.append(f"CoT agent {{results1['cot_agent'].id}}, analyzing [expression #1], thinking: {{results1['thinking'].content}}; answer: {{results1['answer'].content}}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {{results1['thinking'].content}}; answer - {{results1['answer'].content}}")
+    logs.append(results1['subtask_desc'])
 ```
 
 Self-Consistency Chain-of-Thought:
 ```python
-    cot_sc_instruction = "Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
+    cot_sc_instruction2 = "Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
     N = self.max_sc
-    cot_agents = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                              model=self.node_model, temperature=0.5) for _ in range(N)]
-    possible_answers = []
-    thinkingmapping = {{}}
-    answermapping = {{}}
-    subtask_desc2 = {{
-        "subtask_id": "subtask_2",
-        "instruction": cot_sc_instruction,
-        "context": ["user query", "thinking of subtask 1", "answer of subtask 1"],
-        "agent_collaboration": "SC_CoT"
+    
+    cot_sc_desc = {{
+        'instruction': cot_sc_instruction2, 
+        'input': [taskInfo, thinking1, answer1], 
+        'temperature': 0.5, 
+        'context': ["user query", "thinking of subtask 1", "answer of subtask 1"]
     }}
-    for i in range(N):
-        # Each CoT-SC agent tries to calculate all possible cases independently
-        thinking2, answer2 = await cot_agents[i]([taskInfo, thinking1, answer1], cot_sc_instruction, is_sub_task=True)
-        agents.append(f"CoT-SC agent {{cot_agents[i].id}}, consider all possible cases of [problem #2], thinking: {{thinking2.content}}; answer: {{answer2.content}}")
-        possible_answers.append(answer2.content)
-        thinkingmapping[answer2.content] = thinking2
-        answermapping[answer2.content] = answer2
-        
-    # The most common answer is chosen for consistency and accuracy.
-    answer2_content = Counter(possible_answers).most_common(1)[0][0]
-    thinking2 = thinkingmapping[answer2_content]
-    answer2 = answermapping[answer2_content]
-    sub_tasks.append(f"Sub-task 2 output: thinking - {{thinking2.content}}; answer - {{answer2.content}}")
-    subtask_desc2['response'] = {{
-        "thinking": thinking2,
-        "answer": answer2
-    }}
-    logs.append(subtask_desc2)
+    
+    results2 = await self.sc_cot(
+        subtask_id="subtask_2", 
+        cot_sc_desc=cot_sc_desc, 
+        n_repeat=self.max_sc
+    )
+    
+    sub_tasks.append(f"Sub-task 2 output: thinking - {{results2['thinking'].content}}; answer - {{results2['answer'].content}}")
+    for idx, key in enumerate(results2['list_thinking']):
+        agents.append(f"CoT-SC agent {{results2['cot_agent'][idx].id}}, consider all possible cases of [problem #2], thinking: {{results2['list_thinking'][idx]}}; answer: {{results2['list_answer'][idx]}}")
+    logs.append(results2['subtask_desc'])
 ```
 
 Reflexion:
 ```python
-    cot_reflect_instruction = "Sub-task 3: Based on the outputs from Sub-task 1 and Sub-task 2, filter the valid scenarios that meet the [conditions stated in the queries]."
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    critic_agent = LLMAgentBase(["feedback", "correct"], "Critic Agent", 
-                               model=self.node_model, temperature=0.0)
-    N_max = self.max_round
-    
-    # Input for CoT agent
-    cot_inputs = [taskInfo, thinking1, answer1, thinking2, answer2]
-    
-    subtask_desc3 = {{
-        "subtask_id": "subtask_3",
-        "instruction": cot_reflect_instruction,
-        "context": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"],
-        "agent_collaboration": "Reflexion"
+    cot_reflect_instruction3 = "Sub-task 3: Based on the outputs from Sub-task 1 and Sub-task 2, filter the valid scenarios that meet the [conditions stated in the queries]."
+    critic_instruction3 = "Please review the [valid scenarios] filtering and provide its limitations."
+    cot_reflect_desc3 = {{
+        'instruction': cot_reflect_instruction3, 'input': [taskInfo, thinking1, answer1, thinking2, answer2], 'output': ["thinking", "answer"], 
+        'temperature': 0.0, 'context': ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"]
+    }}
+    critic_desc3 = {{
+        'instruction': critic_instruction3, 'output': ["feedback", "correct"], 'temperature': 0.0
     }}
     
-    # Generate the first version
-    thinking3, answer3 = await cot_agent(cot_inputs, cot_reflect_instruction, 0, is_sub_task=True)
-    agents.append(f"Reflexion CoT agent {{cot_agent.id}}, filter valid scenarios of [problem], thinking: {{thinking3.content}}; answer: {{answer3.content}}")
-
-    for i in range(N_max):
-        # Critic agent debates and criticizes pros and cons of previous version
-        feedback, correct = await critic_agent([taskInfo, thinking3, answer3], 
-                                       "please review the [valid scenarios] filtering and provide its limitations.", 
-                                       i, is_sub_task=True)
-        agents.append(f"Critic agent {{critic_agent.id}}, providing feedback, thinking: {{feedback.content}}; answer: {{correct.content}}")
-        if correct.content == "True":
-            break
-        
-        # Include previous version and feedback from critic agent as input
-        cot_inputs.extend([thinking3, answer3, feedback])
-        
-        # Generate new version based on previous version and feedback
-        thinking3, answer3 = await cot_agent(cot_inputs, cot_reflect_instruction, i + 1, is_sub_task=True)
-        agents.append(f"Reflexion CoT agent {{cot_agent.id}}, refining valid scenarios of [problem], thinking: {{thinking3.content}}; answer: {{answer3.content}}")
-    sub_tasks.append(f"Sub-task 3 output: thinking - {{thinking3.content}}; answer - {{answer3.content}}")
-    subtask_desc3['response'] = {{
-        "thinking": thinking3,
-        "answer": answer3
-    }}
-    logs.append(subtask_desc3)
+    results3 = await  self.reflexion(
+        subtask_id="subtask_3", 
+        cot_reflect_desc=cot_reflect_desc3, 
+        critic_desc=critic_desc3, 
+        n_repeat=self.max_round
+    )
+    
+    agents.append(f"Reflexion CoT agent {{results3['cot_agent'].id}}, filter valid scenarios of [problem], thinking: {{results3['list_thinking'][0].content}}; answer: {{results3['list_answer'][0].content}}")
+    for i in range(self.max_round):
+        agents.append(f"Critic agent {{results3['critic_agent'].id}}, providing feedback, thinking: {{results3['list_feedback'][i].content}}; answer: {{results3['list_correct'][i].content}}")
+        agents.append(f"Reflexion CoT agent {{results3['cot_agent'].id}}, refining valid scenarios of [problem], thinking: {{results3['list_thinking'][i + 1].content}}; answer: {{results3['list_answer'][i + 1].content}}")
+    sub_tasks.append(f"Sub-task 3 output: thinking - {{results3['thinking'].content}}; answer - {{results3['answer'].content}}")
+    logs.append(results3['subtask_desc'])
 ```
 
 Debate:
 ```python
     debate_instruction_5 = "Sub-task 5: Based on the output of Sub-task 4, convert [intermediate output] into [specific format] and calculate [the final answer]"
-    debate_agents_5 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
-                                   model=self.node_model, role=role, temperature=0.5) 
-                      for role in self.debate_role]
-    N_max_5 = self.max_round
+    final_decision_instruction_5 = "Sub-task 5: Make final decision on [final output]."
     
-    all_thinking5 = [[] for _ in range(N_max_5)]
-    all_answer5 = [[] for _ in range(N_max_5)]
-    
-    subtask_desc5 = {{
-        "subtask_id": "subtask_5",
+    debate_desc5 = {{
         "instruction": debate_instruction_5,
-        "context": ["user query", "thinking of subtask 4", "answer of subtask 4",
-        "agent_collaboration": "Debate"
+        "context": ["user query", "thinking of subtask 4", "answer of subtask 4"],
+        "input": [taskInfo, thinking4, answer4],
+        "output": ["thinking", "answer"],
+        "temperature": 0.5
     }}
     
-    for r in range(N_max_5):
-        # N_max_5 rounds of debating
-        for i, agent in enumerate(debate_agents_5):
-            # Each agent proposes its solution
-            if r == 0:
-                thinking5, answer5 = await agent([taskInfo, thinking4, answer4], 
-                                           debate_instruction_5, r, is_sub_task=True)
-            else:
-                # Generate next solution based on comments and counter-arguments from other debaters
-                input_infos_5 = [taskInfo, thinking4, answer4] + all_thinking5[r-1] + all_answer5[r-1]
-                thinking5, answer5 = await agent(input_infos_5, debate_instruction_5, r, is_sub_task=True)
-            
-            agents.append(f"Debate agent {{agent.id}}, round {{r}}, converting [intermediate output] and calculating [final output], thinking: {{thinking5.content}}; answer: {{answer_5.content}}")
-            all_thinking5[r].append(thinking5)
-            all_answer5[r].append(answer5)
-    
-    # Final decision agent makes final decision
-    final_decision_agent_5 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                         model=self.node_model, temperature=0.0)
-    thinking5, answer5 = await final_decision_agent_5([taskInfo] + all_thinking5[-1] + all_answer5[-1], 
-                                                 "Sub-task 5: Make final decision on [final output].", 
-                                                 is_sub_task=True)
-    agents.append(f"Final Decision agent, calculating [final output], thinking: {{thinking5.content}}; answer: {{answer5.content}}")
-    sub_tasks.append(f"Sub-task 5 output: thinking - {{thinking5.content}}; answer - {{answer5.content}}")
-    subtask_desc5['response'] = {{
-        "thinking": thinking5,
-        "answer": answer5
+    final_decision_desc5 = {{
+        "instruction": final_decision_instruction_5,
+        "output": ["thinking", "answer"],
+        "temperature": 0.0
     }}
-    logs.append(subtask_desc5)
+    
+    results5 = await self.debate(
+        subtask_id="subtask_5", 
+        debate_desc=debate_desc5, 
+        final_decision_desc=final_decision_desc5, 
+        n_repeat=self.max_round
+    ):
+    
+    for round in range(self.max_round):
+        for idx, agent in enumerate(results5['debate_agent']):
+            agents.append(f"Debate agent {{agent.id}}, round {{round}}, converting [intermediate output] and calculating [final output], thinking: {{results5['list_thinking'][round][idx].content}}; answer: {{results5['list_answer'][round][idx].content}}")
+
+    agents.append(f"Final Decision agent, calculating [final output], thinking: {{results5['thinking'].content}}; answer: {{results5['answer'].content}}")
+    sub_tasks.append(f"Sub-task 5 output: thinking - {{results5['thinking'].content}}; answer - {{results5['answer'].content}}")
+    logs.append(results5['subtask_desc'])
 ```
     """

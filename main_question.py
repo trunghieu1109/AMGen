@@ -159,18 +159,6 @@ class DataScorer:
 
         with open(judge_path, 'a+') as judge_file:
             judge_file.write(f'Question: {question}\nIteration: {n}\nproposed answer: {response_text}\nExtracted answer: {extracted_answer}\nCorrect answer: {answer}\n')
-            
-        # with open(response_path, 'w') as json_file:
-        #     response_dict.append({
-        #         'example_id':example_id, 
-        #         'problem': question, 
-        #         'correct_answer': answer, 
-        #         'n':n, 
-        #         'response': response_text, 
-        #         'sub_tasks_text': sub_tasks_text})
-
-        #     json.dump(response_dict, json_file, indent=4)
-            
 
         if use_oracle_verifier:
             score_oracle_verifier = await self.run_score(answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path, instance_id=instance_id, n=n, code_snippet=code_snippet)
@@ -322,7 +310,7 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/abstracted_workflow/abstract_workflow_description.json'
+    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
@@ -377,7 +365,7 @@ async def run_main():
         dataset = load_dataset("simplescaling/aime24_nofigures")
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
-        examples = [examples[0]]
+        examples = [examples[1]] 
         test_size = 0.6
         
         val_set, test_set = split_array(examples, test_size)
@@ -410,7 +398,7 @@ async def run_main():
 
         cot_instruction = "Please think step by step and then solve the task."
         # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
-        output_description = "If the question is asked for a multiple-choice result, Return ONLY the alphabet choice, A) or B) or C) or D); If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete."
+        output_description = "If the overall question is asked for a multiple-choice result, Return ONLY the alphabet choice, A) or B) or C) or D); If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete."
         # need to consider sub-task output as well (no fixed form for sub-tasks)
         debate_role = ['Biology Expert', 'Physics Expert', 'Chemistry Expert', 'Science Generalist']
 
@@ -418,7 +406,7 @@ async def run_main():
         answers = [question.correct_index for question in questions]
 
         examples = [{'problem': questions[i], 'answer': answers[i]} for i in range(len(questions))]
-        # examples = examples[:2]
+        # examples = examples[:5]
         # examples = [examples[8]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
@@ -443,7 +431,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'abstract_base_methods_dev_v2/question/meta_agent/'
+        args.expr_name = f'abstract_base_methods_dev_3_7/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
