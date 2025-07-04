@@ -146,4 +146,103 @@ SpecificFormat
     sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}")
     logs.append(results1['subtask_desc'])
 ```
+
+AggregateAgent
+```python
+    aggregate_instruction2 = "Sub-task 2: From solutions generated in Subtask 1, aggregate these solutions and return the consistent and the best solution for [subtask]"
+    aggregate_desc = {
+        'instruction': aggregate_instruction2, 
+        'input': [taskInfo] + [(previous solutions that need to be aggregated)], 
+        'temperature': 0.0, 
+        'context': ["user query", "solutions generated from subtask 1"]
+    }
+    results2 = await self.aggregate(
+        subtask_id="subtask_1", 
+        aggregate_desc=aggregate_desc
+    )
+    
+    agents.append(f"CoT agent {results2['aggregate_agent'].id}, analyzing [expression #1], thinking: {results2['thinking'].content}; answer: {results2['answer'].content}")
+    sub_tasks.append(f"Sub-task 2 output: thinking - {results2['thinking'].content}; answer - {results2['answer'].content}")
+    logs.append(results2['subtask_desc'])
+```
+
+CodeGenerate
+```python
+    code_generate_instruction1 = "Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
+    code_generate_desc1 = {
+        'instruction': code_generate_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"],
+        'entry_point': "entry_point that is suitable for this subtask"
+    }
+    results1 = await self.code_generate(
+        subtask_id="subtask_1", 
+        code_generate_desc=code_generate_desc1
+    )
+    
+    agents.append(f"Code Generate Agent {results1['code_generate_agent'].id}, generate code for problem [problem #1], thinking: {results1['thinking'].content}; code: {results1['answer'].content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; code - {results1['answer'].content}")
+    logs.append(results1['subtask_desc'])
+```
+
+ProgrammerAgent
+```python
+    programmer_instruction1 = "Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
+    programmer_desc1 = {
+        'instruction': programmer_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"],
+        'entry_point': "entry_point that is suitable for this subtask"
+    }
+    results1 = await self.programmer(
+        subtask_id="subtask_1", 
+        programmer_desc=programmer_desc1
+    )
+    
+    agents.append(f"Programmer Agent {results1['programmer_agent'].id}, generate code for problem [problem #1], thinking: {results1['thinking'].content}; answer: {results1['answer'].content}, executing reults: {results1['exec_result']}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}; output - {results1['exec_result']}")
+    logs.append(results1['subtask_desc'])
+```
+
+ReviseAgent
+```python
+    revise_instruction2 = "Subtask 2: Revise previous solutions of problem: [problem 1]"
+    revise_desc2 = {
+        'instruction': revise_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'temperature': 0.0,
+        'context': ['user query', 'thinking of subtask 1', 'answer of subtask 1']
+    }
+    
+    results2 = await self.revise(
+        subtask_id = "subtask_2", 
+        revise_desc = revise_desc2
+    )
+    
+    agents.append(f"Revise agent {results2['revise_agent'].id}, revise solution from subtask 1, feedback: [feedback], thinking: {results2['thinking'].content}; revised_solution: {results2['revised_solution'].content}")
+    sub_tasks.append(f"Sub-task 2 output: thinking - {results2['thinking'].content}; revised_solution - {results2['revised_solution'].content}")
+    logs.append(results2['subtask_desc'])
+```
+
+ReviewAgent
+```python
+    review_instruction2 = "Subtask 2: Review previous solutions of problem: [problem 1]"
+    review_desc2 = {
+        'instruction': review_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'temperature': 0.0,
+        'context': ['user query', 'thinking of subtask 1', 'answer of subtask 1']
+    }
+    
+    results2 = await self.review(
+        subtask_id = "subtask_2", 
+        review_desc = review_desc2
+    )
+    
+    agents.append(f"Review agent {results2['review_agent'].id}, review solution from subtask 1, feedback: [feedback], feedback: {results2['feedback'].content}; correct: {results2['correct'].content}")
+    sub_tasks.append(f"Sub-task 2 output: feedback - {results2['feedback'].content}; correct - {results2['correct'].content}")
+    logs.append(results2['subtask_desc'])
+```
 """

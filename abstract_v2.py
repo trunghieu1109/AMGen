@@ -364,16 +364,6 @@ Your code should:
 Please ensure your code is efficient, well-commented, and follows Python best practices. The output should be limited to basic data types such as strings, integers, and floats. It is prohibited to transmit images or other file formats. The code output is intended for a text-based language model.
 """
 
-MD_ENSEMBLE_PROMPT = """
-Given the question described as follows: {{question}}
-Several solutions have been generated to address the given question. They are as follows:
-{{solutions}}
-
-Carefully evaluate these solutions and identify the solution that is more capable of solving the problem compared to other solutions, as this is crucial for problem-solving.
-
-In the "thought" field, provide a detailed explanation of your thought process. In the "solution_letter" field, output only the single letter ID (A, B, C, etc.) corresponding to the solution. Do not include any additional text or explanation in the "solution_letter" field.
-"""
-
 REVIEW_PROMPT = """
 Given a problem and a thoughtful solution, your task is to using critical thinking (questioning) to review the solution's correctness and provide a review result in boolean format.
 
@@ -1426,8 +1416,8 @@ async def main():
         mas_idx = int(idx / 5)
         iteration = int(mas['iteration'])
         
-        if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
-            continue 
+        # if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
+        #     continue 
         
         if iteration != 0:
             continue
@@ -1439,6 +1429,7 @@ async def main():
         print(mas['code'])
         
         subtask_list = await abstractor(mas['problem'], mas['code'])
+        break
     
         # with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json", "w", encoding="utf-8") as f:
         #     json.dump(subtask_list, f, ensure_ascii=False, indent=4)

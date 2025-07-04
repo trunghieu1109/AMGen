@@ -120,6 +120,47 @@ async def forward(self, taskInfo):
     return final_answer, logs
 '''
 
+async def run_code(code, entry_point):
+    try:
+        # Create a new global namespace
+        global_namespace = {}
+        # print("Create a new global namespace")
+        disallowed_imports = [
+            "os",
+            "sys",
+            "subprocess",
+            "multiprocessing",
+            "matplotlib",
+            "seaborn",
+            "plotly",
+            "bokeh",
+            "ggplot",
+            "pylab",
+            "tkinter",
+            "PyQt5",
+            "wx",
+            "pyglet",
+        ]
+
+        # Check for prohibited imports
+        for lib in disallowed_imports:
+            if f"import {lib}" in code or f"from {lib}" in code:
+                logger.info("Detected prohibited import: %s", lib)
+                return "Error", f"Prohibited import: {lib} and graphing functionalities"
+
+        # Use exec to execute the code
+        exec(code, global_namespace)
+        # Assume the code defines a function named 'solve'
+        if entry_point in global_namespace and callable(global_namespace[entry_point]):
+            result = global_namespace[entry_point]()
+            return "Success", str(result)
+        else:
+            return "Error", "Function 'solve' not found"
+    except Exception as e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        tb_str = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        return "Error", f"Execution error: {str(e)}\n{''.join(tb_str)}"
+
 class LLMAgentBase():
     """
     Attributes:
@@ -262,7 +303,6 @@ class LLMAgentBase():
 
 class AgentSystem():
     def __init__(self) -> None:
-        self.process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
         pass
 
     async def make_final_answer(self, thinking, answer, sub_tasks=None, agents=None):
@@ -508,7 +548,8 @@ class AgentSystem():
         }
         
     async def aggregate(self, subtask_id, aggregate_desc):
-        aggregate_agent = LLMAgentBase(['thinking', 'answer'], "Aggregate Agent", self.node_model, temperature=aggregate_desc['temperature'])
+        print(self.node_model)
+        aggregate_agent = LLMAgentBase(['thinking', 'answer'], "Aggregate Agent", model=self.node_model, temperature=aggregate_desc['temperature'])
        
         subtask_desc = {
             "subtask_id": subtask_id,
@@ -532,7 +573,7 @@ class AgentSystem():
         
     async def code_generate(self, subtask_id, code_generate_desc):
         
-        code_generate_agent = LLMAgentBase(['thinking', 'code'], "Code Generate Agent", self.node_model, temperature=code_generate_desc['temperature'])
+        code_generate_agent = LLMAgentBase(['thinking', 'code'], "Code Generate Agent", model=self.node_model, temperature=code_generate_desc['temperature'])
        
         subtask_desc = {
             "subtask_id": subtask_id,
@@ -557,89 +598,62 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
             'answer': code,
             'subtask_desc': subtask_desc
         }
-        
-    async def run_code(self, code):
-        try:
-            # Create a new global namespace
-            global_namespace = {}
-
-            disallowed_imports = [
-                "os",
-                "sys",
-                "subprocess",
-                "multiprocessing",
-                "matplotlib",
-                "seaborn",
-                "plotly",
-                "bokeh",
-                "ggplot",
-                "pylab",
-                "tkinter",
-                "PyQt5",
-                "wx",
-                "pyglet",
-            ]
-
-            # Check for prohibited imports
-            for lib in disallowed_imports:
-                if f"import {lib}" in code or f"from {lib}" in code:
-                    logger.info("Detected prohibited import: %s", lib)
-                    return "Error", f"Prohibited import: {lib} and graphing functionalities"
-
-            # Use exec to execute the code
-            exec(code, global_namespace)
-            # Assume the code defines a function named 'solve'
-            if "solve" in global_namespace and callable(global_namespace["solve"]):
-                result = global_namespace["solve"]()
-                return "Success", str(result)
-            else:
-                return "Error", "Function 'solve' not found"
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            tb_str = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            return "Error", f"Execution error: {str(e)}\n{''.join(tb_str)}"
     
-    async def exec_code(self, code, timeout=30):
+    async def exec_code(self, code, entry_point, timeout=30):
         """
         Asynchronously execute code and return an error if timeout occurs.
         """
         loop = asyncio.get_running_loop()
 
         try:
-            # Use the class-level process pool
-            future = loop.run_in_executor(self.process_pool, self.run_code, code)
-            # Wait for the task to complete or timeout
-            result = await asyncio.wait_for(future, timeout=timeout)
+            result = await asyncio.wait_for(run_code(code, entry_point), timeout=timeout)
             return result
         except asyncio.TimeoutError:
-            # Only cancel this specific future, not the entire process pool
-            future.cancel()
-            # Force garbage collection
-            import gc
-            gc.collect()
             return "Error", "Code execution timed out"
-        except concurrent.futures.process.BrokenProcessPool:
-            # If the process pool is broken, recreate it
-            self.process_pool.shutdown(wait=False)
-            self.process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
-            return "Error", "Process pool broken, try again"
         except Exception as e:
             return "Error", f"Unknown error: {str(e)}"
         
-    async def programmer(self, subtask_id, code_generate_desc):
+    async def programmer(self, subtask_id, programmer_desc):
 
         code = None
         output = None
         feedback = ""
         
         for i in range(2):
-            results = await self.code_generate(subtask_id, code_generate_desc)
-            code = results.get("code")
+            results = await self.code_generate(subtask_id, programmer_desc)
+            code = results.get("answer")
+            if isinstance(code, Info):
+                code = code.content 
             if not code:
-                return {"code": code, "output": "No code generated"}
-            status, output = await self.exec_code(code)
+                
+                results['subtask_desc']['exec_status'] = "Error"
+                results['subtask_desc']['exec_result'] = "No code generated"
+                results['answer'].content = "No code generated"
+                results['answer'] = Info(results['answer'].name, results['answer'].author, "No code generated", results['answer'].prompt, results['answer'].sub_tasks, results['answer'].agents, results['answer'].iteration_idx)
+                return {
+                    "programmer_agent": results['code_generate_agent'], 
+                    "thinking": results['thinking'],
+                    "answer": results['answer'], 
+                    "code": code,
+                    "exec_status": "Error",
+                    "exec_result": "No code generated",
+                    "subtask_desc": results['subtask_desc']
+                }
+            print("Code: ", code)
+            status, output = await self.exec_code(code, programmer_desc['entry_point'])
             if status == "Success":
-                return {"code": code, "output": output}
+                results['subtask_desc']['exec_status'] = status
+                results['subtask_desc']['exec_result'] = output
+                results['answer'] = Info(results['answer'].name, results['answer'].author, output, results['answer'].prompt, results['answer'].sub_tasks, results['answer'].agents, results['answer'].iteration_idx)
+                return {
+                    "programmer_agent": results['code_generate_agent'], 
+                    "thinking": results['thinking'],
+                    "answer": results['answer'], 
+                    "code": code,
+                    "exec_status": status,
+                    "exec_result": output,
+                    "subtask_desc": results['subtask_desc']
+                }
             else:
                 print(f"Execution error on attempt {i + 1}, error message: {output}")
                 feedback = (
@@ -647,14 +661,69 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
                     f"Code: {code}\n\nStatus: {status}, {output}"
                 )
                 
-                code_generate_desc['instruction'] + feedback
+                programmer_desc['instruction'] = programmer_desc['instruction'] + feedback
 
             # Force garbage collection after each iteration
             import gc
             gc.collect()
+            
+            results['subtask_desc']['exec_status'] = status
+            results['subtask_desc']['exec_result'] = output
+            results['answer'] = Info(results['answer'].name, results['answer'].author, output, results['answer'].prompt, results['answer'].sub_tasks, results['answer'].agents, results['answer'].iteration_idx)
 
-        return {"code": code, "output": output}
-
+        return {
+            "programmer_agent": results['code_generate_agent'], 
+            "thinking": results['thinking'],
+            "answer": results['answer'], 
+            "code": code,
+            "exec_status": status,
+            "exec_result": output,
+            "subtask_desc": results['subtask_desc']
+        }
+    
+    async def review(self, subtask_id, review_desc):
+        review_agent = LLMAgentBase(['feedback', 'correct'], "Review Agent", model=self.node_model, temperature=review_desc['temperature'])
+        subtask_desc = {
+            "subtask_id": subtask_id,
+            "instruction": review_desc['instruction'] + "\nUse critical thinking (questioning) to review the solution's correctness and provide a review result in boolean forma. If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness.",
+            "context": review_desc['context'],
+            "agent_collaboration": "Review"
+        }
+        
+        feedback, correct = await review_agent(review_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        subtask_desc['response'] = {
+            "feedback": feedback,
+            "correct": correct
+        }
+        
+        return {
+            'review_agent': review_agent,
+            'feedback': feedback,
+            'correct': correct,
+            'subtask_desc': subtask_desc
+        }
+        
+    async def revise(self, subtask_id, revise_desc):
+        revise_agent = LLMAgentBase(['thinking', 'revised_solution'], "Revise Agent", model=self.node_model, temperature=revise_desc['temperature'])
+        subtask_desc = {
+            "subtask_id": subtask_id,
+            "instruction": revise_desc['instruction'] + "\nProvided solution which is just reviewed as incorrect, your task is to revise the solution to solve the question. Ensure the revised solutions is clear and correct",
+            "context": revise_desc['context'],
+            "agent_collaboration": "Revise"
+        }
+        
+        thinking, revised_solution = await revise_agent(revise_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        subtask_desc['response'] = {
+            "thinking": thinking,
+            "revised_solution": revised_solution
+        }
+        
+        return {
+            'revise_agent': revise_agent,
+            'thinking': thinking,
+            'revised_solution': revised_solution,
+            'subtask_desc': subtask_desc
+        }
 
 async def evaluate_forward_fn(args, example_id, forward_str):
     # dynamically define forward()
@@ -1978,7 +2047,7 @@ async def test_operator(args, expr_name, example_id, task_queue, meta_model, ver
     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
 
     if args.dataset == 'gpqa_diamond':
-        task_queue = [Info(field_name, author, {"question": "41234123 + 412341234 = ?", "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
+        task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
     else:
         task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
 
@@ -2071,40 +2140,24 @@ async def forward(self, taskInfo):
     agents = []
     logs =  []
     
-    # Sub-task 1: Analyze first expression/data component with self-consistency
-    solutions = []
-    for i in range(0, 3):
-        cot_agent_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
-        cot_agent_desc = {
-            'instruction': cot_agent_instruction1, 
-            'input': [taskInfo], 
-            'temperature': 0.0, 
-            'context': ["user query"]
-        }
-        results1 = await self.answer_generate(
-            subtask_id="subtask_1", 
-            cot_agent_desc=cot_agent_desc
-        )
-
-        solutions.append(results1['thinking'])
-    
-    aggregate_instruction2 = "Sub-task 2: From solutions generated in Subtask 1, aggregate these solutions and return the consistent and the best solution."
-    aggregate_desc = {
-        'instruction': aggregate_instruction2, 
-        'input': [taskInfo] + solutions, 
+    programmer_instruction1 = "Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
+    programmer_desc1 = {
+        'instruction': programmer_instruction1, 
+        'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query", "solutions generated from subtask 1"]
+        'context': ["user query"],
+        'entry_point': "solve"
     }
-    results2 = await self.aggregate(
+    results1 = await self.programmer(
         subtask_id="subtask_1", 
-        aggregate_desc=aggregate_desc
+        programmer_desc=programmer_desc1
     )
     
-    agents.append(f"CoT agent {results2['aggregate_agent'].id}, analyzing [expression #1], thinking: {results2['thinking'].content}; answer: {results2['answer'].content}")
-    sub_tasks.append(f"Sub-task 2 output: thinking - {results2['thinking'].content}; answer - {results2['answer'].content}")
-    logs.append(results2['subtask_desc'])
+    agents.append(f"Programmer Agent {results1['programmer_agent'].id}, generate code for problem [problem #1], thinking: {results1['thinking'].content}; answer: {results1['answer'].content}, executing reults: {results1['exec_result']}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}; output - {results1['exec_result']}")
+    logs.append(results1['subtask_desc'])
     
-    final_answer = await self.make_final_answer(results2['thinking'], results2['answer'], sub_tasks, agents)
+    final_answer = await self.make_final_answer(results1['thinking'], results1['answer'], sub_tasks, agents)
     return final_answer, logs
 '''
         acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, _, _, _, total_time = await evaluate_forward_fn(args, example_id, workflow["code"])
