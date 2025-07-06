@@ -46,7 +46,7 @@ from sklearn.metrics import silhouette_score, pairwise_distances
 from sklearn.preprocessing import StandardScaler, normalize
 from Levenshtein import distance
 import pickle as pkl
-from abstract_v2 import MASAbstraction, levenshtein_array_to_array
+from abstract_v2 import MASAbstraction, levenshtein_array_to_array, DESCRIPTION_FOR_OPERATOR
 import asyncio
 
 client = openai.OpenAI()
@@ -619,6 +619,9 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
         output = None
         feedback = ""
         
+        if not 'entry_point' in programmer_desc:
+            programmer_desc['entry_point'] = "solve"
+        
         for i in range(2):
             results = await self.code_generate(subtask_id, programmer_desc)
             code = results.get("answer")
@@ -681,25 +684,46 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
             "subtask_desc": results['subtask_desc']
         }
     
+    # async def review(self, subtask_id, review_desc):
+    #     review_agent = LLMAgentBase(['feedback', 'correct'], "Review Agent", model=self.node_model, temperature=review_desc['temperature'])
+    #     subtask_desc = {
+    #         "subtask_id": subtask_id,
+    #         "instruction": review_desc['instruction'] + "\nUse critical thinking (questioning) to review the solution's correctness and provide a review result in boolean forma. If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness. Return the results in JSON format, include `feedback` and `correct` fields.",
+    #         "context": review_desc['context'],
+    #         "agent_collaboration": "Review"
+    #     }
+        
+    #     feedback, correct = await review_agent(review_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+    #     subtask_desc['response'] = {
+    #         "feedback": feedback,
+    #         "correct": correct
+    #     }
+        
+    #     return {
+    #         'review_agent': review_agent,
+    #         'thinking': feedback,
+    #         'answer': correct,
+    #         'subtask_desc': subtask_desc
+    #     }
     async def review(self, subtask_id, review_desc):
-        review_agent = LLMAgentBase(['feedback', 'correct'], "Review Agent", model=self.node_model, temperature=review_desc['temperature'])
+        review_agent = LLMAgentBase(['thinking', 'answer'], "Revise Agent", model=self.node_model, temperature=review_desc['temperature'])
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": review_desc['instruction'] + "\nUse critical thinking (questioning) to review the solution's correctness and provide a review result in boolean forma. If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness.",
+            "instruction": review_desc['instruction'] + "\nProvided solution which is just reviewed as incorrect, your task is to revise the solution to solve the question. Ensure the revised solutions is clear and correct",
             "context": review_desc['context'],
             "agent_collaboration": "Review"
         }
         
-        feedback, correct = await review_agent(review_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await review_agent(review_desc['input'], subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
-            "feedback": feedback,
-            "correct": correct
+            "thinking": thinking,
+            "answer": answer
         }
         
         return {
             'review_agent': review_agent,
-            'feedback': feedback,
-            'correct': correct,
+            'thinking': thinking,
+            'answer': answer,
             'subtask_desc': subtask_desc
         }
         
@@ -870,28 +894,60 @@ Return your result in valid JSON format with the following structure. Each eleme
     return high_level_decomposition
 
 async def specific_task_decomposition(meta_model, query, output_description, aw_flow, collaboration_dependencies):
+    # processed_aw_flow = [v for k, v in aw_flow.items()]
+    
     user_prompt = f"""
-You are an agent specialized in task decomposition. Your task is to analyze the provided query thoroughly and decompose it into subtasks and their dependencies to address the query effectively. You must incorporate feedback from previous decomposition attempts (evaluation) to improve the quality of the decomposition, avoiding past mistakes and addressing any identified issues.
+You are an agent specialized in task decomposition. Your task is to analyze the provided query thoroughly and decompose it into subtasks and their dependencies, structured according to the provided abstract workflow with explicit control flow (e.g., sequential, loop, conditional). You must incorporate feedback from previous decomposition attempts (evaluation) to improve the quality of the decomposition, avoiding past mistakes and addressing any identified issues.
+
 [Query]
 {query}
 
 [Output format]
 {output_description}
 
-[Instruction]
-1. Decompose the query into fine-grained, detailed subtasks. Ensure the subtasks are simple, specific, and aligned with the model's capabilities, avoiding overly complex steps.
-2. Structure the subtasks in a multi-turn reasoning sequence (e.g., step 1 → step 2), ensuring logical progression.
-3. For each subtask, include:
-    3.1. Objective: Clearly state the purpose of the subtask, incorporating all relevant context or conditions from previous subtasks to enhance performance.
-    3.2. Dependencies: Specify which subtasks must be completed before the current subtask, ensuring proper sequencing.
-    3.3. Agent Collaboration: Identify suitable agent collaboration patterns (e.g CoT, SC_CoT, Reflexion, Debate) as used in <Agent Collaboration and Subtask Dependencies>.
-4. Follow the provided workflow description to structure the decomposition process.
-5. Ensure the decomposition is tailored to the query’s intent and context.
-6. Consider output format of each subtask, so that they could pass their output to other agents effectively.
-7. Consider the suggested agent collaboration and subtask dependencies for each subtask.
-8. Subtask id must start from 1 to n, eg. 1, 2, 3, 4, 5, ...
-9. Subtask name in this format: "Subtask + subtask_id", subtask_id ~ 0, 1, 2, 3, 4, ...
-10. Ensure output format of the workflow must match to output format requirement: {output_description}
+⚠️ Strict Requirements (MUST-FOLLOW)
+You MUST include every single control flow block (flow_type) from the Abstract Workflow Description (aw_flow) in your output, in the same order and structure (e.g., nesting).
+
+For each start_* control flow in aw_flow, there must be a corresponding end_* in the output, and all subtasks between them must be included as inner Stage blocks.
+
+Do NOT merge, skip, rename, or reorder any control flow. The structure must match the control flow tree exactly as defined in aw_flow.
+
+[Instructions for Task Decomposition]
+Decompose the query into fine-grained, atomic subtasks, each achievable in one reasoning step.
+
+Use the Abstract Workflow Description (aw_flow) as a strict template for structuring the decomposition:
+
+Each control flow in aw_flow must appear in your output as a Control Flow block.
+
+Subtasks must appear in the correct position and nesting based on the flow.
+
+Create a Stage under each control flow block (or group of control flows) that contains subtasks enclosed by that block.
+
+Each Subtask must include:
+
+Objective: A precise goal derived from the abstracted objective.
+
+Agent Collaboration: Select the best-fit method (CoT, Reflexion, etc.).
+
+Dependencies: Refer to the subtask IDs listed in the aw_flow dependency graph.
+
+Use the following ID format:
+
+Control Flows: "Control Flow 1", "Control Flow 2", ...
+
+Stages: "Stage 1", "Stage 2", ...
+
+Subtasks: "subtask_0", "subtask_1", ... (matching aw_flow)
+
+Subtask Titles: "Subtask 0", "Subtask 1", ...
+
+Ensure your output is:
+
+Machine-readable
+
+Logically structured
+
+Faithfully reflects every control flow block in aw_flow.
 
 <Abstract Workflow Description>
 {aw_flow}
@@ -899,36 +955,36 @@ You are an agent specialized in task decomposition. Your task is to analyze the 
 
 <Agent Collaboration and Subtask Dependencies>
 {collaboration_dependencies}
+</Agent Collaboration and Subtask Dependencies>
 
-Return in JSON format, contains 'task_decomposition'. 
+
+
+Return the result in JSON format with the following structure:
 {{
-    'thought': "Your thought while decomposing task -> to subtasks",
-    'task_decomposition': {{
-        'stage_1': {{
-            'subtask_1': {{
-                'objective': "",
-                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
-                'dependencies': []
-            }},
-            'subtask_2': {{
-                'objective': "",
-                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
-                'dependencies': [subtask_1]
-            }}
+  "thought": "Describe your reasoning for decomposing tasks, interpreting control flows, choosing agent strategies, and sequencing subtasks.",
+  "task_decomposition": {{
+    "Control Flow 0": {{
+        "flow_type": "start sequential",
+        "flow_desc": "..."
+    }},
+    "Stage 0": {{
+        "subtask_1": {{
+          "objective": "...",
+          "agent_collaboration": "CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise",
+          "dependencies": []
         }},
-        'stage_2': {{
-            'subtask_3': {{
-                'objective': "",
-                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
-                'dependencies': [...]
-            }},
-            'subtask_4': {{
-                'objective': "",
-                'agent_collaboration': [CoT | SC_CoT | Debate | Reflexion],
-                'dependencies': [...]
-            }}
+        "subtask_2": {{
+          "objective": "...",
+          "agent_collaboration": "...",
+          "dependencies": ["subtask_1"]
         }}
+    }},
+    .....
+    "Control Flow n": {{
+        "flow_type": "end sequential",
+        "flow_desc": "..."
     }}
+  }}
 }}
     """
 
@@ -937,11 +993,6 @@ Return in JSON format, contains 'task_decomposition'.
     ]
 
     task_decomposition ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'task_decomposition'], 0.0)
-    for k, v in task_decomposition['task_decomposition'].items():
-        for ks, vs in v.items():
-            vs['objective'] = vs['objective'].replace("{", "")
-            vs['objective'] = vs['objective'].replace("}", "")
-            vs['objective'] = vs['objective'].replace("'", "")
             
     return task_decomposition
     
@@ -958,7 +1009,10 @@ You are tasked with instantiating a concrete version of an abstract multi-stage 
 6. Subtask name in this format: "Subtask + subtask_id", subtask_id ~ 0, 1, 2, 3, 4, ...
 7. Ensure output format of the workflow must match to output format requirement: {output_description}
 8. Follow strictly the design of defined interaction patterns.
-9. You can only use `self.cot`, `self.sc_cot`, `self.debate` and `self.reflexion`.
+9. There are many `Control Flow` in the workflow. For each type, you must implement them in differenct ways.
+- `sequential` flow: The base code flow that just a subtask passes its output to other subtask sequentially.
+- `loop` flow: apply the `for` loop to iterately implement the subtasks included in it.
+- `conditional`: apply `if-else` structure to check the condition. if condition is meet, `true_branch` must be implemented. In other case, `false_branch` must be implemented.
 
 [Instructions]
 You must follow the requirements below when generating the concrete workflow:
@@ -1100,7 +1154,7 @@ Propose targeted enhancements to the workflow:
 
 ## 🔹 Expected Output
 
-Return results in the following **JSON format** contains `feedback` and `suggestion` fields:
+Return results in the following **JSON format** only contains `feedback` and `suggestion` fields, no other additional fields:
 
 ```json
 {{
@@ -1427,6 +1481,112 @@ Generate a concrete agentic workflow in Python code format, based on the Abstrac
     next_solution['code'] = next_solution['code'].replace("}}", "}")
     
     return next_solution
+
+async def merge_filtered_workflow(meta_model, filtered_sequential_only_workflow, filtered_loop_contain_workflow, filtered_conditional_contain_workflow):
+    user_prompt_merge_workflow = f"""
+You are a specialized AI agent for analyzing and merging task workflows represented in structured JSON format. Your task is to intelligently merge two similar but not identical workflows into a unified, optimized version that preserves both shared and unique subtasks, while maintaining logical structure and relative control flow positions.
+
+### 🔧 INPUT
+
+You will be given **two workflows**, each represented as a list of subtasks in JSON format. Each subtask has the following fields:
+- `subtask_id`: unique identifier
+- `subtask_name`: human-readable name
+- `abstracted_objective`: a concise description of what the subtask accomplishes
+- `agent_collaboration`: either a string (e.g., "logic code") or a list of collaboration methods (e.g., `["CoT", "AnswerGenerate"]`)
+- `dependencies` (optional): list of subtask_ids this subtask depends on
+
+Each workflow may also contain **control flow markers**:
+- `start_sequential` / `end_sequential`
+- `start_loop` / `end_loop`
+- `start_conditional` / `end_conditional`
+- `start_true_branch` / `end_true_branch`
+- `start_false_branch` / `end_false_branchs`
+
+### 📌 TASK
+
+1. **Merge the two workflows** into a single workflow list that:
+   - Keeps the relative position of control flows (`start_sequential`, `start_loop`, etc.) **exactly as they appear** in each respective flow.
+   - If two subtasks serve **identical purposes** and appear at similar relative positions, **merge them into one**.
+     - Consider subtasks as equivalent if their `abstracted_objective` and `agent_collaboration` are very similar and they appear in the same structural place (e.g., inside a loop).
+   - Keep **unique subtasks** from each workflow, ensuring there is **no redundant repetition**.
+   - Adjust `dependencies` accordingly in the merged version.
+   - If a subtask is present in only one workflow but logically fits into the merged structure, include it and annotate it with `"optional": true`.
+
+2. **Ensure logical consistency**: 
+   - Do not place subtasks outside of their valid control flow (e.g., don't put a looping subtask outside a loop).
+   - Do not duplicate identical or redundant subtasks.
+   - Maintain correct ordering of dependencies.
+
+3. **Avoid**:
+   - Breaking control flow structure (e.g., nesting start/end incorrectly).
+   - Losing important agent collaboration roles or objectives.
+   - Blindly appending all subtasks together.
+
+### 🧾 OUTPUT FORMAT
+
+Return results in JSON format, which include `thought` (Describe your reasoning for decomposing tasks, interpreting control flows, choosing agent strategies, and sequencing subtasks.)
+and `merge_filtered_workflow` that represents the merged workflow.
+In merge_filtered_workflow, it could contain `Control Flow` (start_sequential, end_sequential, ....) or `Stage`. Each stage include multiple subtasks. Each of them contains:
+- `subtask_id`
+- `subtask_name`
+- `abstracted_objective`
+- `agent_collaboration`
+- `dependencies` (optional)
+
+You will be provided with:
+- Filtered Sequential Only Workflow:
+{filtered_sequential_only_workflow}
+
+- Filtered Loop Contain Workflow:
+{filtered_loop_contain_workflow}
+
+- Filtered Conditional Contain Workflow:
+{filtered_conditional_contain_workflow}
+
+### 🧠 Reasoning Strategy
+
+While merging, follow these reasoning steps:
+- Align control flow structure first.
+- Identify matching subtasks by comparing their names, objectives, collaboration patterns, and structural position.
+- Merge identical subtasks, keep unique ones if relevant.
+
+Example:
+{{
+    "thought": "Describe your reasoning for decomposing tasks, interpreting control flows, choosing agent strategies, and sequencing subtasks.",
+    "merge_filtered_workflow": {{
+        "Control Flow 0": {{
+            "flow_type": "start sequential",
+            "flow_desc": "..."
+        }},
+        "Stage 0": {{
+            "subtask_1": {{
+                "objective": "...",
+                "agent_collaboration": "CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise",
+                "dependencies": []
+            }},
+            "subtask_2": {{
+                "objective": "...",
+                "agent_collaboration": "...",
+                "dependencies": ["subtask_1"]
+            }}
+        }},
+        .....
+        "Control Flow n": {{
+            "flow_type": "end sequential",
+            "flow_desc": "..."
+        }}
+    }}
+}}
+    """
+    
+    msg_list = [
+        {"role": "user", "content": user_prompt_merge_workflow},
+    ]
+
+    merge_filtered_workflow ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'merge_filtered_workflow'], 0.0)
+    print("================ Merged Filtered Workflow ================\n", merge_filtered_workflow['merge_filtered_workflow'])
+
+    return merge_filtered_workflow['merge_filtered_workflow']
  
 async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_model, verifier_model, mas_zero_workflow = None):
 
@@ -1583,9 +1743,6 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
 
-    if example_id < 196:
-        return 0, 0, ""
-
     start_time_ = time.time()
     
     global_node_model = get_global("global_node_model")
@@ -1593,14 +1750,14 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     # declare results path
     result_path = expr_name + f"{args.dataset}"
     expr_name = expr_name + f"{args.dataset}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_3_7/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_6_7_2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     judge_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_judge")
     os.makedirs(os.path.dirname(judge_path), exist_ok=True)
     global_judge_path = get_global('global_judge_path')
     global_judge_path[str(example_id)] = judge_path
-    final_results_path = f'results/{args.dataset}/abstract_workflow_dev_3_7/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/abstract_workflow_dev_6_7_2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1629,7 +1786,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     set_global("global_max_workers", max_workers)
     
     # load mas chains list from offline abstract workflows
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
         default_mas_chain = json.load(f)
         
     # config task_queue with specific datasets
@@ -1664,11 +1821,11 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     embeddings = await abstractor.embedding_subtask(merged_subtasks)
     
     # get kmeans clustering object from former abstraction
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/kmeans.pkl', 'rb') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/kmeans.pkl', 'rb') as f:
         kmeans = pkl.load(f)
     
     # get pca object from former abstraction, which fit with available data
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/pca.pkl', 'rb') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/pca.pkl', 'rb') as f:
         pca = pkl.load(f)
         
     normalized_embeddings = normalize(embeddings, norm="l2")
@@ -1680,26 +1837,81 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         if str(idx) not in mas_chain:
             mas_chain.append(str(idx))
 
-    # choose the most similar abtracted workflow, based on levenshtein distance
-    sorted_chains = sorted(default_mas_chain, key=lambda mas: levenshtein_array_to_array(mas_chain, mas))
+    # remove start and end step of control flow from mas
     
-    print(mas_chain)
-    print(sorted_chains)
-    closest_1 = sorted_chains[:1]
-
-    workflow_index = 0
-    max_levenshtein_distance = 0
-    for idx, awd in enumerate(abstract_workflow):
+    # filter sequential only mas
+    sequential_only_mas = []
+    loop_contain_mas = []
+    conditional_contain_mas = []
+    
+    for idx, mas in enumerate(default_mas_chain):
+        contain_loop = False
+        contain_conditional = False
+        if 'start_conditional' in mas:
+            conditional_contain_mas.append({
+                'id': idx,
+                'mas': mas
+            })
+            contain_conditional = True
         
-        if levenshtein_array_to_array(awd['chain'], closest_1[0]) > max_levenshtein_distance:
-            max_levenshtein_distance = levenshtein_array_to_array(awd['chain'], closest_1[0])
-            workflow_index = idx
+        if 'start_loop' in mas:
+            loop_contain_mas.append({
+                'id': idx,
+                'mas': mas
+            })
+            contain_loop = True
+        
+        if not contain_conditional and not contain_loop:
+            sequential_only_mas.append({
+                'id': idx,
+                'mas': mas
+            })
             
-    workflow_index = [workflow_index]
+    async def choose_the_most_similar_mas(mas_chain, mas_chain_list, abstract_workflow_):
+        if len(mas_chain_list) == 0:
+            return None
+        
+        mas_chain_no_flow = []
+        for mas in mas_chain_list:
+            mas_no_flow = []
+            for step in mas['mas']:
+                if isinstance(step, str) and (step.startswith("start") or step.startswith("end")):
+                    continue
+                mas_no_flow.append(step)
+                
+            mas_chain_no_flow.append({
+                'id': mas['id'],
+                'mas': mas_no_flow
+            })
+        
+        # choose the most similar abtracted workflow, based on levenshtein distance  
+        sorted_chains = sorted(mas_chain_no_flow, key=lambda mas: levenshtein_array_to_array(mas_chain, mas['mas']))
+        # print(sorted_chains)
+        closest_1 = sorted_chains[:1]
+
+        workflow_index = 0
+        max_levenshtein_distance = 0
+        for idx, awd in enumerate(abstract_workflow_):
+            if levenshtein_array_to_array(awd['chain'], closest_1[0]['mas']) > max_levenshtein_distance:
+                max_levenshtein_distance = levenshtein_array_to_array(awd['chain'], closest_1[0]['mas'])
+                workflow_index = closest_1[0]['id']
+                
+        workflow_index = [workflow_index]
+        
+        print("workflow index: ", workflow_index)
+        filterd_workflow = [abstract_workflow_[idx] for idx in workflow_index]
+        print("Filtered workflow: ", [fw['name'] for fw in filterd_workflow])
+        
+        return filterd_workflow
+
+    # choose the most similar sequential only mas
+    filtered_sequential_only_workflow = await choose_the_most_similar_mas(mas_chain, sequential_only_mas, abstract_workflow)
+
+    # choose the most similar sequential only mas
+    filtered_loop_contain_workflow = await choose_the_most_similar_mas(mas_chain, loop_contain_mas, abstract_workflow)
     
-    print("workflow index: ", workflow_index)
-    filterd_workflow = [abstract_workflow[idx] for idx in workflow_index]
-    print("Filtered workflow: ", [fw['name'] for fw in filterd_workflow])
+    # choose the most similar sequential only mas
+    filtered_conditional_contain_workflow = await choose_the_most_similar_mas(mas_chain, conditional_contain_mas, abstract_workflow)
     
     task_content = task_queue[0].content
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
@@ -1708,10 +1920,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     global_task_queue[str(example_id)] = task_queue_tmp    
     set_global("global_task_queue", global_task_queue)
     
-    aw = filterd_workflow[0]
-    print(f'============Initial Archive: {aw["name"]}=================')
+    print(f'============ Initial Archive: Test New Architecture =================')
     default_global_n = get_global("global_n")
-    default_global_n[str(example_id)] = f"{aw["name"]}_{example_id}"
+    default_global_n[str(example_id)] = f"Test New Architecture_{example_id}"
     set_global("global_n", default_global_n)
 
     global_n = get_global("global_n")
@@ -1722,16 +1933,48 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     ================================================== CONCRETIZE WORKFLOW ======================================================
     '''
     
-    # load chosen abstracted workflow
-    with open(aw['code_path'], 'r', encoding='utf-8') as f:
-        abstracted_mas = json.load(f)
+    # load chosen abstracted workflow for each type
+    sequential_only_aw = None
+    if filtered_sequential_only_workflow:
+        with open(filtered_sequential_only_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
+            sequential_only_aw_ = json.load(f)
+        sequential_only_aw = {
+            'flow': filtered_sequential_only_workflow[0]['flow'],
+            'specific_workflow': sequential_only_aw_
+        }
+            
+    loop_contain_aw = None
+    if filtered_loop_contain_workflow:
+        with open(filtered_loop_contain_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
+            loop_contain_aw_ = json.load(f)
+        
+        loop_contain_aw = {
+           'flow': filtered_loop_contain_workflow[0]['flow'],
+           'specific_workflow': loop_contain_aw_
+        }
+        
+    conditional_contain_aw = None
+    if filtered_conditional_contain_workflow:
+        with open(filtered_conditional_contain_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
+            conditional_contain_aw_ = json.load(f)
+
+        conditional_contain_aw = {
+            'flow': filtered_conditional_contain_workflow[0]['flow'],
+            'specific_workflow': conditional_contain_aw_
+        }
+            
+    print(sequential_only_aw)
+    print(loop_contain_aw)
+    print(conditional_contain_aw)
     
-    collaboration_dependencies = {subtask['subtask_id']: {'agent_collaboration': subtask['agent_collaboration'], 'dependencies': subtask['dependencies']} for subtask in abstracted_mas}
+    merge_filtered_aw = await merge_filtered_workflow(meta_model, sequential_only_aw, loop_contain_aw, conditional_contain_aw)
+    
+    collaboration_dependencies = {subtask['subtask_id']: {'agent_collaboration': subtask['agent_collaboration'], 'dependencies': subtask['dependencies']} for subtask in merge_filtered_aw if 'dependencies' in subtask}
     
     # decompose query into multiple subtasks
-    task_decomposition = await specific_task_decomposition(meta_model, task_queue_tmp[0].content, output_description, aw['flow'], collaboration_dependencies)
+    task_decomposition = await specific_task_decomposition(meta_model, task_queue_tmp[0].content, output_description, merge_filtered_aw, collaboration_dependencies)
     print("\n============= Task Decomposition: =============\n", task_decomposition['task_decomposition'])
-    stage_desc = str(aw).replace("subtask", "stage")
+    stage_desc = str(merge_filtered_aw).replace("subtask", "stage")
     
     # generate new workflow that concretized for this query
     next_solution = await generate_concretized_workflow(meta_model, task_decomposition['task_decomposition'], output_description, interaction_pattern, stage_desc, task_queue_tmp[0])
@@ -1747,13 +1990,10 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         print("Full error trace:\n", error_trace)
         return -1, -1, ""
     
-    # with open("logs.pkl", "wb") as f:
-    #     pkl.dump(logs, f)
-    
     # save results
-    judge_path = os.path.join(args.save_dir, f"{expr_name}_{aw['name']}_{example_id}_full_response")
+    judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response")
     with open(judge_path, 'w') as judge_file:
-        judge_file.write(f'Question: {task_queue[0].content}\nIteration: {aw['name']}\nFull Response:{raw_results}')
+        judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
 
     if global_use_oracle_verifier:
         acc_list = acc_oracle_verifier_list
@@ -1768,14 +2008,14 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     if '[TOO_HARD]' in extracted_answer:
         extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
 
-    converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_{aw["name"]}_{example_id}_first_gen_converted.py')
+    converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_Test New Architecture_{example_id}_first_gen_converted.py')
     with open(converted_code_filename, "w") as fh:
         fh.write(next_solution['code'])    
     
     print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
 
     with open(oracle_acc_result_path, "a+") as fh:
-        fh.write(f'experiemnt {example_id}: 1 (initial {aw["name"]}): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+        fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
     
     max_score = max(max_score, acc_oracle_verifier_list[0])
     final_results.append({
@@ -1795,11 +2035,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         # get evaluation from many llm experts
         evaluation = await evaluate_workflow(task_queue_tmp[0].content, subtask_desc, current_ans, output_description, verifier_hub)
         synthesized_evaluation = await synthesize_evaluations(verifier_model, evaluation, task_queue_tmp[0].content)
-        
-        # regenerate task decomposition
-        # regenerated_task_decomposition = await refined_task_decomposition(meta_model, task_queue_tmp[0].content, output_description, synthesized_evaluation, task_decomposition['task_decomposition'])
-        # print(regenerated_task_decomposition["task_decomposition"])
-        
+
         # regenerate workflow
         next_solution = await refined_workflow(meta_model, next_solution['code'], interaction_pattern, synthesized_evaluation, task_queue_tmp[0])
         print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
@@ -1814,9 +2050,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
             print("Full error trace:\n", error_trace)
         
         # save refined results
-        judge_path = os.path.join(args.save_dir, f"{expr_name}_{aw['name']}_{example_id}_full_response_refined")
+        judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response_refined")
         with open(judge_path, 'w') as judge_file:
-            judge_file.write(f'Question: {task_queue[0].content}\nIteration: {aw['name']}\nFull Response:{raw_results}')
+            judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
 
         if global_use_oracle_verifier:
             acc_list = acc_oracle_verifier_list
@@ -1832,14 +2068,14 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
             extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
         # save results
 
-        converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_{aw["name"]}_{example_id}_converted_refined.py')
+        converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_Test New Architecture_{example_id}_converted_refined.py')
         with open(converted_code_filename, "w") as fh:
             fh.write(next_solution['code'])    
 
         print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
 
         with open(oracle_acc_result_path, "a+") as fh:
-            fh.write(f'experiemnt {example_id}: 1 (initial {aw["name"]}): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+            fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
         
         max_score = max(max_score, acc_oracle_verifier_list[0])
     
@@ -1862,8 +2098,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         json.dump(final_results, f, indent=4)
             
     return max_score, total_time, ""
+    # return 0, 0, ""
         
-async def run_single_agent_baselines_v3(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
+async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
 
     questions = get_global("global_questions")
     questions = questions[str(example_id)]

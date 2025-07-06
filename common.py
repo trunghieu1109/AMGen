@@ -228,11 +228,11 @@ def shorten_context(msg_list):
 
 
 
-async def check_equality(sampler: SamplerBase, expr1: str, expr2: str, use_oracle_verifier=False, judge_path=None):
+async def check_equality(sampler: SamplerBase, question: str, expr1: str, expr2: str, use_oracle_verifier=False, judge_path=None):
 
 
     if use_oracle_verifier: # directly use oracle
-        prompt = EQUALITY_TEMPLATE % {"expression1": expr1, "expression2": expr2}
+        prompt = EQUALITY_TEMPLATE_2.format(question=question, answer1=expr1, answer2=expr2)
         response, _ = await sampler([dict(content=prompt, role="user")], response_format='normal')
         print('response oracle verifier: ',response)
 
@@ -761,6 +761,20 @@ Respond with only "Yes" or "No" (without quotes). Do not include a rationale.
 
     Expression 1: %(expression1)s
     Expression 2: %(expression2)s
+""".strip()
+
+
+EQUALITY_TEMPLATE_2 = """
+
+Given question: {question}.
+
+With no regard to the correctness of the answers, look at the following two answers. Check whether them equivalent:
+
+Answer 1: {answer1}
+Answer 2: {answer2}
+
+Return only "Yes" or "No".
+
 """.strip()
 
 

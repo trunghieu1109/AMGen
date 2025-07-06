@@ -13,7 +13,7 @@ from sampler.o_chat_completion_sampler import OChatCompletionSampler
 from sampler.together_completion_sampler import ChatCompletionSampler as ToChatCompletionSampler
 from sampler.vllm_completion_sampler import ChatCompletionSampler as VllmChatCompletionSampler
 import json
-from utils import load_questions
+from utils import load_questions, load_questions_drop, load_questions_gsm8k, load_questions_hotpotqa
 from prompts.swe.patch_oracle import AGENTLESS_REPAIR
 from swe_utils import run_swebench_evaluation, sanity_check
 from utils import  extract_xml
@@ -79,7 +79,7 @@ class DataScorer:
         self.LETTER_TO_INDEX = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
 
 
-    async def run_score(self, answer, extracted_answer, use_oracle_verifier, judge_path, instance_id, n, code_snippet):
+    async def run_score(self, question, answer, extracted_answer, use_oracle_verifier, judge_path, instance_id, n, code_snippet):
 
         if 'swe_bench' in self.dataset:
             score, percentage, passed_tests, total_tests = run_swebench_evaluation(judge_path, instance_id, extracted_answer, self.technique, n, code_snippet)
@@ -90,7 +90,16 @@ class DataScorer:
             return score
 
         elif 'aime24' in self.dataset:
-            quality = await check_equality(self.equality_checker, answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path)
+            quality = await check_equality(self.equality_checker, question, answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path)
+            return float(quality)
+        elif 'drop' in self.dataset:
+            quality = await check_equality(self.equality_checker, question, answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path)
+            return float(quality)
+        elif 'hotpotqa' in self.dataset:
+            quality = await check_equality(self.equality_checker, question, answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path)
+            return float(quality)
+        elif 'gsm8k' in self.dataset:
+            quality = await check_equality(self.equality_checker, question, answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path)
             return float(quality)
         elif 'gpqa_diamond' in self.dataset:
             
@@ -161,7 +170,7 @@ class DataScorer:
             judge_file.write(f'Question: {question}\nIteration: {n}\nproposed answer: {response_text}\nExtracted answer: {extracted_answer}\nCorrect answer: {answer}\n')
 
         if use_oracle_verifier:
-            score_oracle_verifier = await self.run_score(answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path, instance_id=instance_id, n=n, code_snippet=code_snippet)
+            score_oracle_verifier = await self.run_score(question, answer, extracted_answer, use_oracle_verifier=True, judge_path=judge_path, instance_id=instance_id, n=n, code_snippet=code_snippet)
             score = score_oracle_verifier
             score_model_verifier = None 
         else:
@@ -310,14 +319,14 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3/abstracted_workflow/abstract_workflow_description.json'
+    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
         
     for item in data:
-        code_path = item.get('code_path')
+        code_path = item.get('code_path')   
         if code_path and os.path.isfile(code_path):
             with open(code_path, 'r', encoding='utf-8') as code_file:
                 code_content = code_file.read()
@@ -328,6 +337,7 @@ async def run_main():
                     'chain': item['chain'],
                     'code_path': item['code_path']
                 })
+                # print(abstract_workflow[-1])
         else:
             print(f'Không tìm thấy file tại đường dẫn: {code_path}')
             
@@ -373,6 +383,73 @@ async def run_main():
         print("Validation Set Length: ", len(val_set))
         print("Test Set Length: ", len(test_set))
         
+        set_global("global_output_description", output_description)
+        set_global("global_score_compute", data_scorer.score)
+        set_global("global_max_round", max_round)
+        set_global("global_max_sc", max_sc)
+        set_global("global_debate_role", debate_role)
+        set_global("global_cot_instruction", cot_instruction)
+        set_global("global_node_model", node_model)
+        set_global("global_use_oracle_verifier", use_oracle_verifier)
+        set_global("global_dataset", args.dataset)
+        
+    elif 'drop' in args.dataset:
+
+        cot_instruction = "Please think step by step and then solve the task."
+        # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
+        output_description = "If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete."
+        # need to consider sub-task output as well (no fixed form for sub-tasks)
+        debate_role = ['Math Professor', 'Grade School Teacher']
+        
+        questions = load_questions_drop('dataset/drop_validate.csv', seed=0)
+
+        examples = [{'problem': questions[i].question, 'answer': questions[i].answer} for i in range(len(questions))]
+        examples = examples[:50]
+        # examples = [examples[0]]
+        set_global("global_output_description", output_description)
+        set_global("global_score_compute", data_scorer.score)
+        set_global("global_max_round", max_round)
+        set_global("global_max_sc", max_sc)
+        set_global("global_debate_role", debate_role)
+        set_global("global_cot_instruction", cot_instruction)
+        set_global("global_node_model", node_model)
+        set_global("global_use_oracle_verifier", use_oracle_verifier)
+        set_global("global_dataset", args.dataset)
+    elif 'gsm8k' in args.dataset:
+
+        cot_instruction = "Please think step by step and then solve the task."
+        # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
+        output_description = "If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete."
+        # need to consider sub-task output as well (no fixed form for sub-tasks)
+        debate_role = ['Math Professor', 'Grade School Teacher']
+        
+        questions = load_questions_gsm8k('dataset/gsm8k_validate.csv', seed=0)
+
+        examples = [{'problem': questions[i].question, 'answer': questions[i].answer} for i in range(len(questions))]
+        examples = examples[:20]
+        # examples = [examples[0]]
+        set_global("global_output_description", output_description)
+        set_global("global_score_compute", data_scorer.score)
+        set_global("global_max_round", max_round)
+        set_global("global_max_sc", max_sc)
+        set_global("global_debate_role", debate_role)
+        set_global("global_cot_instruction", cot_instruction)
+        set_global("global_node_model", node_model)
+        set_global("global_use_oracle_verifier", use_oracle_verifier)
+        set_global("global_dataset", args.dataset)
+    elif 'hotpotqa' in args.dataset:
+
+        cot_instruction = "Please think step by step and then solve the task."
+        # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
+        output_description = "If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete."
+        # need to consider sub-task output as well (no fixed form for sub-tasks)
+        debate_role = ['Math Professor', 'Grade School Teacher', 'Consultant', 'Science Generalist']
+        
+        questions = load_questions_gsm8k('dataset/hotpotqa_validate.csv', seed=0)
+
+        examples = [{'problem': questions[i].question, 'answer': questions[i].answer} for i in range(len(questions))]
+        examples = examples[:20]
+        # examples = [examples[0]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
         set_global("global_max_round", max_round)
@@ -431,7 +508,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'single_agent_baselines_v3/question/meta_agent/'
+        args.expr_name = f'abstract_base_methods_dev_6_7_2/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
@@ -461,12 +538,12 @@ async def run_main():
         total_time = 0
         save_path = ""
         retries = 0
-        # while retries < 2:
-        #     score, total_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
-        #     if score > -1:
-        #         break
-        #     retries += 1
-        score, total_time, save_path = await apply_abstract_workflow_v3.test_operator(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "cot")
+        while retries < 1:
+            score, total_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+            if score > -1:
+                break
+            retries += 1
+        # score, total_time, save_path = await apply_abstract_workflow_v3.test_operator(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "cot")
         save_path_ = save_path
         final_results[str(example_id)] = {
             'score': score,
@@ -479,7 +556,7 @@ async def run_main():
     semaphore = asyncio.Semaphore(30)  # Giới hạn 3 task chạy song song
 
     async def process_example_with_semaphore(example_id, example, args, meta_model, verifier_model, abstract_workflow):
-        print(f"\n===================== Run task: {example_id} =====================\n")
+        print(f"\n===================== Run task: {example_id}, Abstract workflow length: {len(abstract_workflow)} =====================\n")
         async with semaphore:
             await process_example(example_id, example, args, meta_model, verifier_model, abstract_workflow)
         
@@ -510,9 +587,9 @@ async def run_main():
         total_time += v['total_time']
     
     final_results['result'] = {
-        'avg_accuracy': total_accuracy / 48 * 100,
-        'avg_time': total_time / 48,
-        'avg_cost': total_cost / 48,
+        'avg_accuracy': total_accuracy / len(examples) * 100,
+        'avg_time': total_time / len(examples),
+        'avg_cost': total_cost / len(examples),
     }
     
     print("Total time: ", total_time)

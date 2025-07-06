@@ -1,0 +1,45 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a single candidate solution to the math problem using step-by-step reasoning.",
+        "supporting_info": "Input math problem as a natural language string; uses a custom solver with a math solving prompt to produce a detailed solution response.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Produce a candidate output by systematically applying a structured reasoning procedure to the provided input.",
+        "subtask_name": "generate candidate outputs"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Aggregate multiple candidate solutions to select the most consistent or best solution for the math problem.",
+        "supporting_info": "A list of candidate solutions generated independently from the same problem; aggregation aims to improve reliability by consensus.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Combine multiple candidate outputs into a coherent result by evaluating consistency and selecting the most aligned information.",
+        "subtask_name": "consolidate candidate outputs"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Verify the aggregated solution by writing and executing Python code to confirm the correctness of the math problem's answer.",
+        "supporting_info": "The original math problem and the aggregated solution's analysis; verification involves programmatic validation.",
+        "agent_collaboration": "Programmer",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Verify a consolidated result through an independent evaluation procedure to confirm its validity.",
+        "subtask_name": "validate final result"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Parse the final answer into a float number format for consistent output.",
+        "supporting_info": "The verification output if available, otherwise the aggregated solution response; parsing handles possible string formats to extract a numeric value.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_2",
+            "subtask_3"
+        ],
+        "abstracted_objective": "Transform a result representation into a standardized format to ensure consistency in the output.",
+        "subtask_name": "standardize output format"
+    }
+]

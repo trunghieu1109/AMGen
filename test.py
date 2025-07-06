@@ -1,55 +1,45 @@
-def solve():
-    from math import sqrt
+from collections import defaultdict
+import re
 
-    # Given lengths
-    AB = 5
-    BC = 9
-    AC = 10
+# Danh sách flow đầu vào (filename, flow)
+flows = [
+    ("mas_0.json", ['start_sequential', 'start_loop', 1, 6, 'end_loop', 2, 5, 'end_sequential']),
+    ("mas_1.json", ['start_sequential', 'start_loop', 1, 6, 'end_loop', 2, 'end_sequential']),
+    ("mas_2.json", ['start_sequential', 1, 0, 'end_sequential']),
+    ("mas_3.json", ['start_sequential', 'start_loop', 1, 'end_loop', 2, 0, 'end_sequential']),
+    ("mas_4.json", ['start_sequential', 'start_loop', 1, 0, 'end_loop', 2, 'end_sequential']),
+    ("mas_5.json", ['start_sequential', 'start_loop', 1, 'end_loop', 2, 0, 5, 'end_sequential']),
+    ("mas_8.json", ['start_sequential', 'start_loop', 1, 'end_loop', 2, 0, 3, 'end_sequential']),
+    ("mas_9.json", ['start_sequential', 'start_loop', 1, 'end_loop', 2, 0, 4, 'end_sequential']),
+    ("mas_10.json", ['start_sequential', 'start_loop', 1, 0, 'end_loop', 2, 5, 'end_sequential']),
+]
 
-    # Using the formula for the area of triangle ABC using Heron's formula
-    s = (AB + BC + AC) / 2  # semi-perimeter
-    area = sqrt(s * (s - AB) * (s - BC) * (s - AC))
+def patternize(flow):
+    """Chuyển flow thành dạng pattern với placeholder cho số nguyên"""
+    pattern = []
+    var_positions = []
+    for idx, item in enumerate(flow):
+        if isinstance(item, int):
+            pattern.append("{X}")
+            var_positions.append(idx)
+        else:
+            pattern.append(item)
+    return tuple(pattern), tuple(var_positions)
 
-    # Circumradius R of triangle ABC
-    R = (AB * BC * AC) / (4 * area)
+# Gom nhóm theo pattern
+grouped = defaultdict(lambda: {"variants": [], "files": []})
 
-    # Using the power of point D with respect to the circumcircle
-    # The power of point D is equal to the product of the lengths of the tangents from D to the circle
-    # which is equal to the product of the lengths of the segments AD and DP
-    # We can find AD using the formula AD = R * (AB + AC) / BC
-    AD = R * (AB + AC) / BC
+for filename, flow in flows:
+    pattern, var_pos = patternize(flow)
+    vars_only = tuple(flow[i] for i in var_pos)
+    key = (pattern, var_pos)
+    grouped[key]["variants"].append(vars_only)
+    grouped[key]["files"].append(filename)
 
-    # Now we need to find AP
-    # By the power of point theorem, AP * PD = AD^2
-    # Since P is on the circle, PD = AD - AP
-    # Therefore, AP * (AD - AP) = AD^2
-    # This leads to the quadratic equation: AP^2 - AD * AP + AD^2 = 0
-
-    # Solving the quadratic equation for AP
-    a = 1
-    b = -AD
-    c = AD**2
-
-    # Discriminant
-    D = b**2 - 4 * a * c
-    if D < 0:
-        return 'No real solution'
-
-    # Roots of the quadratic equation
-    AP1 = (-b + sqrt(D)) / (2 * a)
-    AP2 = (-b - sqrt(D)) / (2 * a)
-
-    # We take the positive root since lengths are positive
-    AP = AP1
-
-    # Express AP as a fraction m/n
-    from fractions import Fraction
-    fraction = Fraction(AP).limit_denominator()
-    m = fraction.numerator
-    n = fraction.denominator
-
-    return m + n
-
-# Call the solve function and print the result
-result = solve()
-print(result)
+# In kết quả nhóm
+for i, ((pattern, var_pos), data) in enumerate(grouped.items()):
+    print(f"\nGroup {i+1}:")
+    print("  Pattern:", pattern)
+    print("  Variable positions:", var_pos)
+    print("  Variants:", data["variants"])
+    print("  Files:", data["files"])

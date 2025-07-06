@@ -1,0 +1,56 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Determine the products of Reaction I, where (S)-5-methoxyhexan-3-one is reduced by LAH followed by an acidic workup.",
+        "supporting_info": "Requires knowledge of organic chemistry reactions, specifically the reduction of ketones using LAH and subsequent acidic workup.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Apply a specified transformation procedure to an initial entity to produce a derived entity.",
+        "subtask_name": "apply_transformation"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the products of Reaction II, where pentane-2,4-dione is reduced by excess NaBH4 followed by an acidic workup.",
+        "supporting_info": "Requires knowledge of organic chemistry reactions, specifically the reduction of diketones using NaBH4 and subsequent acidic workup.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Apply a secondary transformation procedure to an input entity to produce another derived entity.",
+        "subtask_name": "apply_transformation"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Identify the number of distinct products formed when the products from both reactions are combined.",
+        "supporting_info": "Requires the outputs from subtask 1 and subtask 2 to assess the distinct products formed from the combination of the two reactions.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Aggregate multiple input collections and compute the number of distinct items.",
+        "subtask_name": "compute_aggregated_scalar"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Determine how many peaks would be observed in a normal-phase HPLC column based on the outputs from subtask 3.",
+        "supporting_info": "Requires the number of distinct products identified in subtask 3 to predict the peaks in normal-phase HPLC.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Compute a scalar outcome representing the number of observation points in a generic detection process based on a provided count of distinct items.",
+        "subtask_name": "compute_scalar_measure"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Determine how many peaks would be observed in a chiral HPLC column based on the outputs from subtask 3.",
+        "supporting_info": "Requires the number of distinct products identified in subtask 3 to predict the peaks in chiral HPLC, with multiple agents providing self-consistent answers.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Evaluate how altering the evaluation criterion in the detection process affects the computed number of observation points based on the same distinct item count.",
+        "subtask_name": "compute_variation_indicator"
+    }
+]

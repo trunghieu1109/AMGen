@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 
-input_file = "results/workflow_search/gpqa_diamond/abstract_workflow_dev_3_7/gpt-4.1-mini_gpt-4o-mini-2024-07-18_oracle.results"
+input_file = "results/workflow_search/drop/abstract_workflow_dev_6_7_2/gpt-4.1-mini_gpt-4o-mini-2024-07-18_oracle.results"
 output_file = "merged_output.txt"
 
 # Dictionary để lưu max acc_oracle_verifier_list theo experiment
@@ -14,8 +14,8 @@ with open(input_file, "r") as f:
         if match:
             exp_id = int(match.group(1))
             acc_val = int(match.group(2))
-            if exp_id < 185:
-                continue
+            # if exp_id < 185:
+            #     continue
             print(exp_id, acc_val)
             exp_to_max_acc[exp_id] = max(exp_to_max_acc[exp_id], acc_val)
             

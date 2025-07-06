@@ -51,338 +51,66 @@ from sklearn.preprocessing import StandardScaler, normalize
 from Levenshtein import distance
 import pickle as pkl
 
-ABSTRACTED_WORKFLOW_TEMPLATE = '''
-async def forward(self, taskInfo):
-   
-    from collections import Counter
-    
-    print("Task Requirement: ", taskInfo)
-    
-    # Initialize lists to keep track of sub-tasks and agents
-    sub_tasks = []
-    agents = []
+DESCRIPTION_FOR_OPERATOR = '''
+1. **Chain-of-Thought (CoT)**: Solves a problem through step-by-step reasoning, producing intermediate thoughts before a final answer.
+2. **Self-Consistency Chain-of-Thought (SC_CoT)**: Multiple CoT agents generate diverse solutions with randomness; the most consistent answer is selected. Input is the problem only, without prior solutions.
+3. **Debate**: Multiple agents propose and critique competing solutions over several rounds; a neutral agent selects the best solution.
+4. **Reflexion**: An agent generates an answer, a critic reviews it, and the agent revises iteratively to improve accuracy.
+5. **AnswerGenerate**: Produces a concise final answer through step-by-step reasoning, without explanation.
+6. **SpecificFormat**: Extracts a short, format-specific answer (e.g., a single word or phrase) from a solution, without additional comments.
+7. **Aggregate**: Combines multiple candidate solutions (provided as input) to produce the most consistent or best solution.
+8. **CodeGenerator**: Generates clean, complete Python code with a predefined `entry_point`, ready to run.
+9. **Programmer**: Writes and executes Python code to solve a mathematical problem, returning the final answer.
+10. **Review**: Evaluates a solution for correctness, providing feedback without modifying it.
+11. **Revise**: Revises an incorrect solution to produce a correct, standalone Python solution.
 
-    """
-    [Stage 1: <Fill the stage 1's stage_name>]
-    
-    [Objective] 
-    - <Describe in detail the abstracted objective of stage 1.>
-    - <Describe in detail the abstracted objective of stage 1.>
-    - <Describe in detail the abstracted objective of stage 1.>
-    
-    [Agent Collaborations]
-    - <Describe in detail the agent collaboration of stage 1.>
-    
-    [Examples]
-    - Here are many examples of implementing subtasks in this stage.
-    - It could be more than 2 subtasks in this stage, based on your fine-grained task decomposition.
-    """
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
-    # Sub-task 1: Analyze first expression/data component with self-consistency
-    cot_instruction = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    thinking1, answer1 = await cot_agent([taskInfo], cot_instruction, is_sub_task=True)
-    agents.append(f"CoT agent {{cot_agent.id}}, analyzing [expression #1], thinking: {{thinking1.content}}; answer: {{answer1.content}}")
-    sub_tasks.append(f"Sub-task 1 output: thinking - {{thinking1.content}}; answer - {{answer1.content}}")
-    
-    print("Subtask 1 answer: ", sub_tasks[-1])
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    """
-    [Stage 2: <Fill the stage 2's stage_name>]
-    
-    [Objective] 
-    - <Describe in detail the abstracted objective of stage 2.>
-    - <Describe in detail the abstracted objective of stage 2.>
-    - <Describe in detail the abstracted objective of stage 2.>
-    
-    [Agent Collaborations]
-    - <Describe in detail the agent collaboration of stage 2.>
-    
-    [Examples]
-    - Here are many examples of implementing subtasks in this stage.
-    - It could be more than 2 subtasks in this stage, based on your fine-grained task decomposition.
-    """
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
-    # Sub-task 2: Calculate intermediate output with reflexion
-    cot_reflect_instruction = "Sub-task 2: Based on Sub-task 1 outputs, calculate intermediate values and synthesize key insights"
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    critic_agent = LLMAgentBase(["feedback", "correct"], "Critic Agent", 
-                               model=self.node_model, temperature=0.0)
-    N_max = self.max_round
-    
-    # Input aggregation from previous stages
-    cot_inputs = [taskInfo, thinking1, answer1]
-    
-    # Generate initial intermediate computation
-    thinking2, answer2 = await cot_agent(cot_inputs, cot_reflect_instruction, 0, is_sub_task=True)
-    agents.append(f"Reflexion CoT agent {{cot_agent.id}}, calculating intermediate output, thinking: {{thinking2.content}}; answer: {{answer2.content}}")
-
-    # Iterative refinement through critic feedback
-    for i in range(N_max):
-        feedback, correct = await critic_agent([taskInfo, thinking2, answer2], 
-                                       "Critically evaluate the [intermediate calculation], mathematical correctness, and completeness and provide its limitations.", 
-                                       i, is_sub_task=True)
-        agents.append(f"Critic agent {{critic_agent.id}}, providing feedback, thinking: {{feedback.content}}; answer: {{correct.content}}")
-        if correct.content == "True":
-            break
-        
-        # Incorporate feedback for next iteration
-        cot_inputs.extend([thinking2, answer2, feedback])
-        thinking2, answer2 = await cot_agent(cot_inputs, cot_reflect_instruction, i + 1, is_sub_task=True)
-        agents.append(f"Reflexion CoT agent {{cot_agent.id}}, refining intermediate output, thinking: {{thinking2.content}}; answer: {{answer2.content}}")
-    
-    sub_tasks.append(f"Sub-task 2 output: thinking - {{thinking2.content}}; answer - {{answer2.content}}")
-    
-    print("Subtask 2 answer: ", sub_tasks[-1])
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    """
-    [Stage 3: <Fill the stage 3's stage_name>]
-    
-    [Objective] 
-    - <Describe in detail the abstracted objective of stage 3.>
-    - <Describe in detail the abstracted objective of stage 3.>
-    - <Describe in detail the abstracted objective of stage 3.>
-    
-    [Agent Collaborations]
-    - <Describe in detail the agent collaboration of stage 3.>
-    
-    [Examples]
-    - Here are many examples of implementing subtasks in this stage.
-    - It could be more than 2 subtasks in this stage, based on your fine-grained task decomposition.
-    """
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
-    # Sub-task 3: Calculate the [final output]
-    debate_instruction_3 = "Sub-task 3: Based on the output of sub-tasks 1 and 2, calculate the [final output], with context ...."
-    debate_agents_3 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
-    N_max_3 = self.max_round
-    all_thinking3 = [[] for _ in range(N_max_3)]
-    all_answer3 = [[] for _ in range(N_max_3)]
-    
-    for r in range(N_max_3):
-        # Multiple rounds of debate allow agents to build on each other"s reasoning.
-        for i, agent in enumerate(debate_agents_3):
-            input_infos_3 = [taskInfo, thinking2, answer2]
-            if r > 0:
-                input_infos_4.extend(all_thinking3[r-1])
-            thinking3, answer3 = await agent(input_infos_3, debate_instruction_3, is_sub_task=True)
-            agents.append(f"Debate agent {agent.id}, round {r}, calculating [final output], thinking: {thinking3.content}; answer: {answer3.content}")
-            all_thinking3[r].append(thinking3)
-            all_answer3[r].append(answer3)
-            
-    # A final decision agent synthesizes the debate into a single, conclusive answer.
-    final_decision_agent_3 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
-    thinking3, answer3 = await final_decision_agent_3([taskInfo] + all_thinking3[-1] + all_answer3[-1], "Sub-task 3: Make a final decision on the [final output].", is_sub_task=True)
-    agents.append(f"Final Decision agent on calculating [final output], thinking: {thinking3.content}; answer: {answer3.content}")
-    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking3.content}; answer - {answer3.content}")
-    
-    print("Subtask 3 answer: ", sub_tasks[-1])
-    
-    <Continue with next stages>
-    
-    """
-    [Stage n: <Fill the stage n's stage_name>]
-    
-    [Objective] 
-    - <Describe in detail the abstracted objective of stage n.>
-    - <Describe in detail the abstracted objective of stage n.>
-    - <Describe in detail the abstracted objective of stage n.>
-    
-    [Agent Collaborations]
-    - <Describe in detail the agent collaboration of stage n.>
-    
-    [Examples]
-    - Here are many examples of implementing subtasks in this stage.
-    - It could be more than 2 subtasks in this stage, based on your fine-grained task decomposition.
-    """
-    
-    # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
-    final_answer = await self.make_final_answer(thinkingn, answern, sub_tasks, agents)
-    return final_answer
+**Notes on Agent Collaboration**
+- **SC_CoT** vs. **Aggregate**: SC_CoT generates multiple solutions from the problem alone, while Aggregate combines existing solutions.
+- Do not assume additional patterns beyond those listed.
 '''
 
-AGENT_INTERACTION_PATTERN = '''
-Chain-of-Thought: 
-```python
-    cot_instruction = "Sub-task 1: Consider/calculate all possible cases of [problem #1], with context ...."
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    thinking1, answer1 = await cot_agent([taskInfo], cot_instruction, is_sub_task=True)
-    agents.append(f"CoT agent {{cot_agent.id}}, consider/calculate all possible scenarios of [problem #1], thinking: {{thinking1.content}}; answer: {{answer1.content}}")
-    sub_tasks.append(f"Sub-task 1 output: thinking - {{thinking1.content}}; answer - {{answer1.content}}")
-```
+def remove_comments(code: str) -> str:
+    # Remove multi-line comments (''' ''' or """ """)
+    code = re.sub(r"(?s)'''(.*?)'''", '', code)  # ''' ... '''
+    code = re.sub(r'(?s)"""(.*?)"""', '', code)  # """ ... """
 
-Self-Consistency Chain-of-Thought:
-```python
-    cot_sc_instruction = "Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
-    N = self.max_sc
-    cot_agents = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                              model=self.node_model, temperature=0.5) for _ in range(N)]
-    possible_answers = []
-    thinkingmapping = {{}}
-    answermapping = {{}}
-    
-    for i in range(N):
-        # Each CoT-SC agent tries to calculate all possible cases independently
-        thinking2, answer2 = await cot_agents[i]([taskInfo, thinking1, answer1], cot_sc_instruction, is_sub_task=True)
-        agents.append(f"CoT-SC agent {{cot_agents[i].id}}, consider all possible cases of [problem #2], thinking: {{thinking2.content}}; answer: {{answer2.content}}")
-        possible_answers.append(answer2.content)
-        thinkingmapping[answer2.content] = thinking2
-        answermapping[answer2.content] = answer2
-```
+    # Remove single-line comments (after #)
+    code = re.sub(r'#.*', '', code)
 
-Reflexion:
-```python
-    cot_reflect_instruction = "Sub-task 3: Based on the outputs from Sub-task 1 and Sub-task 2, filter the valid scenarios that meet the [conditions stated in the queries]."
-    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                            model=self.node_model, temperature=0.0)
-    critic_agent = LLMAgentBase(["feedback", "correct"], "Critic Agent", 
-                               model=self.node_model, temperature=0.0)
-    N_max = self.max_round
-    
-    # Input for CoT agent
-    cot_inputs = [taskInfo, thinking1, answer1, thinking2, answer2]
-    
-    # Generate the first version
-    thinking3, answer3 = await cot_agent(cot_inputs, cot_reflect_instruction, 0, is_sub_task=True)
-    agents.append(f"Reflexion CoT agent {{cot_agent.id}}, filter valid scenarios of [problem], thinking: {{thinking3.content}}; answer: {{answer3.content}}")
+    # Remove trailing whitespace from lines
+    lines = [line.rstrip() for line in code.splitlines()]
+    # Remove empty lines
+    cleaned_code = '\n'.join(line for line in lines if line.strip())
 
-    for i in range(N_max):
-        # Critic agent debates and criticizes pros and cons of previous version
-        feedback, correct = await critic_agent([taskInfo, thinking3, answer3], 
-                                       "please review the [valid scenarios] filtering and provide its limitations.", 
-                                       i, is_sub_task=True)
-        agents.append(f"Critic agent {{critic_agent.id}}, providing feedback, thinking: {{feedback.content}}; answer: {{correct.content}}")
-        if correct.content == "True":
-            break
-        
-        # Include previous version and feedback from critic agent as input
-        cot_inputs.extend([thinking3, answer3, feedback])
-        
-        # Generate new version based on previous version and feedback
-        thinking3, answer3 = await cot_agent(cot_inputs, cot_reflect_instruction, i + 1, is_sub_task=True)
-        agents.append(f"Reflexion CoT agent {{cot_agent.id}}, refining valid scenarios of [problem], thinking: {{thinking3.content}}; answer: {{answer3.content}}")
-    sub_tasks.append(f"Sub-task 3 output: thinking - {{thinking3.content}}; answer - {{answer3.content}}")
-```
+    return cleaned_code
 
-Debate:
-```python
-debate_instruction_5 = "Sub-task 5: Based on the output of Sub-task 4, convert [intermediate output] into [specific format] and calculate [the final answer]"
-    debate_agents_5 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
-                                   model=self.node_model, role=role, temperature=0.5) 
-                      for role in self.debate_role]
-    N_max_5 = self.max_round
-    
-    all_thinking5 = [[] for _ in range(N_max_5)]
-    all_answer5 = [[] for _ in range(N_max_5)]
-    
-    for r in range(N_max_5):
-        # N_max_5 rounds of debating
-        for i, agent in enumerate(debate_agents_5):
-            # Each agent proposes its solution
-            if r == 0:
-                thinking5, answer5 = await agent([taskInfo, thinking4, answer4], 
-                                           debate_instruction_5, r, is_sub_task=True)
-            else:
-                # Generate next solution based on comments and counter-arguments from other debaters
-                input_infos_5 = [taskInfo, thinking4, answer4] + all_thinking5[r-1] + all_answer5[r-1]
-                thinking5, answer5 = await agent(input_infos_5, debate_instruction_5, r, is_sub_task=True)
-            
-            agents.append(f"Debate agent {{agent.id}}, round {{r}}, converting [intermediate output] and calculating [final output], thinking: {{thinking5.content}}; answer: {{answer_5.content}}")
-            all_thinking5[r].append(thinking5)
-            all_answer5[r].append(answer5)
-    
-    # Final decision agent makes final decision
-    final_decision_agent_5 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                         model=self.node_model, temperature=0.0)
-    thinking5, answer5 = await final_decision_agent_5([taskInfo] + all_thinking5[-1] + all_answer5[-1], 
-                                                 "Sub-task 5: Make final decision on [final output].", 
-                                                 is_sub_task=True)
-    agents.append(f"Final Decision agent, calculating [final output], thinking: {{thinking5.content}}; answer: {{answer5.content}}")
-    sub_tasks.append(f"Sub-task 5 output: thinking - {{thinking5.content}}; answer - {{answer5.content}}")
-```
-'''
+def parse_structure(input_str):
+    lines = input_str.strip().split('\n')
+    result = []
+    stack = []
 
-PROMPT_FOR_OPERATOR = '''
-Here are the description of each operator in the workflow (e.g answer_generator, format, sc_ensemble, code_generator, ...)
-        
-ANSWER_GENERATION_PROMPT = """
-Think step by step and solve the problem.
-1. In the "thought" field, explain your thinking process in detail.
-2. In the "answer" field, provide the final answer concisely and clearly. The answer should be a direct response to the question, without including explanations or reasoning.
-Your task: {{input}}
-"""
+    for i, line in enumerate(lines):
+        indent_level = len(line) - len(line.lstrip())
+        content = line.strip().strip('[]')
 
-FORMAT_PROMPT = """
-For the question described as {{problem_description}},
-please extract a short and concise answer contains only one word/few words from the following solution: {{solution}}.
-Make sure there are no additional comments or explanations in your response.
-"""
+        # Đóng khối nếu indent nhỏ hơn stack hiện tại
+        while stack and indent_level <= stack[-1][0]:
+            _, last_block = stack.pop()
+            result.append(f'end_{last_block}')
 
-SC_ENSEMBLE_PROMPT = """
-Given the question described as follows: {{question}}
-Several solutions have been generated to address the given question. They are as follows:
-{{solutions}}
+        # Nếu là khối điều khiển, mở khối mới
+        if content in ('sequential', 'loop', 'conditional', 'true_branch', 'false_branch'):
+            result.append(f'start_{content}')
+            stack.append((indent_level, content))
+        else:
+            result.append(content)
 
-Carefully evaluate these solutions and identify the answer that appears most frequently across them. This consistency in answers is crucial for determining the most reliable solution.
+    # Đóng mọi khối còn lại
+    while stack:
+        _, last_block = stack.pop()
+        result.append(f'end_{last_block}')
 
-In the "thought" field, provide a detailed explanation of your thought process. In the "solution_letter" field, output only the single letter ID (A, B, C, etc.) corresponding to the most consistent solution. Do not include any additional text or explanation in the "solution_letter" field.
-"""
-
-CODE_GENERATOR_PROMPT = """
-You are a professional Python programmer. Your task is to write complete, self-contained code based on a given mathematical problem and output the answer. The code should include all necessary imports and dependencies, and be ready to run without additional setup or environment configuration.
-
-Problem description: {{problem}}
-Other analysis: {{analysis}}
-{{feedback}}
-
-Your code should:
-1. Implement the calculation steps described in the problem.
-2. Define a function named `solve` that performs the calculation and returns the result. The `solve` function should not require any input parameters; instead, it should obtain all necessary inputs from within the function or from globally defined variables.
-3. `solve` function return the final calculation result.
-
-Please ensure your code is efficient, well-commented, and follows Python best practices. The output should be limited to basic data types such as strings, integers, and floats. It is prohibited to transmit images or other file formats. The code output is intended for a text-based language model.
-"""
-
-REVIEW_PROMPT = """
-Given a problem and a thoughtful solution, your task is to using critical thinking (questioning) to review the solution's correctness and provide a review result in boolean format.
-
-problem: {{problem}}
-solution: {{solution}}
-
-If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness.
-"""
-
-REVISE_PROMPT = """
-Given a problem and a thoughtful solution which is just reviewed as incorrect, your task is to revise the solution to solve the question and ensure the final code solution is wrapped with ```python```.
-
-problem: {{problem}}
-solution: {{solution}}
-feedback: {{feedback}}
-
-Ensure the output code is self-contained, and without any additional text or test cases.
-"""
-'''
+    return result
 
 def levenshtein_array(a, b):
     n, m = len(a), len(b)
@@ -465,10 +193,9 @@ class Utils:
         for filename in os.listdir(dir_path):
             if filename.endswith('.json'):
                 filepath = os.path.join(dir_path, filename)
-                if 'iteration_0' in filepath:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        json_file[filename] = data
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    json_file[filename] = data
                     
         return json_file
     
@@ -566,66 +293,97 @@ class MASAbstraction():
         print("================== Extracting Workflow ==================")
 
         analysis_prompt = f"""
-You are an expert LLM assistant specialized in analyzing multi-agent system (MAS) workflows. Given a natural language query and a concrete abstract workflow, your task is to return a structured JSON analysis that abstract the provided workflow, including:
+You are an expert LLM assistant specializing in analyzing multi-agent system (MAS) workflows. Given a natural language query and an abstract workflow, your task is to produce a structured JSON analysis that abstracts the provided workflow and describes its implementation flow. The JSON output must include:
+
+- thought: A concise explanation of your analysis, summarizing how you interpreted the workflow and derived the subtasks and flow.
+- subtasks: An array of subtasks, each containing:
+    + subtask_id: A unique identifier (e.g., "subtask_1").
+    + objective: The full, standalone purpose of the subtask, stated clearly without phrases like "Based on subtask...".
+    + supporting_info: Assumptions, context, or inputs required to achieve the subtask's objective.
+    + agent_collaboration: If this subtask uses an agent collaboration pattern (e.g., CoT, SC_CoT, Review, Revise, Reflexion, Debate, ...), identify it in this field.
+    + dependencies: A list of subtask IDs (e.g., ["subtask_1"]) that the current subtask depends on.
+- flow: The implementation flow of the workflow, formatted as a string using control flow constructs:
+    + sequential: Subtasks executed in order.
+    + loop: Subtasks repeated until a condition is met (e.g., convergence or fixed iterations).
+    + conditional: Subtasks executed based on a condition, with true_branch and false_branch specifying alternative paths.
+Flows can be nested within each other (e.g., a loop inside a sequential flow).
+
+## Input
+
+[Query]: {query}
+[Abstract Workflow]: {mas}
+
+## Additional Notes
+- Do not treat return statements (e.g., return result) as subtasks. Ignore all return behaviors. If the workflow includes branches that are only used to determine which value to return, you do not need to model them as a `conditional` flow.
+- Ensure the flow reflects the logical execution order and dependencies in the workflow.
+- When analyzing a for loop, include only the subtasks corresponding to a single iteration in the subtasks list. Do not create separate subtasks for each iteration of the loop. The iterative nature of the loop should be captured in the flow field using the [loop] construct, which lists the subtasks executed in one iteration.
+
+# Instruction
+You must extract the following information for each subtask:
 
 - Objective: Clearly state the full objective of each subtask in the workflow. Do not include phrases like "Based on subtask..." — state the purpose directly and completely.
-- Supporting Information: List any assumptions, context, or input required by each subtask to achieve its objective.
-- Agent Collaboration: Specify the reasoning pattern used in each subtask. Notify these agent_collaboration patterns to identify the pattern for each subtask effectively:
-    + CoT (Chain-of-Thought): Step-by-step reasoning to solve a task. The agent explains intermediate logic instead of jumping directly to the answer.
-    + Debate: Two or more agents present their arguments and critique each other → a neutral agent (or majority vote) selects the best reasoning.
-    + Ensemble: Combine outputs from multiple independently-run of previous agents → aggregate results (e.g., average, vote, majority).
-    + SpecificFormat: Transform the output follows a specific format (e.g., concise, short, code snipnet, etc.).
-    + CodeGenerator: A specialized agent for generating code from natural language descriptions or structured reasoning.
-    + Review: An agent reviews another agent’s output to detect logic flaws, formatting issues, or incorrect answers.
-    + Revise: An agent modifies the output based on feedback from a review or reflection phase.
-    + If you not sure about the agent collaboration of a subtask, just choose CoT (which is the basic pattern).
+- Supporting Information: List any assumptions, context, or inputs required by each subtask to achieve its objective.
+- Agent Collaboration: Specify the reasoning pattern used in the subtask, which is included in the following list:Agent Collaboration Patterns: {DESCRIPTION_FOR_OPERATOR}
 - Dependency: Identify which previous subtasks the current subtask depends on. Use subtask IDs (e.g., "subtask_1") in a list.
+- For a `for` loop, identify the subtasks within a single iteration and list them only once in the subtasks array. Avoid duplicating subtasks for multiple iterations, even if the loop runs multiple times.
 
+# Extracting Implementation Flow
+To derive the flow field, analyze the abstract workflow to identify the control structures (sequential, loop, conditional) based on the relationships and execution order of subtasks:
+- Detect Control Patterns:
+    + Sequential: Subtasks executed one after another, often indicated by linear dependencies (e.g., subtask_2 depends on subtask_1).
+    + Loop: Subtasks repeated multiple times, often indicated by iterative processes. For a for loop, include only the subtasks within a single iteration and indicate the loop structure in the flow.
+    + Conditional: Subtasks executed based on a condition, with true_branch and false_branch specifying alternative paths.
 
-[Query]
-{query}
+- Nest Flows: If a subtask involves iterative or conditional logic within a larger sequence, nest the corresponding flow (e.g., a loop inside a sequential flow).
+- Format the Flow: Write the flow as a string with proper indentation, using:
+    + [sequential] for ordered subtasks.
+    + [loop] for repeated subtasks, specifying the subtasks inside for a single iteration.
+    + [conditional] with [true_branch] and [false_branch] for condition-based execution.
+Include subtask IDs (e.g., [subtask_1]) within the appropriate flow constructs.
 
-[Abstract Workflow]
-{mas}
-
-[Prompt for each operator]
-{PROMPT_FOR_OPERATOR}
-
-Return your result in valid JSON format with the following structure:
+# Output Format
 {{
-    "thought": "Explain for your analysis."
+    "thought": "Explanation of the analysis, including how subtasks and flow were derived.",
     "subtasks": [
         {{
             "subtask_id": "subtask_1",
-            "objective": "",
-            "supporting_info": "",
-            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion | Ensemble | SpecificFormat | CodeGenerator | Review | Revise,
+            "objective": "Purpose of the subtask.",
+            "supporting_info": "Assumptions, context, or inputs required.",
+            "agent_collaboration": "CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise",
             "dependencies": []
         }},
         {{
             "subtask_id": "subtask_2",
-            "objective": "",
-            "supporting_info": "",
-            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion | Ensemble | SpecificFormat | CodeGenerator | Review | Revise,
+            "objective": "Purpose of the subtask.",
+            "supporting_info": "Assumptions, context, or inputs required.",
+            "agent_collaboration": "CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise",
             "dependencies": ["subtask_1"]
-        }},
-        .....
-        {{
-            "subtask_id": "subtask_n",
-            "objective": "",
-            "supporting_info": "",
-            "agent_collaboration": CoT | SC_CoT | Debate | Reflexion | Ensemble | SpecificFormat | CodeGenerator | Review | Revise,
-            "dependencies": ["subtask_x", "subtask_y", ...]
         }}
-    ]
+    ],
+    "flow": '''
+[sequential]
+    [subtask_1]
+    [subtask_2]
+    [loop]
+        [subtask_3]
+        [subtask_4]
+    [conditional]
+        [true_branch]
+            [subtask_5]
+        [false_branch]
+            [subtask_6]
+    '''
 }}
-    """
+
+# Task
+Analyze the provided query and abstract workflow to produce the JSON output, ensuring the flow accurately represents the control structures inferred from the workflow. When a for loop is present, include only the subtasks for a single iteration in the subtasks list and reflect the iterative structure in the flow field.
+        """
     
         msg_list = [
             {"role": "user", "content": analysis_prompt},
         ]
 
-        analysis,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4o_chatgpt", ['thought', 'subtasks'], 0.0)
+        analysis,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4.1-mini", ['thought', 'subtasks', 'flow'], 0.0)
         
         print("============== Extracted workflow ==============")
         print(analysis['subtasks'])
@@ -633,7 +391,10 @@ Return your result in valid JSON format with the following structure:
         print("============== Thought ===============\n")
         print(analysis['thought'])
         
-        return analysis['subtasks']
+        print("============== Implementation Flow ===============\n")
+        print(analysis['flow'])
+        
+        return analysis['subtasks'], analysis['flow']
     
     async def abstract_task_decomposition(self, query, subtasks):
         # generate the first generation
@@ -660,6 +421,7 @@ Reference for Abstraction Style: Review the following abstracted objectives to u
 <abstracted_objective>
 {recent_abstracted_objectives}
 </abstracted_objective>
+- Ensure that subtasks with the same meaning / same objectives must be abstracted in the same way. To be clearer, if both subtask A and subtask B have the same meaning / objective, their abstracted version must be similar.
 
 Task: For each provided subtask, generate an abstracted version with a subtask_name and a description that strictly adheres to the above guidelines. The output must be concise, purely functional, and universally applicable, with no trace of the original query or domain.
 
@@ -700,7 +462,7 @@ Return the result in the following JSON format in English:
         
         for subtask in abstracted_subtasks['abstracted_subtasks']:
             print(subtask)
-            self.abstracted_objectives.append(subtask['abstracted_objective'])
+            self.abstracted_objectives.append(f"{subtask['subtask_name']}: {subtask['abstracted_objective']}")
             self.subtask_names.append(subtask['subtask_name'])
             self.subtask_names_set.add(subtask['subtask_name'])
             
@@ -795,7 +557,7 @@ Return your result in valid JSON format with the following structure:
         
     async def clustering(self, embeddings):
         sse = []  # Sum of Squared Errors
-        k_range = range(1, 100)
+        k_range = range(1, min(100, len(embeddings)))
         
         normalized_embeddings = normalize(embeddings, norm="l2")
         dim_90, dim_95 = await self.find_optimal_k(normalized_embeddings)
@@ -955,7 +717,8 @@ Be precise, logical, and abstraction-focused.
         
             return cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain 
         
-        mas_zero_json = self.utils.read_json_from_directory(workflow_path)
+        mas_json = self.utils.read_json_from_directory(workflow_path + "/mas")
+        flow_json = self.utils.read_json_from_directory(workflow_path + "/flow")
     
         subtasks = {
             'objective': [],
@@ -969,7 +732,7 @@ Be precise, logical, and abstraction-focused.
         
         clusters_to_subtasks = {}
         
-        for k, v in mas_zero_json.items():
+        for k, v in mas_json.items():
             try:
                 for subtask in v:
                     # print(k, " ", "subtask: ", subtask['objective'])
@@ -981,6 +744,8 @@ Be precise, logical, and abstraction-focused.
             except Exception as e:
                 # print("Key: ", k)
                 continue
+        
+        flow = [parse_structure(f) for f in flow_json.values()]
             
         # embedding tasks
         embeddings = await self.embedding_subtask(subtasks['merge_subtask'])
@@ -1000,16 +765,28 @@ Be precise, logical, and abstraction-focused.
             subtasks['clusters'].append(str(cluster))
             
         start_idx = 0
+        flow_idx = 0
         
         mas_set = set()
         
         # merge cluster_ids of each subtask to its workflow -> mas_chain
-        for filename, mas in mas_zero_json.items():
+        for filename, mas in mas_json.items():
+            mas_flow = flow[flow_idx]
+            flow_idx += 1
             
             mas_chain = []
             inner_cluster = {}
             try:
+                inner_flow_idx = 0
                 for subtask in mas:
+                    while inner_flow_idx < len(mas_flow):
+                        if not mas_flow[inner_flow_idx].startswith("subtask"):
+                            mas_chain.append(mas_flow[inner_flow_idx])    
+                        else:
+                            break
+                        
+                        inner_flow_idx += 1
+                        
                     inner_dependencies = []
                     abstracted_objective = subtask['abstracted_objective']
                     inner_cluster[subtask['subtask_id']] = subtasks['clusters'][start_idx]
@@ -1027,8 +804,18 @@ Be precise, logical, and abstraction-focused.
                         
                     subtasks['dependencies'].append(inner_dependencies)
                     # print(inner_dependencies)
-                        
+                    
+                    inner_flow_idx += 1    
                     start_idx += 1
+                
+                while inner_flow_idx < len(mas_flow):
+                    if not mas_flow[inner_flow_idx].startswith("subtask"):
+                        mas_chain.append(mas_flow[inner_flow_idx])    
+                    else:
+                        break
+                    
+                    inner_flow_idx += 1
+                    
                 if tuple(mas_chain) not in mas_set:
                     print("Filename: ", filename, " ", mas_chain)
                     
@@ -1111,18 +898,86 @@ Be precise, logical, and abstraction-focused.
         # print("================== Aggregate Cluster Subtask ==================")
         # print(mas_chain)
         
+        flow_desc = {
+            "start_sequential": {
+                "subtask_id": "start_sequential",
+                "subtask_name": "start sequential",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "Start a sequential code flow, with multiple subtasks performed in turn",
+            },
+            "end_sequential": {
+                "subtask_id": "end_sequential",
+                "subtask_name": "end sequential",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "End of current sequential code flow",
+            },
+            "start_loop": {
+                "subtask_id": "start_loop",
+                "subtask_name": "start loop",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "Start a loop code flow, with multiple subtasks performed iterately",
+            },
+            "end_loop": {
+                "subtask_id": "end_loop",
+                "subtask_name": "end loop",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "End of current loop code flow",
+            },
+            "start_conditional": {
+                "subtask_id": "start_conditional",
+                "subtask_name": "start conditional",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "Start a conditional code flow, with `true branch` flow and `false branch` flow include many subtasks for each branch",
+            },
+            "end_conditional": {
+                "subtask_id": "end_conditional",
+                "subtask_name": "end conditional",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "End of current conditional code flow",
+            },
+            "start_true_branch": {
+                "subtask_id": "start_true_branch",
+                "subtask_name": "start true branch",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "Included in conditional branch, wrap many subtasks that are implemented if condition = true",
+            },
+            "end_true_branch": {
+                "subtask_id": "end_true_branch",
+                "subtask_name": "end true branch",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "End of current true branch code flow",
+            },
+            "start_false_branch": {
+                "subtask_id": "start_false_branch",
+                "subtask_name": "start false branch",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "Included in conditional branch, wrap many subtasks that are implemented if condition = false",
+            },
+            "end_false_branch": {
+                "subtask_id": "end_false_branch",
+                "subtask_name": "end false branch",
+                "agent_collaboration": "logic code",
+                "abstracted_objective": "End of current false branch code flow",
+            }
+        }
+        
         if len(mas_chain) == 1:
             # handle for single mas_chain
             merged_chain = []
             merged_workflow = []
+            cnt_idx = 0
             for idx, subtask_id in enumerate(mas_chain[0]):
                 merged_chain.append(str(subtask_id))
+                if subtask_id.startswith("start") or subtask_id.startswith("end") or not subtask_id.isdigit():
+                    merged_workflow.append(flow_desc[subtask_id])
+                    continue
                 merged_workflow.append({
-                    "subtask_id": f"subtask_{idx}",
+                    "subtask_id": f"subtask_{cnt_idx}",
                     "subtask_name": cluster_to_subtask_name[str(subtask_id)],
                     "agent_collaboration": cluster_to_agent_collaboration[str(subtask_id)],
                     "abstracted_objective": cluster_to_subtask[str(subtask_id)],
                 })
+                cnt_idx += 1
                 
                 # print(f"subtask_{idx}: {subtask_id}")s
             
@@ -1168,10 +1023,11 @@ Then, your task is to merge above workflow to create a single, cohesive workflow
 5. Merge Less Frequent Subtasks: For the less frequent subtasks, incorporate them into the workflow at their correct relative positions with respect to the common subtasks. If multiple subtasks appear at the same position, merge them into a concise and synthesized subtask. In this case, `subtask_name` also merged to only a combined `subtask_name`
 For example, if workflow A is ['1', '2', '6'] and workflow B is ['1', '2', '3'], the merged chain is ['1', '2', ['6', '3']]. And in the merged workflow, the subtask 3 is combined to subtask 6 to create a concise and synthesized subtask.
 6. Expected Output Format
+7. Control flow, such as start_sequential, end_sequential, start_loop, end_loop, v.v are not the subtasks. So keep them intact, do not merge to any subtasks.
 Provide the thought and the merged workflow in the JSON format:
 - thought: Explain your reasoning process, including how provided workflow are merged into the single synthesized one
 - merged_chain: The merged chain, which is combined from provided workflow chains.
-- merged_workflow: A numbered list of steps, with each step including:
+- merged_workflow: A numbered list of steps, with each step represented by a dict, including:
     + `subtask_id`: It is not the original id of this subtask. It is the new id of this subtask in the merged workflow, start from `subtask_0`.
     + `subtask_name`: The corresponding subtask name for this subtask.
     + `merged_chain`: The merged chain, which is combined from provided workflow chains.
@@ -1183,6 +1039,11 @@ When merging multiple subtasks, they must be grouped into a list. So result is L
 Example: 
 - Wrong Cases: ['[4,6]', '11', '7']
 - Correct Cases: [['4','6'], '11', '7']
+
+# For some string items, that are defined as start or end of a control flow in code, like sequential, loop, conditional, ..., just keep their place in the workflow.
+Their description in merged_workflow must obey to the following format:
+{flow_desc.values()}
+
 # Output:
 Return your result in valid JSON format with the following structure:
 {{
@@ -1192,20 +1053,20 @@ Return your result in valid JSON format with the following structure:
       {{
           "subtask_id": "subtask_1",
           "subtask_name": "The corresponding subtask name for this subtask.",
-          "agent_collaboration": [CoT | SC_CoT | Reflexion | Debate],
+          "agent_collaboration": [CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise],
           "abstracted_objective": ""
       }},
       {{
           "subtask_id": "subtask_2",
           "subtask_name": "The corresponding subtask name for this subtask.",
-          "agent_collaboration": [CoT | SC_CoT | Reflexion | Debate],
+          "agent_collaboration": [CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise],
           "abstracted_objective": ""
       }},
       ...
       {{
           "subtask_id": "subtask_n",
           "subtask_name": "The corresponding subtask name for this subtask.",
-          "agent_collaboration": [CoT | SC_CoT | Reflexion | Debate],
+          "agent_collaboration": [CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | CodeGenerator | Programmer | Review | Revise],
           "abstracted_objective": ""
       }},
   ]
@@ -1219,56 +1080,6 @@ Return your result in valid JSON format with the following structure:
         merged_workflow ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "o4-mini", ['thought', 'merged_chain', 'merged_workflow'], 0.0)
 
         return merged_workflow['merged_workflow'], merged_workflow['merged_chain'] 
-    
-    async def generate_abstracted_workflow(self, merged_workflow):
-
-        merging_prompt = f"""
-You are a smart assistant. Your task is to create an agentic workflow implemented as a Python forward function that processes a task through multiple stages, leveraging agent collaboration patterns such as Chain-of-Thought (CoT), Self-Consistency Chain-of-Thought (SC_CoT), Reflexion, and Debate. The workflow should handle a given taskInfo input, decompose the task into stages and subtasks, and produce a final consolidated answer. Use the provided stage descriptions and agent collaboration patterns to guide the implementation.
-
-Here are the stages's description: 
-{merged_workflow}
-
-To address subtasks in each stage, you must apply the following agent collaboration patterns: Chain-of-Thought, Self-Consistency Chain-of-Thought, Debate and Reflexion. Below are the implementation of them.
-{AGENT_INTERACTION_PATTERN} 
-
-# Instruction:
-- Function Signature: Implement an async def forward(self, taskInfo) function.
-- Structure:
-    + Initialize lists sub_tasks and agents to track subtask outputs and agent interactions.
-    + For each stage, include:
-        - A detailed description of the stage's objectives, agent collaborations, and example subtasks.
-        - Implement only 1 sample subtask with only one suggested agent collaboration patterns.
-    + Print subtask outputs for debugging.
-    + Generate a final answer using self.make_final_answer.
-- Subtask Implementation:
-    + Decompose each stage into fine-grained subtasks (at least one per stage, not required by two).
-    + Use the provided agent collaboration patterns for each stage.
-    + Ensure subtasks build on previous outputs, forming a logical progression.
-    + For SC_CoT, use self.max_sc for the number of agents and select the most common answer via Counter.
-    + For Reflexion and Debate, use self.max_round for the number of iterations.
-- Output:
-    + Return a final consolidated answer via self.make_final_answer(thinking, answer, sub_tasks, agents).
-    + Then, your task is to merge above workflow to create a single, cohesive workflow that covers all the provided workflow.
-    
-# Abstracted Workflow Template:
-{ABSTRACTED_WORKFLOW_TEMPLATE}
-
-Return your result in valid JSON format with the following structure:
-{{
-  "thought": "Explain your reasoning process, including how provided workflow are merged into the single synthesized one",
-  "abstracted_workflow": "The generate workflow based on provided information"
-}}
-        """
-    
-        msg_list = [
-            {"role": "user", "content": merging_prompt},
-        ]
-
-        abstracted_workflow ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4o_chatgpt", ['thought', 'abstracted_workflow'], 0.0)
-
-        print(abstracted_workflow['abstracted_workflow'])
-
-        return abstracted_workflow['abstracted_workflow']
             
     async def clustering_workflow(self, workflow_path, cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain):
         abstract_workflow_description = []
@@ -1299,6 +1110,7 @@ Return your result in valid JSON format with the following structure:
                 results[tuple(group[0])] = group[1:]
 
         print("Distinct workflows:", distince_workflow)
+
         idx = 0
         merged_workflow_chains = []
         mas_idx = 0
@@ -1324,46 +1136,68 @@ Return your result in valid JSON format with the following structure:
             mas_dependencies = {}
             print(merged_chain)
             
-            for idx1, item in enumerate(merged_chain):
+            merged_chain_no_flow = [item for item in merged_chain if (isinstance(item, str) and (not item.startswith("start") and not item.startswith("end"))) or isinstance(item, list)]
+            
+            print("Merged_chain no flow: ", merged_chain_no_flow)
+            
+            for idx1, item in enumerate(merged_chain_no_flow):
                 mas_dependencies[f'subtask_{idx1}'] = set()
-                if idx1 + 1 < len(merged_chain):
+                if idx1 + 1 < len(merged_chain_no_flow):
                     mas_dependencies[f'subtask_{idx1}'].add(f'subtask_{idx1 + 1}')
                 if isinstance(item, list):
-                    for idx2 in range(idx1 + 1, len(merged_chain)):
-                        if isinstance(merged_chain[idx2], list):
+                    for idx2 in range(idx1 + 1, len(merged_chain_no_flow)):
+                        if isinstance(merged_chain_no_flow[idx2], list):
                             mas_dependencies[f'subtask_{idx1}'].add(f'subtask_{idx2}')
                         else:
                             for sub_item in item:
-                                if f'subtask_{merged_chain[idx2]}' in cluster_to_dependencies[str(sub_item)[-1]][0]:
+                                if f'subtask_{merged_chain_no_flow[idx2]}' in cluster_to_dependencies[str(sub_item)[-1]][0]:
                                     mas_dependencies[f'subtask_{idx1}'].add(f'subtask_{idx2}')     
                                     break  
                 else:
-                    for idx2 in range(idx1 + 1, len(merged_chain)):
-                        if isinstance(merged_chain[idx2], list):
-                            for item2 in merged_chain[idx2]:
+                    for idx2 in range(idx1 + 1, len(merged_chain_no_flow)):
+                        if isinstance(merged_chain_no_flow[idx2], list):
+                            for item2 in merged_chain_no_flow[idx2]:
                                 if f'subtask_{item2}' in cluster_to_dependencies[str(item)[-1]][0]:
                                     mas_dependencies[f'subtask_{idx1}'].add(f'subtask_{idx2}')
                                     break
                         else:
-                            print(f'subtask_{merged_chain[idx2]}', cluster_to_dependencies[str(item)[-1]][0])
-                            if f'subtask_{merged_chain[idx2]}' in cluster_to_dependencies[str(item)[-1]][0]:
+                            print(f'subtask_{merged_chain_no_flow[idx2]}', cluster_to_dependencies[str(item)[-1]][0])
+                            if f'subtask_{merged_chain_no_flow[idx2]}' in cluster_to_dependencies[str(item)[-1]][0]:
                                 mas_dependencies[f'subtask_{idx1}'].add(f'subtask_{idx2}')
-                        
+            abstract_list_idx = 0       
             for idx1, subtask in enumerate(merged_workflow):
+                if subtask['subtask_id'].startswith("start") or subtask['subtask_id'].startswith("end"):
+                    abstract_subtask_list.append(subtask)
+                    continue
+                
                 abstract_subtask_list.append({
-                    'subtask_id': f'subtask_{idx1}',
+                    'subtask_id': f'subtask_{abstract_list_idx}',
                     'subtask_name': subtask['subtask_name'],
                     'abstracted_objective': subtask['abstracted_objective'],
                     'agent_collaboration': subtask['agent_collaboration'],
-                    'dependencies': list(mas_dependencies[f"subtask_{idx1}"])
+                    'dependencies': list(mas_dependencies[f"subtask_{abstract_list_idx}"] if f"subtask_{abstract_list_idx}" in  mas_dependencies else [])
                 })
+                abstract_list_idx += 1
                 
             abstract_subtask_list_desc = {}
+            abstract_list_desc_idx = 0
+            abstract_list_flow_idx = 0
             for id_, subtask in enumerate(abstract_subtask_list):
-                abstract_subtask_list_desc[f"Stage {id_}"] = {
+                
+                if subtask['subtask_id'].startswith("start") or subtask['subtask_id'].startswith("end"):
+                    abstract_subtask_list_desc[f'Control Flow {abstract_list_flow_idx}'] = {
+                        'flow_type': subtask['subtask_name'],
+                        'flow_desc': subtask['abstracted_objective'],
+                    }
+                    abstract_list_flow_idx += 1
+                    continue
+                
+                abstract_subtask_list_desc[f"Stage {abstract_list_desc_idx}"] = {
                     "Title": subtask['subtask_name'],
                     'Objectives': subtask['abstracted_objective']
                 }
+                
+                abstract_list_desc_idx += 1
             
             abstract_workflow_description.append({
                 'name': f"abstracted_workflow_{mas_idx}",
@@ -1376,12 +1210,15 @@ Return your result in valid JSON format with the following structure:
                 
             with open(f'{workflow_path}/abstracted_workflow/abstracted_workflow_desc_{mas_idx}.json', 'w', encoding='utf-8') as f:
                 json.dump(abstract_subtask_list, f, ensure_ascii=False, indent=4)
+                
+            with open(f'{workflow_path}/abstracted_workflow/workflow_chains.json', 'w', encoding='utf-8') as f:
+                json.dump(merged_workflow_chains, f, ensure_ascii=False, indent=4)
             
             mas_idx += 1
             # break
 
     async def __call__(self,  query: str, mas: str):
-        subtasks = await self.analyze(query, mas)
+        subtasks, flow = await self.analyze(query, mas)
         
         # subtasks = [{'subtask_id': 'subtask_1', 'objective': "Calculate Aya's walking speed s based on the information that when she walks at s km/h, the walk takes 4 hours including t minutes spent in the coffee shop.", 'supporting_info': 'Aya walks 9 kilometers at speed s, taking a total of 4 hours, which includes t minutes spent in the coffee shop.', 'agent_collaboration': 'CoT', 'dependencies': []}, {'subtask_id': 'subtask_2', 'objective': 'Determine the time spent in the coffee shop t using the information that when she walks at s+2 km/h, the walk takes 2 hours and 24 minutes including t minutes in the coffee shop.', 'supporting_info': 'The output from Sub-task 1 provides the value of s, which is necessary to calculate t. The total time for the walk at s+2 km/h is 2 hours and 24 minutes.', 'agent_collaboration': 'SC_CoT', 'dependencies': ['subtask_1']}, {'subtask_id': 'subtask_3', 'objective': 'Calculate the time it takes for Aya to walk 9 km at s+1/2 km/h, including the t minutes spent in the coffee shop.', 'supporting_info': 'The outputs from Sub-task 1 and Sub-task 2 provide the values of s and t, which are necessary to calculate the total time for the walk at the adjusted speed.', 'agent_collaboration': 'Reflexion', 'dependencies': ['subtask_1', 'subtask_2']}]
         
@@ -1393,52 +1230,53 @@ Return your result in valid JSON format with the following structure:
                 subtasks[idx]['abstracted_objective'] = abstracted_subtask['abstracted_objective']
                 subtasks[idx]['subtask_name'] = abstracted_subtask['subtask_name']
         
-        return subtasks
+        return subtasks, flow
         
     
 async def main():
     abstractor = MASAbstraction()    
     print("Init Abstractor successfully")
     
-    mas_zero_workflow = []
+    available_workflow = []
     
     # with open("mas_zero_gpqa_diamond.json", "r", encoding="utf-8") as f:
     #     mas_zero_workflow = json.load(f)
     # mas_zero_workflow = mas_zero_workflow[:750]
     # print(len(mas_zero_workflow))
     
-    with open("aflow_DROP.json", "r", encoding="utf-8") as f:
-        mas_zero_workflow = json.load(f)
-        
+    with open("aflow_HotpotQA.json", "r", encoding="utf-8") as f:
+        available_workflow = json.load(f)
+
     print("============= Read data successfully ==============")
+    print("Total workflow: ", len(available_workflow))
     
-    for idx, mas in enumerate(mas_zero_workflow):
-        mas_idx = int(idx / 5)
-        iteration = int(mas['iteration'])
+    for idx, mas in enumerate(available_workflow):
+        # mas_idx = int(idx / 5)
+        # iteration = int(mas['iteration'])
         
-        # if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
-        #     continue 
+        if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3/mas/mas_{idx}.json"):
+            continue 
         
-        if iteration != 0:
-            continue
+        print(f"Workflow {idx}")
+        # if idx != 20:
+        #     continue
+        mas['code'] = remove_comments(mas['code'])
+        print("================= Sample code =================\n", mas['code'])
         
-        if mas_idx != 0:
-            continue
-        
-        print(f"Workflow {mas_idx}, iteration: {iteration}")
-        print(mas['code'])
-        
-        subtask_list = await abstractor(mas['problem'], mas['code'])
-        break
+        subtask_list, flow = await abstractor(mas['problem'], mas['code'])
     
-        # with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-drop/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json", "w", encoding="utf-8") as f:
-        #     json.dump(subtask_list, f, ensure_ascii=False, indent=4)
+        with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3/mas/mas_{idx}.json", "w", encoding="utf-8") as f:
+            json.dump(subtask_list, f, ensure_ascii=False, indent=4)
             
-    # cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-drop")
-    # cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
-    # cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
-    # cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
-    # await abstractor.clustering_workflow("workflow_analysis-gpt-4o-mini-o4-mini_v8-drop", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
+        with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3/flow/flow_{idx}.json", "w", encoding="utf-8") as f:
+            json.dump(flow, f, ensure_ascii=False, indent=4)
+            
+    cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3")
+    # await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3")
+    cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
+    cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
+    cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
+    await abstractor.clustering_workflow("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
     
 if __name__ == "__main__":
     model_sampler_map = {

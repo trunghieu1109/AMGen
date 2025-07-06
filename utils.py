@@ -10,6 +10,7 @@ import numpy as np
 import re
 
 Example = namedtuple('Example', ['question', 'choice1', 'choice2', 'choice3', 'choice4', 'correct_index'])
+ExampleDrop = namedtuple('ExampleDrop', ['question', 'answer'])
 
 LANG_TO_INSTRUCTIONS = {
     "en": """Solve this math problem.
@@ -165,3 +166,36 @@ def load_questions(path: str, seed: int) -> List[Example]: #TODO: make answer
         return example
 
     return [shuffle_choices_and_create_example(row) for _, row in question_df.iterrows()]
+
+def load_questions_drop(path: str, seed: int) -> List[ExampleDrop]: #TODO: make answer
+    """Load questions from csv file and return a list of Example namedtuples."""
+    question_df = pd.read_csv(path)
+    random.seed(seed)
+
+    def compose_data(row) -> Example:
+        example_drop = ExampleDrop(row.context, row.completion)
+        return example_drop
+
+    return [compose_data(row) for _, row in question_df.iterrows()]
+
+def load_questions_gsm8k(path: str, seed: int) -> List[ExampleDrop]: #TODO: make answer
+    """Load questions from csv file and return a list of Example namedtuples."""
+    question_df = pd.read_csv(path)
+    random.seed(seed)
+
+    def compose_data(row) -> Example:
+        example_drop = ExampleDrop(row.question, row.answer)
+        return example_drop
+
+    return [compose_data(row) for _, row in question_df.iterrows()]
+
+def load_questions_hotpotqa(path: str, seed: int) -> List[ExampleDrop]: #TODO: make answer
+    """Load questions from csv file and return a list of Example namedtuples."""
+    question_df = pd.read_csv(path)
+    random.seed(seed)
+
+    def compose_data(row) -> Example:
+        example_drop = ExampleDrop(f"Context: {row.context}\nQuestion: {row.question}", row.answer)
+        return example_drop
+
+    return [compose_data(row) for _, row in question_df.iterrows()]

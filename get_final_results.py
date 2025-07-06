@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "results/workflow_search/aime24/single_agent_baselines_v2/cot/gpt-4.1-mini_gpt-4o_chatgpt"
+directory = "results/workflow_search/drop/abstract_workflow_dev_6_7_2/gpt-4.1-mini_gpt-4o-mini-2024-07-18"
 total_score = 0
 total_time = 0
 max_cost = float('-inf')

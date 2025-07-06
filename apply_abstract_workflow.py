@@ -44,7 +44,7 @@ from sklearn.metrics import silhouette_score, pairwise_distances
 from sklearn.preprocessing import StandardScaler, normalize
 from Levenshtein import distance
 import pickle as pkl
-from abstract_v2 import MASAbstraction, levenshtein_array_to_array
+from abstract_v3 import MASAbstraction, levenshtein_array_to_array
 import asyncio
 
 client = openai.OpenAI()
