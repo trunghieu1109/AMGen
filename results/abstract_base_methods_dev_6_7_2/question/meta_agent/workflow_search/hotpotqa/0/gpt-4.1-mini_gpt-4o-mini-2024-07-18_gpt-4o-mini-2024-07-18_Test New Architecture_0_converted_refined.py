@@ -4,67 +4,60 @@ async def forward_0(self, taskInfo):
     agents = []
     logs = []
     candidate_expansions = []
-    cot_instruction1 = (
-        "Sub-task 1: Systematically research and generate multiple candidate expansions for the acronym 'VIVA' after the 2004 name change of VIVA Media AG. "
-        "Explicitly verify if 'VIVA' is an acronym or a brand name. Generate diverse candidate expansions with evidence or references, "
-        "and report if no acronym expansion exists."
-    )
-    cot_agent_desc1 = {
-        'instruction': cot_instruction1,
+
+    cot_reflect_instruction1 = "Sub-task 1: Generate a candidate expansion for the new acronym adopted by VIVA Media AG after its 2004 name change. Critically validate the expansion by checking for authoritative sources or explicitly state if no verified expansion exists."
+    critic_instruction1 = "Please review the candidate expansion for evidence support, correctness, and whether it is backed by reliable sources."
+    cot_reflect_desc1 = {
+        'instruction': cot_reflect_instruction1,
         'input': [taskInfo],
+        'output': ["thinking", "answer"],
         'temperature': 0.5,
         'context': ["user query"]
     }
-    n_candidates = self.max_sc
-    for i in range(n_candidates):
-        results1 = await self.sc_cot(
-            subtask_id=f"subtask_1_{i+1}",
-            cot_sc_desc=cot_agent_desc1,
-            n_repeat=1
-        )
-        agents.append(f"CoT-SC agent {results1['cot_agent'][0].id}, generating candidate expansion iteration {i+1}, thinking: {results1['list_thinking'][0]}; answer: {results1['list_answer'][0]}")
-        sub_tasks.append(f"Sub-task 1 iteration {i+1} output: thinking - {results1['list_thinking'][0]}; answer - {results1['list_answer'][0]}")
-        logs.append(results1['subtask_desc'])
-        candidate_expansions.append(results1['list_answer'][0])
-    debate_instruction2 = (
-        "Sub-task 2: Conduct a debate among agents to argue for and against each candidate expansion of 'VIVA' generated in Sub-task 1. "
-        "Critically evaluate the plausibility and provide external evidence or references to support or refute each candidate expansion. "
-        "Consider the possibility that 'VIVA' is not an acronym but a brand name."
-    )
-    debate_desc2 = {
-        'instruction': debate_instruction2,
-        'input': [taskInfo] + candidate_expansions,
-        'output': ["thinking", "answer"],
-        'temperature': 0.5,
-        'context': ["user query", "candidate expansions from subtask 1"]
+    critic_desc1 = {
+        'instruction': critic_instruction1,
+        'output': ["feedback", "correct"],
+        'temperature': 0.0
     }
-    results2 = await self.debate(
-        subtask_id="subtask_2",
-        debate_desc=debate_desc2,
-        final_decision_desc={
-            'instruction': "Sub-task 2: Make final decision on the most plausible candidate expansions after debate.",
-            'output': ["thinking", "answer"],
-            'temperature': 0.0
-        },
+    results1 = await self.reflexion(
+        subtask_id="subtask_1",
+        cot_reflect_desc=cot_reflect_desc1,
+        critic_desc=critic_desc1,
         n_repeat=self.max_round
     )
-    for round_idx in range(self.max_round):
-        for idx, agent in enumerate(results2['debate_agent']):
-            agents.append(f"Debate agent {agent.id}, round {round_idx}, debating candidate expansions, thinking: {results2['list_thinking'][round_idx][idx].content}; answer: {results2['list_answer'][round_idx][idx].content}")
-    agents.append(f"Final Decision agent, deciding best candidate expansions, thinking: {results2['thinking'].content}; answer: {results2['answer'].content}")
+    agents.append(f"Reflexion CoT agent {results1['cot_agent'].id}, generating and validating candidate expansion, thinking: {results1['list_thinking'][0].content}; answer: {results1['list_answer'][0].content}")
+    for i in range(min(self.max_round, len(results1['list_feedback']))):
+        agents.append(f"Critic agent {results1['critic_agent'].id}, feedback on candidate expansion, thinking: {results1['list_feedback'][i].content}; correct: {results1['list_correct'][i].content}")
+        if i + 1 < len(results1['list_thinking']) and i + 1 < len(results1['list_answer']):
+            agents.append(f"Reflexion CoT agent {results1['cot_agent'].id}, refining candidate expansion, thinking: {results1['list_thinking'][i + 1].content}; answer: {results1['list_answer'][i + 1].content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}")
+    logs.append(results1['subtask_desc'])
+    candidate_expansions.append(results1['answer'].content)
+
+    cot_instruction2 = "Sub-task 2: Systematically verify whether 'VIVA' is an acronym with an actual expansion or simply a brand name, by examining linguistic, historical, and corporate evidence. Provide explicit evidence for your conclusion."
+    cot_agent_desc2 = {
+        'instruction': cot_instruction2,
+        'input': [taskInfo],
+        'temperature': 0.0,
+        'context': ["user query"]
+    }
+    results2 = await self.cot(
+        subtask_id="subtask_2",
+        cot_agent_desc=cot_agent_desc2
+    )
+    agents.append(f"CoT agent {results2['cot_agent'].id}, verifying acronym vs brand name, thinking: {results2['thinking'].content}; answer: {results2['answer'].content}")
     sub_tasks.append(f"Sub-task 2 output: thinking - {results2['thinking'].content}; answer - {results2['answer'].content}")
     logs.append(results2['subtask_desc'])
-    cot_reflect_instruction3 = (
-        "Sub-task 3: Reflect on the debated candidate expansions and fact-check their correctness and validity against reliable sources or knowledge bases. "
-        "Filter out incorrect or unsupported expansions and confirm if 'VIVA' is an acronym or a brand name."
-    )
-    critic_instruction3 = "Please review the candidate expansions and provide feedback on their factual correctness and limitations."
+    candidate_expansions.append(results2['answer'].content)
+
+    cot_reflect_instruction3 = "Sub-task 3: Critically evaluate the candidate expansions generated so far for plausibility, redundancy, and evidence support. Remove speculative or unsupported expansions."
+    critic_instruction3 = "Please review the filtered candidate expansions and provide feedback on their validity and evidence backing."
     cot_reflect_desc3 = {
         'instruction': cot_reflect_instruction3,
-        'input': [taskInfo, results2['thinking'], results2['answer']],
+        'input': [taskInfo] + candidate_expansions,
         'output': ["thinking", "answer"],
         'temperature': 0.0,
-        'context': ["user query", "thinking of subtask 2", "answer of subtask 2"]
+        'context': ["user query"]
     }
     critic_desc3 = {
         'instruction': critic_instruction3,
@@ -77,56 +70,75 @@ async def forward_0(self, taskInfo):
         critic_desc=critic_desc3,
         n_repeat=self.max_round
     )
-    agents.append(f"Reflexion CoT agent {results3['cot_agent'].id}, fact-checking candidate expansions, thinking: {results3['list_thinking'][0].content}; answer: {results3['list_answer'][0].content}")
+    agents.append(f"Reflexion CoT agent {results3['cot_agent'].id}, evaluating candidate expansions, thinking: {results3['list_thinking'][0].content}; answer: {results3['list_answer'][0].content}")
     for i in range(min(self.max_round, len(results3['list_feedback']))):
-        agents.append(f"Critic agent {results3['critic_agent'].id}, providing feedback, thinking: {results3['list_feedback'][i].content}; answer: {results3['list_correct'][i].content}")
+        agents.append(f"Critic agent {results3['critic_agent'].id}, feedback on evaluation, thinking: {results3['list_feedback'][i].content}; correct: {results3['list_correct'][i].content}")
         if i + 1 < len(results3['list_thinking']) and i + 1 < len(results3['list_answer']):
-            agents.append(f"Reflexion CoT agent {results3['cot_agent'].id}, refining answer, thinking: {results3['list_thinking'][i + 1].content}; answer: {results3['list_answer'][i + 1].content}")
+            agents.append(f"Reflexion CoT agent {results3['cot_agent'].id}, refining evaluation, thinking: {results3['list_thinking'][i + 1].content}; answer: {results3['list_answer'][i + 1].content}")
     sub_tasks.append(f"Sub-task 3 output: thinking - {results3['thinking'].content}; answer - {results3['answer'].content}")
     logs.append(results3['subtask_desc'])
-    review_instruction4 = (
-        "Sub-task 4: Review the verified candidate expansions and explicitly clarify whether 'VIVA' is an acronym or a brand name. "
-        "Provide a clear and complete explanation about the nature of 'VIVA' as the company's new name after rebranding."
-    )
-    review_desc4 = {
-        'instruction': review_instruction4,
-        'input': [taskInfo, results3['thinking'], results3['answer']],
-        'temperature': 0.0,
-        'context': ["user query", "thinking of subtask 3", "answer of subtask 3"]
+    candidate_expansions = [results3['answer'].content]
+
+    cot_sc_instruction4 = "Sub-task 4: Using the candidate expansions, perform a self-consistency check by scoring each candidate based on evidence strength, logical consistency, and source reliability. Synthesize the most reliable and consistent expansion as the final integrated answer."
+    N = self.max_sc
+    cot_sc_desc4 = {
+        'instruction': cot_sc_instruction4,
+        'input': [taskInfo] + candidate_expansions,
+        'temperature': 0.5,
+        'context': ["user query", "candidate expansions"]
     }
-    results4 = await self.reflexion(
+    results4 = await self.sc_cot(
         subtask_id="subtask_4",
-        cot_reflect_desc=review_desc4,
-        critic_desc={
-            'instruction': "Please review the clarity and completeness of the explanation about 'VIVA' being an acronym or brand name.",
-            'output': ["feedback", "correct"],
-            'temperature': 0.0
-        },
-        n_repeat=self.max_round
+        cot_sc_desc=cot_sc_desc4,
+        n_repeat=N
     )
-    agents.append(f"Reflexion CoT agent {results4['cot_agent'].id}, reviewing clarity of final explanation, thinking: {results4['list_thinking'][0].content}; answer: {results4['list_answer'][0].content}")
-    for i in range(min(self.max_round, len(results4['list_feedback']))):
-        agents.append(f"Critic agent {results4['critic_agent'].id}, providing feedback, thinking: {results4['list_feedback'][i].content}; answer: {results4['list_correct'][i].content}")
-        if i + 1 < len(results4['list_thinking']) and i + 1 < len(results4['list_answer']):
-            agents.append(f"Reflexion CoT agent {results4['cot_agent'].id}, refining explanation, thinking: {results4['list_thinking'][i + 1].content}; answer: {results4['list_answer'][i + 1].content}")
+    for idx in range(N):
+        agents.append(f"CoT-SC agent {results4['cot_agent'][idx].id}, scoring candidate expansions, thinking: {results4['list_thinking'][idx]}; answer: {results4['list_answer'][idx]}")
     sub_tasks.append(f"Sub-task 4 output: thinking - {results4['thinking'].content}; answer - {results4['answer'].content}")
     logs.append(results4['subtask_desc'])
-    cot_instruction5 = (
-        "Sub-task 5: Finalize the answer by explicitly stating that 'VIVA' is the company name after the 2004 rebranding and does not stand for any acronym. "
-        "Provide a concise justification referencing the rebranding context."
-    )
-    cot_agent_desc5 = {
-        'instruction': cot_instruction5,
+
+    cot_reflect_instruction5 = "Sub-task 5: Independently fact-check and verify the consolidated acronym expansion from Sub-task 4 against reliable external sources. Confirm its accuracy, completeness, and validity before approval."
+    critic_instruction5 = "Please provide detailed feedback on the factual accuracy and completeness of the consolidated expansion."
+    cot_reflect_desc5 = {
+        'instruction': cot_reflect_instruction5,
         'input': [taskInfo, results4['thinking'], results4['answer']],
+        'output': ["thinking", "answer"],
         'temperature': 0.0,
-        'context': ["user query", "thinking of subtask 4", "answer of subtask 4"]
+        'context': ["user query", "thinking and answer of subtask 4"]
     }
-    results5 = await self.cot(
+    critic_desc5 = {
+        'instruction': critic_instruction5,
+        'output': ["feedback", "correct"],
+        'temperature': 0.0
+    }
+    results5 = await self.reflexion(
         subtask_id="subtask_5",
-        cot_agent_desc=cot_agent_desc5
+        cot_reflect_desc=cot_reflect_desc5,
+        critic_desc=critic_desc5,
+        n_repeat=self.max_round
     )
-    agents.append(f"CoT agent {results5['cot_agent'].id}, finalizing answer, thinking: {results5['thinking'].content}; answer: {results5['answer'].content}")
+    agents.append(f"Reflexion CoT agent {results5['cot_agent'].id}, fact-checking consolidated expansion, thinking: {results5['list_thinking'][0].content}; answer: {results5['list_answer'][0].content}")
+    for i in range(min(self.max_round, len(results5['list_feedback']))):
+        agents.append(f"Critic agent {results5['critic_agent'].id}, feedback on fact-checking, thinking: {results5['list_feedback'][i].content}; correct: {results5['list_correct'][i].content}")
+        if i + 1 < len(results5['list_thinking']) and i + 1 < len(results5['list_answer']):
+            agents.append(f"Reflexion CoT agent {results5['cot_agent'].id}, refining fact-checking, thinking: {results5['list_thinking'][i + 1].content}; answer: {results5['list_answer'][i + 1].content}")
     sub_tasks.append(f"Sub-task 5 output: thinking - {results5['thinking'].content}; answer - {results5['answer'].content}")
     logs.append(results5['subtask_desc'])
-    final_answer = await self.make_final_answer(results5['thinking'], results5['answer'], sub_tasks, agents)
+
+    cot_instruction6 = "Sub-task 6: Generate a final validated explanation confirming the meaning of the new acronym adopted by VIVA Media AG after its 2004 name change, based on the verified consolidated answer."
+    cot_agent_desc6 = {
+        'instruction': cot_instruction6,
+        'input': [taskInfo, results5['thinking'], results5['answer']],
+        'temperature': 0.0,
+        'context': ["user query", "verified consolidated answer"]
+    }
+    results6 = await self.cot(
+        subtask_id="subtask_6",
+        cot_agent_desc=cot_agent_desc6
+    )
+    agents.append(f"CoT agent {results6['cot_agent'].id}, generating final validated explanation, thinking: {results6['thinking'].content}; answer: {results6['answer'].content}")
+    sub_tasks.append(f"Sub-task 6 output: thinking - {results6['thinking'].content}; answer - {results6['answer'].content}")
+    logs.append(results6['subtask_desc'])
+
+    final_answer = await self.make_final_answer(results6['thinking'], results6['answer'], sub_tasks, agents)
     return final_answer, logs

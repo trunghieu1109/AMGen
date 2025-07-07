@@ -5,85 +5,51 @@ async def forward_7(self, taskInfo):
     logs = []
     candidate_bands = []
     # Control Flow 0: start sequential
-    # Stage 0: generate candidate outputs with CoT and Self-Consistency in a loop
-    cot_instruction = "Sub-task 1: Generate candidate Lyric Street Records-affiliated bands that could have covered 'If You Ever Get Lonely' by applying structured reasoning and knowledge of the song's cover versions"
-    for i in range(self.max_sc):
-        cot_sc_desc = {
+    # Control Flow 1: start loop
+    for i in range(3):
+        cot_instruction = f"Subtask {i+1}: Systematically generate a candidate band affiliated with Lyric Street Records that covered 'If You Ever Get Lonely' by applying structured reasoning"
+        cot_agent_desc = {
             'instruction': cot_instruction,
             'input': [taskInfo],
-            'temperature': 0.5,
+            'temperature': 0.0,
             'context': ["user query"]
         }
-        results = await self.sc_cot(
-            subtask_id=f"subtask_1_{i+1}",
-            cot_sc_desc=cot_sc_desc,
-            n_repeat=1
+        results = await self.answer_generate(
+            subtask_id=f"subtask_{i+1}",
+            cot_agent_desc=cot_agent_desc
         )
-        agents.append(f"CoT-SC agent {results['cot_agent'][0].id}, iteration {i+1}, generating candidate bands, thinking: {results['list_thinking'][0]}; answer: {results['list_answer'][0]}")
-        sub_tasks.append(f"Sub-task 1 iteration {i+1} output: thinking - {results['list_thinking'][0]}; answer - {results['list_answer'][0]}")
+        agents.append(f"CoT agent {results['cot_agent'].id}, generating candidate band #{i+1}, thinking: {results['thinking'].content}; answer: {results['answer'].content}")
+        sub_tasks.append(f"Subtask {i+1} output: thinking - {results['thinking'].content}; answer - {results['answer'].content}")
         logs.append(results['subtask_desc'])
-        candidate_bands.append(results['list_answer'][0])
+        candidate_bands.append(results['answer'].content)
     # Control Flow 2: end loop
-    # Stage 1: consolidate multiple inputs with Aggregate agent
-    aggregate_instruction = "Sub-task 2: From candidate bands generated, aggregate these solutions and return the consistent and best solution identifying the Lyric Street Records-affiliated band that covered 'If You Ever Get Lonely'"
+    aggregate_instruction = "Subtask 4: Integrate multiple candidate bands by evaluating their consistency and synthesizing them into a single coherent output identifying the band that covered 'If You Ever Get Lonely'"
     aggregate_desc = {
         'instruction': aggregate_instruction,
         'input': [taskInfo] + candidate_bands,
         'temperature': 0.0,
-        'context': ["user query", "candidate bands generated from subtask 1"]
+        'context': ["user query", "candidate bands generated"]
     }
-    results_agg = await self.aggregate(
-        subtask_id="subtask_2",
+    results4 = await self.aggregate(
+        subtask_id="subtask_4",
         aggregate_desc=aggregate_desc
     )
-    agents.append(f"Aggregate agent {results_agg['aggregate_agent'].id}, consolidating candidate bands, thinking: {results_agg['thinking'].content}; answer: {results_agg['answer'].content}")
-    sub_tasks.append(f"Sub-task 2 output: thinking - {results_agg['thinking'].content}; answer - {results_agg['answer'].content}")
-    logs.append(results_agg['subtask_desc'])
-    # Stage 1: validate consolidated output with Review, Programmer, and CoT agents
-    review_instruction = "Sub-task 3: Review the consolidated answer to ensure it accurately and completely identifies the correct Lyric Street Records-affiliated band that covered 'If You Ever Get Lonely'"
+    agents.append(f"Aggregate agent {results4['aggregate_agent'].id}, consolidating candidate bands, thinking: {results4['thinking'].content}; answer: {results4['answer'].content}")
+    sub_tasks.append(f"Subtask 4 output: thinking - {results4['thinking'].content}; answer - {results4['answer'].content}")
+    logs.append(results4['subtask_desc'])
+    review_instruction = "Subtask 5: Evaluate the consolidated output against established criteria to confirm its accuracy, completeness, validity, and correctness"
     review_desc = {
         'instruction': review_instruction,
-        'input': [taskInfo, results_agg['thinking'], results_agg['answer']],
+        'input': [taskInfo, results4['thinking'], results4['answer']],
         'temperature': 0.0,
-        'context': ["user query", "thinking of subtask 2", "answer of subtask 2"]
+        'context': ["user query", "thinking of subtask 4", "answer of subtask 4"]
     }
-    results_review = await self.review(
-        subtask_id="subtask_3",
+    results5 = await self.review(
+        subtask_id="subtask_5",
         review_desc=review_desc
     )
-    agents.append(f"Review agent {results_review['review_agent'].id}, reviewing consolidated answer, feedback: {results_review['thinking'].content}; correct: {results_review['answer'].content}")
-    sub_tasks.append(f"Sub-task 3 output: feedback - {results_review['thinking'].content}; correct - {results_review['answer'].content}")
-    logs.append(results_review['subtask_desc'])
-    if results_review['answer'].content.lower() != 'correct':
-        programmer_instruction = "Sub-task 4: Based on review feedback, refine and validate the consolidated answer identifying the Lyric Street Records-affiliated band that covered 'If You Ever Get Lonely'"
-        programmer_desc = {
-            'instruction': programmer_instruction,
-            'input': [taskInfo, results_agg['thinking'], results_agg['answer'], results_review['thinking'], results_review['answer']],
-            'temperature': 0.0,
-            'context': ["user query", "thinking of subtask 2", "answer of subtask 2", "feedback of subtask 3", "correctness of subtask 3"]
-        }
-        results_prog = await self.programmer(
-            subtask_id="subtask_4",
-            programmer_desc=programmer_desc
-        )
-        agents.append(f"Programmer agent {results_prog['programmer_agent'].id}, refining consolidated answer, thinking: {results_prog['thinking'].content}; answer: {results_prog['answer'].content}, executing results: {results_prog['exec_result']}")
-        sub_tasks.append(f"Sub-task 4 output: thinking - {results_prog['thinking'].content}; answer - {results_prog['answer'].content}; output - {results_prog['exec_result']}")
-        logs.append(results_prog['subtask_desc'])
-        cot_instruction_final = "Sub-task 5: Final reasoning to confirm the refined consolidated answer identifying the Lyric Street Records-affiliated band that covered 'If You Ever Get Lonely'"
-        cot_agent_desc_final = {
-            'instruction': cot_instruction_final,
-            'input': [taskInfo, results_prog['thinking'], results_prog['answer']],
-            'temperature': 0.0,
-            'context': ["user query", "thinking of subtask 4", "answer of subtask 4"]
-        }
-        results_final = await self.cot(
-            subtask_id="subtask_5",
-            cot_agent_desc=cot_agent_desc_final
-        )
-        agents.append(f"CoT agent {results_final['cot_agent'].id}, final reasoning, thinking: {results_final['thinking'].content}; answer: {results_final['answer'].content}")
-        sub_tasks.append(f"Sub-task 5 output: thinking - {results_final['thinking'].content}; answer - {results_final['answer'].content}")
-        logs.append(results_final['subtask_desc'])
-    else:
-        results_final = results_agg
-    final_answer = await self.make_final_answer(results_final['thinking'], results_final['answer'], sub_tasks, agents)
+    agents.append(f"Review agent {results5['review_agent'].id}, reviewing consolidated output, feedback: {results5['thinking'].content}; correct: {results5['answer'].content}")
+    sub_tasks.append(f"Subtask 5 output: feedback - {results5['thinking'].content}; correct - {results5['answer'].content}")
+    logs.append(results5['subtask_desc'])
+    final_answer = await self.make_final_answer(results5['thinking'], results5['answer'], sub_tasks, agents)
     return final_answer, logs

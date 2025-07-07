@@ -328,14 +328,14 @@ class AgentSystem():
     
     async def cot(self, subtask_id, cot_agent_desc):
         cot_agent = LLMAgentBase(['thinking', 'answer'], "Chain-of-Thought Agent", 
-                                model=self.node_model, temperature=cot_agent_desc['temperature'])
+                                model=self.node_model, temperature=cot_agent_desc.get('temperature', 0.0))
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": cot_agent_desc['instruction'],
-            "context": cot_agent_desc['context'],
+            "instruction": cot_agent_desc.get('instruction', "Please do it step-by-step."),
+            "context": cot_agent_desc.get('context', ['user query']),
             "agent_collaboration": "CoT"
         }
-        thinking, answer = await cot_agent(cot_agent_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await cot_agent(cot_agent_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "answer": answer
@@ -350,7 +350,7 @@ class AgentSystem():
     
     async def sc_cot(self, subtask_id, cot_sc_desc, n_repeat):
         cot_agents = [LLMAgentBase(['thinking', 'answer'], "Chain-of-Thought Agent", 
-                                model=self.node_model, temperature=cot_sc_desc['temperature']) for _ in range(n_repeat)]
+                                model=self.node_model, temperature=cot_sc_desc.get('temperature', 0.5)) for _ in range(n_repeat)]
         possible_answers = []
         thinkingmapping = {}
         answermapping = {}
@@ -358,13 +358,13 @@ class AgentSystem():
         list_answer = []
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": cot_sc_desc['instruction'],
-            "context": cot_sc_desc['context'],
+            "instruction": cot_sc_desc.get('instruction', "Please do step-by-step"),
+            "context": cot_sc_desc.get('context', ['user query']),
             "agent_collaboration": "SC_CoT"
         }
         for i in range(n_repeat):
             # Each CoT-SC agent tries to calculate all possible cases independently
-            thinking, answer = await cot_agents[i](cot_sc_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+            thinking, answer = await cot_agents[i](cot_sc_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
             possible_answers.append(str(answer.content))
             thinkingmapping[str(answer.content)] = thinking
             answermapping[str(answer.content)] = answer
@@ -390,16 +390,16 @@ class AgentSystem():
         }
     
     async def reflexion(self, subtask_id, cot_reflect_desc, critic_desc, n_repeat):
-        cot_agent = LLMAgentBase(['thinking', 'answer'], "Chain-of-Thought Agent", model=self.node_model, temperature=cot_reflect_desc['temperature'])
-        critic_agent = LLMAgentBase(['feedback', 'correct'], "Critic Agent", model=self.node_model, temperature=critic_desc['temperature'])
+        cot_agent = LLMAgentBase(['thinking', 'answer'], "Chain-of-Thought Agent", model=self.node_model, temperature=cot_reflect_desc.get('temperature', 0.0))
+        critic_agent = LLMAgentBase(['feedback', 'correct'], "Critic Agent", model=self.node_model, temperature=critic_desc.get('temperature', 0.0))
         
         # Input for CoT agent
-        cot_inputs = cot_reflect_desc['input']
+        cot_inputs = cot_reflect_desc.get('input', [])
         
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": cot_reflect_desc['instruction'],
-            "context": cot_reflect_desc['context'],
+            "instruction": cot_reflect_desc.get('instruction', "Please do step-by-step"),
+            "context": cot_reflect_desc.get('context', ['user query']),
             "agent_collaboration": "Reflexion"
         }
         
@@ -407,20 +407,20 @@ class AgentSystem():
         thinkings, answers = [], []
         
         # Generate the first version
-        thinking, answer = await cot_agent(cot_inputs, cot_reflect_desc['instruction'], 0, is_sub_task=True)
+        thinking, answer = await cot_agent(cot_inputs, cot_reflect_desc.get('instruction', "Please do step-by-step"), 0, is_sub_task=True)
         thinkings.append(thinking)
         answers.append(answer)
         for i in range(n_repeat):
             # Critic agent debates and criticizes pros and cons of previous version
-            feedback, correct = await critic_agent(cot_reflect_desc['input'] + [thinking, answer], 
-                                        critic_desc['instruction'], i, is_sub_task=True)
+            feedback, correct = await critic_agent(cot_reflect_desc.get('input', []) + [thinking, answer], 
+                                        critic_desc.get('instruction', "Review the previous"), i, is_sub_task=True)
             feedbacks.append(feedback)
             corrects.append(correct)
             if correct.content == "True":
                 break
             
             cot_inputs.extend([thinking, answer, feedback])
-            thinking, answer = await cot_agent(cot_inputs, cot_reflect_desc['instruction'], i + 1, is_sub_task=True)
+            thinking, answer = await cot_agent(cot_inputs, cot_reflect_desc.get('instruction', "Please do step-by-step"), i + 1, is_sub_task=True)
             thinkings.append(thinking)
             answers.append(answer)
             
@@ -445,7 +445,7 @@ class AgentSystem():
     
     async def debate(self, subtask_id, debate_desc, final_decision_desc, n_repeat):
         debate_agents = [LLMAgentBase(['thinking', 'answer'], "Debate Agent", 
-                                    model=self.node_model, role=role, temperature=debate_desc['temperature']) 
+                                    model=self.node_model, role=role, temperature=debate_desc.get('temperature', 0.5)) 
                         for role in self.debate_role]
 
         all_thinking = [[] for _ in range(n_repeat)]
@@ -453,8 +453,8 @@ class AgentSystem():
         
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": debate_desc['instruction'],
-            "context": debate_desc['context'],
+            "instruction": debate_desc.get('instruction', "Please do step-by-step"),
+            "context": debate_desc.get('context', ['user query']),
             "agent_collaboration": "Debate"
         }
         
@@ -470,21 +470,21 @@ class AgentSystem():
             for i, agent in enumerate(debate_agents):
                 # Each agent proposes its solution
                 if r == 0:
-                    thinking, answer = await agent(debate_desc['input'], 
-                                            debate_desc['instruction'], r, is_sub_task=True)
+                    thinking, answer = await agent(debate_desc.get('input', []), 
+                                            debate_desc.get('instruction', "Please do step-by-step"), r, is_sub_task=True)
                 else:
                     # Generate next solution based on comments and counter-arguments from other debaters
-                    input_infos = debate_desc['input'] + all_thinking[r-1] + all_answer[r-1]
-                    thinking, answer = await agent(input_infos, debate_desc['instruction'], r, is_sub_task=True)
+                    input_infos = debate_desc.get('input', []) + all_thinking[r-1] + all_answer[r-1]
+                    thinking, answer = await agent(input_infos, debate_desc.get('instruction', "Please do step-by-step"), r, is_sub_task=True)
                 
                 all_thinking[r].append(thinking)
                 all_answer[r].append(answer)
         
         # Final decision agent makes final decision
         final_decision_agent = LLMAgentBase(['thinking', 'answer'], "Final Decision Agent", 
-                                            model=self.node_model, temperature=final_decision_desc['temperature'])
-        thinking, answer = await final_decision_agent(debate_desc['input'] + all_thinking[-1] + all_answer[-1], 
-                                                    final_decision_desc['instruction'], 
+                                            model=self.node_model, temperature=final_decision_desc.get('temperature', 0.0))
+        thinking, answer = await final_decision_agent(debate_desc.get('input', []) + all_thinking[-1] + all_answer[-1], 
+                                                    final_decision_desc.get('instruction', "Please do step-by-step"), 
                                                     is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
@@ -503,15 +503,15 @@ class AgentSystem():
         }
         
     async def answer_generate(self, subtask_id, cot_agent_desc):
-        cot_agent = LLMAgentBase(['thinking', 'answer'], "Answer Generate Agent", model=self.node_model, temperature=cot_agent_desc['temperature'])
+        cot_agent = LLMAgentBase(['thinking', 'answer'], "Answer Generate Agent", model=self.node_model, temperature=cot_agent_desc.get('temperature', 0.0))
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": cot_agent_desc['instruction'] + "\nThink step by step and solve the problem. Ensure the final answer is concisely and clearly, direct response to the question without including explanations or reasoning",
-            "context": cot_agent_desc['context'],
+            "instruction": cot_agent_desc.get('instruction', "Please do step-by-step") + "\nThink step by step and solve the problem. Ensure the final answer is concisely and clearly, direct response to the question without including explanations or reasoning",
+            "context": cot_agent_desc.get('context', ['user query']),
             "agent_collaboration": "AnswerGenerate"
         }
         
-        thinking, answer = await cot_agent(cot_agent_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await cot_agent(cot_agent_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "answer": answer
@@ -525,16 +525,16 @@ class AgentSystem():
         }
         
     async def specific_format(self, subtask_id, formatter_desc):
-        formatter_agent = LLMAgentBase(['thinking', 'answer'], "SpecificFormatter Agent", model=self.node_model, temperature=formatter_desc['temperature'])
+        formatter_agent = LLMAgentBase(['thinking', 'answer'], "SpecificFormatter Agent", model=self.node_model, temperature=formatter_desc.get('temperature', 0.0))
        
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": formatter_desc['instruction'] + f"\nExtract the correct answer for the question from the previous context. Then, return the final answer in the following format: {formatter_desc['format']}",
-            "context": formatter_desc['context'],
+            "instruction": formatter_desc.get('instruction', "Please do step-by-step") + f"\nExtract the correct answer for the question from the previous context. Then, return the final answer in the following format: {formatter_desc.get('format', "Provide short and concise answer, without explaination or additional information")}",
+            "context": formatter_desc.get('context', ['user query']),
             "agent_collaboration": "SpecificFormat"
         }
         
-        thinking, answer = await formatter_agent(formatter_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await formatter_agent(formatter_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "answer": answer
@@ -549,16 +549,16 @@ class AgentSystem():
         
     async def aggregate(self, subtask_id, aggregate_desc):
         print(self.node_model)
-        aggregate_agent = LLMAgentBase(['thinking', 'answer'], "Aggregate Agent", model=self.node_model, temperature=aggregate_desc['temperature'])
+        aggregate_agent = LLMAgentBase(['thinking', 'answer'], "Aggregate Agent", model=self.node_model, temperature=aggregate_desc.get('temperature', 0.0))
        
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": aggregate_desc['instruction'] + f"\nCarefully evaluate these solutions and identify the answer that appears most frequently across them. This consistency in answers is crucial for determining the most reliable solution",
-            "context": aggregate_desc['context'],
+            "instruction": aggregate_desc.get('instruction', "Please do step-by-step") + f"\nCarefully evaluate these solutions and identify the answer that appears most frequently across them. This consistency in answers is crucial for determining the most reliable solution",
+            "context": aggregate_desc.get('context', ['user query']),
             "agent_collaboration": "AggregateAgent"
         }
         
-        thinking, answer = await aggregate_agent(aggregate_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await aggregate_agent(aggregate_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "answer": answer
@@ -572,21 +572,21 @@ class AgentSystem():
         }
         
     async def code_generate(self, subtask_id, code_generate_desc):
-        
-        code_generate_agent = LLMAgentBase(['thinking', 'code'], "Code Generate Agent", model=self.node_model, temperature=code_generate_desc['temperature'])
+    
+        code_generate_agent = LLMAgentBase(['thinking', 'code'], "Code Generate Agent", model=self.node_model, temperature=code_generate_desc.get('temperature', 0.0))
        
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": code_generate_desc['instruction'] + f"""
+            "instruction": code_generate_desc.get('instruction', "Please do step-by-step") + f"""
 \nWrite complete, self-contained code based on a given mathematical problem and output the answer. The code should include all necessary imports and dependencies, and be ready to run without additional setup or environment configuration.
-The entry point of the function: {code_generate_desc['entry_point']}.
+The entry point of the function: {code_generate_desc.get('entry_point', "solve")}.
 Please ensure your code is efficient, well-commented, and follows Python best practices. The output should be limited to basic data types such as strings, integers, and floats. It is prohibited to transmit images or other file formats. The code output is intended for a text-based language model.
                 """,
-            "context": code_generate_desc['context'],
+            "context": code_generate_desc.get('context', ['user query']),
             "agent_collaboration": "CodeGenerate"
         }
         
-        thinking, code = await code_generate_agent(code_generate_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, code = await code_generate_agent(code_generate_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = { 
             "thinking": thinking,
             "code": code
@@ -619,9 +619,6 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
         output = None
         feedback = ""
         
-        if not 'entry_point' in programmer_desc:
-            programmer_desc['entry_point'] = "solve"
-        
         for i in range(2):
             results = await self.code_generate(subtask_id, programmer_desc)
             code = results.get("answer")
@@ -643,7 +640,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
                     "subtask_desc": results['subtask_desc']
                 }
             print("Code: ", code)
-            status, output = await self.exec_code(code, programmer_desc['entry_point'])
+            status, output = await self.exec_code(code, programmer_desc.get('entry_point', "solve"))
             if status == "Success":
                 results['subtask_desc']['exec_status'] = status
                 results['subtask_desc']['exec_result'] = output
@@ -664,7 +661,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
                     f"Code: {code}\n\nStatus: {status}, {output}"
                 )
                 
-                programmer_desc['instruction'] = programmer_desc['instruction'] + feedback
+                programmer_desc['instruction'] = programmer_desc.get('instruction', "Please do step-by-step") + feedback
 
             # Force garbage collection after each iteration
             import gc
@@ -685,15 +682,15 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
         }
     
     # async def review(self, subtask_id, review_desc):
-    #     review_agent = LLMAgentBase(['feedback', 'correct'], "Review Agent", model=self.node_model, temperature=review_desc['temperature'])
+    #     review_agent = LLMAgentBase(['feedback', 'correct'], "Review Agent", model=self.node_model, temperature=review_desc.get('temperature', 0.0))
     #     subtask_desc = {
     #         "subtask_id": subtask_id,
-    #         "instruction": review_desc['instruction'] + "\nUse critical thinking (questioning) to review the solution's correctness and provide a review result in boolean forma. If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness. Return the results in JSON format, include `feedback` and `correct` fields.",
-    #         "context": review_desc['context'],
+    #         "instruction": review_desc.get('instruction', "Please do step-by-step") + "\nUse critical thinking (questioning) to review the solution's correctness and provide a review result in boolean forma. If you are more than 95 percent confident that the final answer is incorrect, please return False and give a feedback for the error. Otherwise, please return True and give a explanation for the correctness. Return the results in JSON format, include `feedback` and `correct` fields.",
+    #         "context": review_desc.get('context', ['user query']),
     #         "agent_collaboration": "Review"
     #     }
         
-    #     feedback, correct = await review_agent(review_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+    #     feedback, correct = await review_agent(review_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
     #     subtask_desc['response'] = {
     #         "feedback": feedback,
     #         "correct": correct
@@ -706,15 +703,15 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
     #         'subtask_desc': subtask_desc
     #     }
     async def review(self, subtask_id, review_desc):
-        review_agent = LLMAgentBase(['thinking', 'answer'], "Revise Agent", model=self.node_model, temperature=review_desc['temperature'])
+        review_agent = LLMAgentBase(['thinking', 'answer'], "Revise Agent", model=self.node_model, temperature=review_desc.get('temperature', 0.0))
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": review_desc['instruction'] + "\nProvided solution which is just reviewed as incorrect, your task is to revise the solution to solve the question. Ensure the revised solutions is clear and correct",
-            "context": review_desc['context'],
+            "instruction": review_desc.get('instruction', "Please do step-by-step") + "\nProvided solution which is just reviewed as incorrect, your task is to revise the solution to solve the question. Ensure the revised solutions is clear and correct",
+            "context": review_desc.get('context', ['user query']),
             "agent_collaboration": "Review"
         }
         
-        thinking, answer = await review_agent(review_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, answer = await review_agent(review_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "answer": answer
@@ -728,15 +725,15 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
         }
         
     async def revise(self, subtask_id, revise_desc):
-        revise_agent = LLMAgentBase(['thinking', 'revised_solution'], "Revise Agent", model=self.node_model, temperature=revise_desc['temperature'])
+        revise_agent = LLMAgentBase(['thinking', 'revised_solution'], "Revise Agent", model=self.node_model, temperature=revise_desc.get('temperature', 0.0))
         subtask_desc = {
             "subtask_id": subtask_id,
-            "instruction": revise_desc['instruction'] + "\nProvided solution which is just reviewed as incorrect, your task is to revise the solution to solve the question. Ensure the revised solutions is clear and correct",
-            "context": revise_desc['context'],
+            "instruction": revise_desc.get('instruction', "Please do step-by-step") + "\nProvided solution which is just reviewed as incorrect, your task is to revise the solution to solve the question. Ensure the revised solutions is clear and correct",
+            "context": revise_desc.get('context', ['user query']),
             "agent_collaboration": "Revise"
         }
         
-        thinking, revised_solution = await revise_agent(revise_desc['input'], subtask_desc['instruction'], is_sub_task=True)
+        thinking, revised_solution = await revise_agent(revise_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
         subtask_desc['response'] = {
             "thinking": thinking,
             "revised_solution": revised_solution
@@ -1446,7 +1443,7 @@ Ensure the response is a well-formed JSON object and includes all required field
     3.1. Implement agent interaction structures such as Chain-of-Thought (CoT), Self-Consistency CoT (SC-CoT), Reflexion, or Debate, selecting the most appropriate pattern for each subtask based on its complexity and the query’s requirements.
     3.2. Retain variables like self.node_model, self.debate_role, self.max_sc, and self.max_round with their correct roles.
     3.3. Refer to the provided interaction pattern examples for implementation guidance. 
-    3.4. You can only use `self.cot`, `self.sc_cot`, `self.debate` and `self.reflexion`.
+    3.4. Use correct format of implementation of each interaction patterns.
 [Interaction Pattern] {interaction_pattern}
 
 3. Apply the feedback from previous reasoning process to enhance reasoning process of generated workflow.
@@ -1750,14 +1747,14 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     # declare results path
     result_path = expr_name + f"{args.dataset}"
     expr_name = expr_name + f"{args.dataset}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_6_7_2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_6_7_3/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     judge_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_judge")
     os.makedirs(os.path.dirname(judge_path), exist_ok=True)
     global_judge_path = get_global('global_judge_path')
     global_judge_path[str(example_id)] = judge_path
-    final_results_path = f'results/{args.dataset}/abstract_workflow_dev_6_7_2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/abstract_workflow_dev_6_7_3/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1786,7 +1783,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     set_global("global_max_workers", max_workers)
     
     # load mas chains list from offline abstract workflows
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
+    with open('merged_workflow_analysis_v3_test/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
         default_mas_chain = json.load(f)
         
     # config task_queue with specific datasets
@@ -1821,11 +1818,11 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     embeddings = await abstractor.embedding_subtask(merged_subtasks)
     
     # get kmeans clustering object from former abstraction
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/kmeans.pkl', 'rb') as f:
+    with open('merged_workflow_analysis_v3_test/kmeans.pkl', 'rb') as f:
         kmeans = pkl.load(f)
     
     # get pca object from former abstraction, which fit with available data
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/pca.pkl', 'rb') as f:
+    with open('merged_workflow_analysis_v3_test/pca.pkl', 'rb') as f:
         pca = pkl.load(f)
         
     normalized_embeddings = normalize(embeddings, norm="l2")
@@ -1972,7 +1969,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     collaboration_dependencies = {subtask['subtask_id']: {'agent_collaboration': subtask['agent_collaboration'], 'dependencies': subtask['dependencies']} for subtask in merge_filtered_aw if 'dependencies' in subtask}
     
     # decompose query into multiple subtasks
-    task_decomposition = await specific_task_decomposition(meta_model, task_queue_tmp[0].content, output_description, merge_filtered_aw, collaboration_dependencies)
+    task_decomposition = await specific_task_decomposition("o4-mini", task_queue_tmp[0].content, output_description, merge_filtered_aw, collaboration_dependencies)
     print("\n============= Task Decomposition: =============\n", task_decomposition['task_decomposition'])
     stage_desc = str(merge_filtered_aw).replace("subtask", "stage")
     

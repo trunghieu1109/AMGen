@@ -319,7 +319,7 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3/abstracted_workflow/abstract_workflow_description.json'
+    aw_desc_path = 'merged_workflow_analysis_v3_test/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
@@ -375,7 +375,7 @@ async def run_main():
         dataset = load_dataset("simplescaling/aime24_nofigures")
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
-        examples = [examples[1]] 
+        examples = [examples[1]]
         test_size = 0.6
         
         val_set, test_set = split_array(examples, test_size)
@@ -448,7 +448,7 @@ async def run_main():
         questions = load_questions_gsm8k('dataset/hotpotqa_validate.csv', seed=0)
 
         examples = [{'problem': questions[i].question, 'answer': questions[i].answer} for i in range(len(questions))]
-        examples = examples[:20]
+        examples = examples[:10]
         # examples = [examples[0]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
@@ -508,7 +508,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'abstract_base_methods_dev_6_7_2/question/meta_agent/'
+        args.expr_name = f'abstract_base_methods_dev_6_7_3/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 

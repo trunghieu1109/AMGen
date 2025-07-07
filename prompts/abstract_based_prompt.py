@@ -8,7 +8,7 @@ Chain-of-Thought:
         'instruction': cot_instruction1, 
         'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query"]
+        'context': ["user query", ....]
     }}
     results1 = await self.cot(
         subtask_id="subtask_1", 
@@ -113,7 +113,7 @@ AnswerGenerate
         'instruction': cot_agent_instruction1, 
         'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query"]
+        'context': ["user query", ....]
     }}
     results1 = await self.answer_generate(
         subtask_id="subtask_1", 
@@ -132,7 +132,7 @@ SpecificFormat
         'instruction': formatter_instruction1, 
         'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query"],
+        'context': ["user query", ....],
         'format': 'short and concise, without explaination'
     }}
     results1 = await self.specific_format(
@@ -171,7 +171,7 @@ CodeGenerate
         'instruction': code_generate_instruction1, 
         'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query"],
+        'context': ["user query", ....],
         'entry_point': "entry_point that is suitable for this subtask"
     }}
     results1 = await self.code_generate(
@@ -191,7 +191,7 @@ ProgrammerAgent
         'instruction': programmer_instruction1, 
         'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query"],
+        'context': ["user query", ....],
         'entry_point': "entry_point that is suitable for this subtask"
     }}
     results1 = await self.programmer(

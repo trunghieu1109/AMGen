@@ -3,59 +3,69 @@ async def forward_1(self, taskInfo):
     sub_tasks = []
     agents = []
     logs = []
-    artists = ["Jonny Craig", "Pete Doherty"]
-    bands_dict = {}
-    # Control Flow 0: start sequential
-    # Control Flow 1: start loop over artists
-    for idx, artist in enumerate(artists, start=1):
-        cot_instruction = f"Subtask {idx}: Identify and list all bands {artist} has been a member of"
+    individuals = [
+        {"name": "Jonny Craig", "subtask_id": "subtask_1"},
+        {"name": "Pete Doherty", "subtask_id": "subtask_2"}
+    ]
+    band_counts = {}
+    for person in individuals:
+        cot_instruction = f"Sub-task {person['subtask_id']}: Identify {person['name']} and analyze the number of bands they have been a member of with context from taskInfo"
         cot_agent_desc = {
             'instruction': cot_instruction,
-            'input': [taskInfo, artist],
+            'input': [taskInfo],
             'temperature': 0.0,
-            'context': ["user query", f"Identify bands of {artist}"]
+            'context': ["user query"]
         }
-        results = await self.cot(
-            subtask_id=f"subtask_{idx}",
+        results_cot = await self.cot(
+            subtask_id=person['subtask_id'],
             cot_agent_desc=cot_agent_desc
         )
-        agents.append(f"CoT agent {results['cot_agent'].id}, identifying bands of {artist}, thinking: {results['thinking'].content}; answer: {results['answer'].content}")
-        sub_tasks.append(f"Subtask {idx} output: thinking - {results['thinking'].content}; answer - {results['answer'].content}")
-        logs.append(results['subtask_desc'])
-        bands_dict[artist] = results['answer'].content
-    # Control Flow 2: end loop
-    # Stage 1: Compare number of bands and validate
-    # Subtask 3: Aggregate comparison
-    compare_instruction = "Subtask 3: Compare the number of bands Jonny Craig and Pete Doherty have been members of and determine who has been in more bands"
-    compare_input = [taskInfo, bands_dict["Jonny Craig"], bands_dict["Pete Doherty"]]
+        agents.append(f"CoT agent {results_cot['cot_agent'].id}, identifying {person['name']}, thinking: {results_cot['thinking'].content}; answer: {results_cot['answer'].content}")
+        sub_tasks.append(f"Sub-task {person['subtask_id']} output: thinking - {results_cot['thinking'].content}; answer - {results_cot['answer'].content}")
+        logs.append(results_cot['subtask_desc'])
+        answer_generate_instruction = f"Sub-task {int(person['subtask_id'][-1]) + 2}: Generate candidate outputs by determining the number of bands {person['name']} has been a member of"
+        answer_generate_desc = {
+            'instruction': answer_generate_instruction,
+            'input': [taskInfo, results_cot['thinking'], results_cot['answer']],
+            'temperature': 0.0,
+            'context': ["user query"]
+        }
+        subtask_answer_id = f"subtask_{int(person['subtask_id'][-1]) + 2}"
+        results_answer = await self.answer_generate(
+            subtask_id=subtask_answer_id,
+            cot_agent_desc=answer_generate_desc
+        )
+        agents.append(f"CoT-AnswerGenerate agent {results_answer['cot_agent'].id}, generating candidate outputs for {person['name']}, thinking: {results_answer['thinking'].content}; answer: {results_answer['answer'].content}")
+        sub_tasks.append(f"Sub-task {subtask_answer_id} output: thinking - {results_answer['thinking'].content}; answer - {results_answer['answer'].content}")
+        logs.append(results_answer['subtask_desc'])
+        band_counts[person['name']] = results_answer['answer'].content
+    aggregate_instruction = "Sub-task 5: Consolidate the band membership counts of Jonny Craig and Pete Doherty by comparing their numbers to identify who has been a member of more bands"
     aggregate_desc = {
-        'instruction': compare_instruction,
-        'input': compare_input,
+        'instruction': aggregate_instruction,
+        'input': [taskInfo, band_counts['Jonny Craig'], band_counts['Pete Doherty']],
         'temperature': 0.0,
-        'context': ["user query", "bands of Jonny Craig", "bands of Pete Doherty"]
+        'context': ["user query", "band counts of Jonny Craig and Pete Doherty"]
     }
-    results3 = await self.aggregate(
-        subtask_id="subtask_3",
+    results_aggregate = await self.aggregate(
+        subtask_id="subtask_5",
         aggregate_desc=aggregate_desc
     )
-    agents.append(f"Aggregate agent {results3['aggregate_agent'].id}, comparing band counts, thinking: {results3['thinking'].content}; answer: {results3['answer'].content}")
-    sub_tasks.append(f"Subtask 3 output: thinking - {results3['thinking'].content}; answer - {results3['answer'].content}")
-    logs.append(results3['subtask_desc'])
-    # Subtask 4: Review validation
-    review_instruction = "Subtask 4: Validate the comparison result for accuracy and completeness"
-    review_input = [taskInfo, results3['thinking'], results3['answer']]
+    agents.append(f"Aggregate agent {results_aggregate['aggregate_agent'].id}, consolidating band counts, thinking: {results_aggregate['thinking'].content}; answer: {results_aggregate['answer'].content}")
+    sub_tasks.append(f"Sub-task 5 output: thinking - {results_aggregate['thinking'].content}; answer - {results_aggregate['answer'].content}")
+    logs.append(results_aggregate['subtask_desc'])
+    review_instruction = "Sub-task 6: Validate the consolidated comparison output to ensure the accuracy and correctness of the result"
     review_desc = {
         'instruction': review_instruction,
-        'input': review_input,
+        'input': [taskInfo, results_aggregate['thinking'], results_aggregate['answer']],
         'temperature': 0.0,
-        'context': ["user query", "thinking of subtask 3", "answer of subtask 3"]
+        'context': ["user query", "thinking of subtask 5", "answer of subtask 5"]
     }
-    results4 = await self.review(
-        subtask_id="subtask_4",
+    results_review = await self.review(
+        subtask_id="subtask_6",
         review_desc=review_desc
     )
-    agents.append(f"Review agent {results4['review_agent'].id}, reviewing comparison result, feedback: {results4['thinking'].content}; correct: {results4['answer'].content}")
-    sub_tasks.append(f"Subtask 4 output: feedback - {results4['thinking'].content}; correct - {results4['answer'].content}")
-    logs.append(results4['subtask_desc'])
-    final_answer = await self.make_final_answer(results4['thinking'], results4['answer'], sub_tasks, agents)
+    agents.append(f"Review agent {results_review['review_agent'].id}, reviewing consolidated output, feedback: {results_review['thinking'].content}; correct: {results_review['answer'].content}")
+    sub_tasks.append(f"Sub-task 6 output: feedback - {results_review['thinking'].content}; correct - {results_review['answer'].content}")
+    logs.append(results_review['subtask_desc'])
+    final_answer = await self.make_final_answer(results_review['thinking'], results_review['answer'], sub_tasks, agents)
     return final_answer, logs
