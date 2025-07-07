@@ -22,6 +22,7 @@ global global_shorten_context
 global global_format_choice
 global global_merge_context
 global global_COST_TOTAL
+global global_COST_EXECUTION
 global global_no_decompose
 global global_no_meta_reward
 
@@ -52,6 +53,7 @@ global_vars = [
     "global_merge_context",
     "global_format_choice",
     "global_COST_TOTAL",
+    "global_COST_EXECUTION",
     "global_COST_TOTAL_per_query",
     "global_no_decompose",
     "global_no_meta_reward"
@@ -79,3 +81,6 @@ def get_global(name):
         
 def add_to_global_cost(value):
     set_global("global_COST_TOTAL", get_global("global_COST_TOTAL") + value)
+    
+def add_to_global_cost_execution(value):
+    set_global("global_COST_EXECUTION", get_global("global_COST_EXECUTION") + value)

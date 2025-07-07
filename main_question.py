@@ -3,7 +3,7 @@ from datasets import load_dataset
 import pandas as pd
 from common import HTML_JINJA, SingleEvalResult
 import search
-import apply_abstract_workflow_v3
+import apply_abstract_workflow
 import re
 import os
 import common
@@ -152,7 +152,7 @@ class DataScorer:
         else:
             raise NotImplementedError
 
-    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, instance_id, code_snippet):
+    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, response_path, response_dict, instance_id, code_snippet):
 
         if 'swe_bench' in self.dataset:
             extracted_answer = response_text.split('\n\nAnswer:', 1)[-1].strip()
@@ -310,6 +310,7 @@ async def run_main():
     set_global("global_shorten_context", args.shorten_context)
     set_global("global_merge_context", args.merge_context)
     set_global("global_COST_TOTAL", 0.0)
+    set_global("global_COST_EXECUTION", 0.0)
     set_global("global_no_decompose", args.no_decompose)
     set_global("global_no_meta_reward", args.no_meta_reward)
 
@@ -319,7 +320,7 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'merged_workflow_analysis_v3_test/abstracted_workflow/abstract_workflow_description.json'
+    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
@@ -375,7 +376,8 @@ async def run_main():
         dataset = load_dataset("simplescaling/aime24_nofigures")
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
-        examples = [examples[1]]
+        # examples = [examples[1]]
+        examples = examples[:5]
         test_size = 0.6
         
         val_set, test_set = split_array(examples, test_size)
@@ -475,7 +477,7 @@ async def run_main():
 
         cot_instruction = "Please think step by step and then solve the task."
         # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
-        output_description = "If the overall question is asked for a multiple-choice result, Return ONLY the alphabet choice, A) or B) or C) or D); If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete."
+        output_description = "Return ONLY the alphabet choice, A) or B) or C) or D)."
         # need to consider sub-task output as well (no fixed form for sub-tasks)
         debate_role = ['Biology Expert', 'Physics Expert', 'Chemistry Expert', 'Science Generalist']
 
@@ -483,7 +485,7 @@ async def run_main():
         answers = [question.correct_index for question in questions]
 
         examples = [{'problem': questions[i], 'answer': answers[i]} for i in range(len(questions))]
-        # examples = examples[:5]
+        # examples = examples[:170]
         # examples = [examples[8]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
@@ -508,7 +510,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'abstract_base_methods_dev_6_7_3/question/meta_agent/'
+        args.expr_name = f'abstract_base_methods_dev_test_specific_prompt/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
@@ -538,18 +540,19 @@ async def run_main():
         total_time = 0
         save_path = ""
         retries = 0
-        while retries < 1:
-            score, total_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+        while retries < 2:
+            score, total_time, total_execution_time, save_path = await apply_abstract_workflow.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
             if score > -1:
                 break
             retries += 1
-        # score, total_time, save_path = await apply_abstract_workflow_v3.test_operator(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "cot")
+        # score, total_time, save_path = await apply_abstract_workflow.test_operator(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "cot")
         save_path_ = save_path
         final_results[str(example_id)] = {
             'score': score,
-            'total_time': total_time
+            'total_time': total_time,
+            'total_execution_time': total_execution_time
         }
-        # await apply_abstract_workflow_v3.test_mas_zero_workflow(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, converted_mas_zero_workflow)
+        # await apply_abstract_workflow.test_mas_zero_workflow(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, converted_mas_zero_workflow)
     
     start_time = time.time()
     
@@ -582,21 +585,31 @@ async def run_main():
     total_accuracy = 0
     total_time = 0
     total_cost = get_global("global_COST_TOTAL")
+    total_execution_cost = get_global("global_COST_EXECUTION")
+    total_execution_time = 0
     for k, v in final_results.items():
         total_accuracy += v['score']
         total_time += v['total_time']
+        total_execution_time += v['total_execution_time']
     
     final_results['result'] = {
         'avg_accuracy': total_accuracy / len(examples) * 100,
         'avg_time': total_time / len(examples),
         'avg_cost': total_cost / len(examples),
+        'avg_execution_cost': total_execution_cost / len(examples),
+        'avg_execution_time': total_execution_time / len(examples),
     }
     
     print("Total time: ", total_time)
+    print("Total execution time: ", total_execution_time)
     print("Total cost: ", total_cost)
+    print("Total execution cost: ", total_execution_cost)
     print("Total acc: ", total_accuracy)
     
     print("Final results: ", final_results['result'] )
+    
+    print("Time ratio: ", final_results['result']['avg_execution_time'] / final_results['result']['avg_time'])
+    print("Execution Cost ratio: ", final_results['result']['avg_execution_cost'] / final_results['result']['avg_cost'])
     
     end_time = time.time()
     print("Total time: ", end_time - start_time)

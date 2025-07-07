@@ -64,7 +64,7 @@ from sampler.together_completion_sampler import ChatCompletionSampler as ToChatC
 from sampler.vllm_completion_sampler import ChatCompletionSampler as VllmChatCompletionSampler
 
 import copy
-from shared_vars import set_global, get_global, add_to_global_cost
+from shared_vars import set_global, get_global, add_to_global_cost, add_to_global_cost_execution
 
 
 Message = dict[str, Any]  # keys role, content
@@ -251,7 +251,8 @@ async def get_json_response_from_gpt(
         msg,
         model,
         output_fields,
-        tempreture
+        tempreture,
+        is_execution=False
 ):
     # We do not do anything with system prompt
 
@@ -284,6 +285,8 @@ async def get_json_response_from_gpt(
             # if set(json_dict.keys()) == {'thinking', 'answer'} or set(json_dict.keys()) == {'feedback', 'correct'}:
                 break
             else:
+                if keys.issuperset(output_fields):
+                    break
                 print(f'require output_fields: {output_fields}, json_dict: {keys}; is_valid_answer: {is_valid_answer}')
 
         except Exception as e:
@@ -297,6 +300,9 @@ async def get_json_response_from_gpt(
     + completion_tokens * model_price_map[model]['completion']
     ) / 1000
     add_to_global_cost(cost)
+    
+    if is_execution:
+        add_to_global_cost_execution(cost)
     # print('COST_TOTAL: ',COST_TOTAL)
 
     return json_dict, cost

@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 
-input_file = "results/workflow_search/drop/abstract_workflow_dev_6_7_2/gpt-4.1-mini_gpt-4o-mini-2024-07-18_oracle.results"
+input_file = "results/workflow_search/gpqa_diamond/abstract_workflow_dev_test_specific_prompt/gpt-4.1-mini_gpt-4o_chatgpt_oracle.results"
 output_file = "merged_output.txt"
 
 # Dictionary để lưu max acc_oracle_verifier_list theo experiment

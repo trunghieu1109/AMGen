@@ -1,0 +1,58 @@
+[
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Identify all possible combinations of digits for the top row that form a three-digit number.",
+        "supporting_info": "The top row must consist of three digits, each ranging from 0 to 9, and must form a valid three-digit number.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Enumerate all ordered sequences of fixed length drawn from a specified input set.",
+        "subtask_name": "generate_sequence_of_values"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Identify all possible combinations of digits for the bottom row that form a three-digit number.",
+        "supporting_info": "The bottom row must consist of three digits, each ranging from 0 to 9, and must form a valid three-digit number.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Enumerate all ordered sequences of fixed length drawn from a specified input set.",
+        "subtask_name": "generate_sequence_of_values"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Find combinations where the sum of the two numbers formed by reading left to right is 999.",
+        "supporting_info": "The outputs from subtask 1 and subtask 2 are required to check the left-to-right sum condition.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Select all pairs of ordered sequences whose combined binary aggregation equals a specified value.",
+        "subtask_name": "identify_compatible_pairs"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Find combinations where the sum of the three numbers formed by reading top to bottom is 99.",
+        "supporting_info": "The outputs from subtask 1 and subtask 2 are required to check the top-to-bottom sum condition.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Select all pairs of ordered sequences where an element-wise aggregation across positions, followed by a cumulative aggregation, equals a specified value.",
+        "subtask_name": "find_matching_configurations"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Identify the common combinations that satisfy both the left-to-right and top-to-bottom sum conditions.",
+        "supporting_info": "The outputs from subtask 3 and subtask 4 are needed to find common valid combinations.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "abstracted_objective": "Identify the common configurations that appear in two filtered sets, each defined by a separate aggregation condition.",
+        "subtask_name": "find_common_configurations"
+    }
+]

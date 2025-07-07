@@ -244,3 +244,53 @@ ReviewAgent
     logs.append(results2['subtask_desc'])
 ```
 """
+
+ABSTRACTED_WORKFLOW_TEMPLATE = '''
+async def forward(self, taskInfo):
+    print("Task Requirement: ", taskInfo)
+    # Initialize lists to keep track of sub-tasks and agents
+    logs =  []
+    
+    """
+    <This section is just to describe content in one stage. Do not include them in generated code>
+    [Stage 1: <Fill the stage 1's stage_name>]
+    [Objective] 
+    - <Describe in detail the abstracted objective of stage 1.>
+    - <Describe in detail the abstracted objective of stage 1.>
+    """
+    # --------------------------------------------------------------------------------------------------------------
+    
+    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
+    
+    # Sub-task 1: Analyze first expression/data component with self-consistency
+        # Sub-task 1: Analyze first expression/data component with self-consistency
+    cot_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    cot_agent_desc = {{
+        'instruction': cot_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"]
+    }}
+    results1, log1 = await self.cot(
+        subtask_id="subtask_1", 
+        cot_agent_desc=cot_agent_desc
+    )
+    logs.append(log1)
+
+    <Continue with next stages>
+    
+    """
+    <This section is just to describe content in one stage. Do not include them in generated code>
+    [Stage n: <Fill the stage n's stage_name>]
+    [Objective] 
+    - <Describe in detail the abstracted objective of stage n.>
+    - <Describe in detail the abstracted objective of stage n.>
+    """
+    
+    # --------------------------------------------------------------------------------------------------------------
+    
+    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
+    
+    final_answer = await self.make_final_answer(resultsn['thinking'], resultsn['answer'], None, None)
+    return final_answer, logs
+'''

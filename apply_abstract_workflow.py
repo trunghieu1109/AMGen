@@ -44,7 +44,7 @@ from sklearn.metrics import silhouette_score, pairwise_distances
 from sklearn.preprocessing import StandardScaler, normalize
 from Levenshtein import distance
 import pickle as pkl
-from abstract_v3 import MASAbstraction, levenshtein_array_to_array
+from abstract_v2 import MASAbstraction, levenshtein_array_to_array
 import asyncio
 
 client = openai.OpenAI()
@@ -98,8 +98,6 @@ async def forward(self, taskInfo):
         "answer": answer1
     }}
     logs.append(subtask_desc1)
-    
-    print("Subtask 1 answer: ", sub_tasks[-1])
     
     # --------------------------------------------------------------------------------------------------------------
     
@@ -282,7 +280,7 @@ class LLMAgentBase():
             await _pack_message(content=prompt, role="user")]
         # use system prompt
 
-        response_json ,_ = await get_json_response_from_gpt(prompt, self.model, self.output_fields, self.temperature)
+        response_json ,_ = await get_json_response_from_gpt(prompt, self.model, self.output_fields, self.temperature, is_execution=True)
 
         output_infos = []
         for key, value in response_json.items():
@@ -329,7 +327,7 @@ async def evaluate_forward_fn(args, example_id, forward_str):
     # modified from https://github.com/luchris429/DiscoPOP/blob/main/scripts/launch_evo.py
 
 
-    print('forward_str: ',forward_str)
+    print('forward_str: ', forward_str)
 
     # if you want debug, remove the section so that you can see the detailed error line
     namespace = {}
@@ -666,9 +664,12 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
 
-    # if example_id < 150:
-    #     return 0, 0, ""
+    if example_id < 150:
+        return 0, 0, 0, ""
+    
     start_time_ = time.time()
+    total_execution_time = 0
+    total_execution_cost = 0
     questions = get_global("global_questions")
     questions = questions[str(example_id)]
     global_node_model = get_global("global_node_model")
@@ -676,12 +677,12 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     print(f"problem length: {len(questions)}")
     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
         default_mas_chain = json.load(f)
     result_path = expr_name + f"{args.dataset}"
     expr_name = expr_name + f"{args.dataset}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
 
-    if args.dataset == 'gpqa_diamond':
+    if 'gpqa_diamond' in args.dataset:
         task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
     else:
         task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
@@ -696,8 +697,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_refined/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_refined/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_test_specific_prompt/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_test_specific_prompt/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -938,10 +939,10 @@ Return your result in valid JSON format with the following structure. Each eleme
     
     embeddings = await abstractor.embedding_subtask(merged_subtasks)
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/kmeans.pkl', 'rb') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/kmeans.pkl', 'rb') as f:
         kmeans = pkl.load(f)
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/pca.pkl', 'rb') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/pca.pkl', 'rb') as f:
         pca = pkl.load(f)
         
     normalized_embeddings = normalize(embeddings, norm="l2")
@@ -991,7 +992,7 @@ Return your result in valid JSON format with the following structure. Each eleme
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/abstract_workflow_refined/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/abstract_workflow_dev_test_specific_prompt/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1183,11 +1184,12 @@ Generate a concrete agentic workflow in Python code format, based on the Abstrac
             try:
                 next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
                 acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+                total_execution_time += total_time
             except Exception as e:
                 print("Error: ", str(e))
                 error_trace = traceback.format_exc()
                 print("Full error trace:\n", error_trace)
-                continue
+                return -1, -1, -1, ""
             
             # print("========== LOGS ===========\n", logs)
             
@@ -1439,13 +1441,15 @@ Given the evaluations from the verifier models and the query context, generate a
         "example_id": example_id,
         "score": max_score,
         "total_time": total_time,
-        "max_cost": get_global("global_COST_TOTAL")
+        "total_execution_time": total_execution_time,
+        "max_cost": get_global("global_COST_TOTAL"),
+        "max_execution_cost": get_global("global_COST_EXECUTION")
     })
     
     with open(final_results_path, "w") as f:
         json.dump(final_results, f, indent=4)
             
-    return acc_oracle_verifier_list[0], total_time, result_path
+    return acc_oracle_verifier_list[0], total_time, total_execution_time, result_path
         
 async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
 
