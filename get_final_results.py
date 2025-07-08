@@ -1,10 +1,12 @@
 import os
 import json
 
-directory = "results/workflow_search/gpqa_diamond/abstract_workflow_dev_test_specific_prompt/gpt-4.1-mini_gpt-4o-mini-2024-07-18"
+directory = "AMGen/results/workflow_search/gpqa_diamond/abstract_workflow_dev_test_specific_prompt/gpt-4.1-mini_o4-mini"
 total_score = 0
 total_time = 0
+total_execution_time = 0
 max_cost = float('-inf')
+max_execution_cost = float('-inf')
 
 cnt = 0
 
@@ -30,16 +32,20 @@ for filename in os.listdir(directory):
                 if (max_score == 1):
                     print(filepath)
                 total_time += dat.get("total_time", 0)
+                total_execution_time += dat.get("total_execution_time", 0)
                 max_cost = max(max_cost, dat.get("max_cost", float('-inf')))
+                max_execution_cost = max(max_execution_cost, dat.get("max_execution_cost", float('-inf')))
                 
             total_score += max_score
             
 print(cnt)
-for idx in range(0, 198):
-    if file_name[idx] == 0:
-        print(idx)
+# for idx in range(0, 198):
+#     if file_name[idx] == 0:
+#         print(idx)
 
 print(f"Total score: {total_score / 48 * 100}")
 print(f"Average time: {total_time / 48}")
+print(f"Average Execution time: {total_execution_time / 48}")
 print(f"Average cost: {max_cost / 48}")
+print(f"Average Execution cost: {max_execution_cost / 48}")
 print(f"Max cost: {max_cost}")
