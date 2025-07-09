@@ -1844,12 +1844,12 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     for idx, mas in enumerate(default_mas_chain):
         contain_loop = False
         contain_conditional = False
-        if 'start_conditional' in mas:
-            conditional_contain_mas.append({
-                'id': idx,
-                'mas': mas
-            })
-            contain_conditional = True
+        # if 'start_conditional' in mas:
+        #     conditional_contain_mas.append({
+        #         'id': idx,
+        #         'mas': mas
+        #     })
+        #     contain_conditional = True
         
         if 'start_loop' in mas:
             loop_contain_mas.append({

@@ -663,9 +663,6 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
-
-    if example_id < 150:
-        return 0, 0, 0, ""
     
     start_time_ = time.time()
     total_execution_time = 0
@@ -697,8 +694,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_test_specific_prompt/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_dev_test_specific_prompt/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_test_generation_model_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_test_generation_model_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -992,7 +989,7 @@ Return your result in valid JSON format with the following structure. Each eleme
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/abstract_workflow_dev_test_specific_prompt/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/abstract_workflow_test_generation_model_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1091,11 +1088,11 @@ Return in JSON format, contains 'task_decomposition'.
             ]
 
             task_decomposition ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['task_decomposition'], 0.0)
-            for k, v in task_decomposition['task_decomposition'].items():
-                for ks, vs in v.items():
-                    vs['objective'] = vs['objective'].replace("{", "")
-                    vs['objective'] = vs['objective'].replace("}", "")
-                    vs['objective'] = vs['objective'].replace("'", "")
+            # for k, v in task_decomposition['task_decomposition'].items():
+            #     for ks, vs in v.items():
+            #         vs['objective'] = vs['objective'].replace("{", "")
+            #         vs['objective'] = vs['objective'].replace("}", "")
+            #         vs['objective'] = vs['objective'].replace("'", "")
             print("\n============= Task Decomposition: =============\n", task_decomposition['task_decomposition'])
             stage_desc = str(aw).replace("subtask", "stage")
             # generate new workflow that concretized for this query

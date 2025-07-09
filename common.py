@@ -21,7 +21,6 @@ from sampler.chat_completion_sampler import (
     OPENAI_SYSTEM_MESSAGE_CHATGPT,
     ChatCompletionSampler,
 )
-from human_eval.execution import check_correctness  # , unsafe_execute
 import re
 import argparse
 import copy
@@ -285,7 +284,7 @@ async def get_json_response_from_gpt(
             # if set(json_dict.keys()) == {'thinking', 'answer'} or set(json_dict.keys()) == {'feedback', 'correct'}:
                 break
             else:
-                if keys.issuperset(output_fields):
+                if set(keys).issuperset(set(output_fields)):
                     break
                 print(f'require output_fields: {output_fields}, json_dict: {keys}; is_valid_answer: {is_valid_answer}')
 

@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "AMGen/results/workflow_search/gpqa_diamond/abstract_workflow_dev_test_specific_prompt/gpt-4.1-mini_o4-mini"
+directory = "results/workflow_search/gpqa_diamond/abstract_workflow_test_generation_model_v2/o4-mini_gpt-4o-mini-2024-07-18"
 total_score = 0
 total_time = 0
 total_execution_time = 0
@@ -28,9 +28,11 @@ for filename in os.listdir(directory):
             data = json.load(f)
             max_score = 0
             for dat in data:
+                if dat.get("score", 0) == 0:
+                    print(dat.get("example_id", 0))
                 max_score = max(dat.get("score", 0), max_score)
-                if (max_score == 1):
-                    print(filepath)
+                # if (max_score == 1):
+                #     print(filepath)
                 total_time += dat.get("total_time", 0)
                 total_execution_time += dat.get("total_execution_time", 0)
                 max_cost = max(max_cost, dat.get("max_cost", float('-inf')))
