@@ -8,7 +8,6 @@
 <div align="left">
   <h1 id="getting-started">✨ Getting Started</h1>
   <hr style="height: 3px; background: linear-gradient(90deg, #EF8E8D, #5755A3); border: none; border-radius: 3px;">
-</div>
 
 ## 🎄 Environment Setup
 ```bash
@@ -44,3 +43,4 @@ export OPENAI_API_KEY={YourKey}
 python main_question.py  --dataset workflow_search/gpqa_diamond --option plan --meta_model gpt-4o_chatgpt --node_model gpt-4o_chatgpt --verifier_model gpt-4o_chatgpt --blocks COT COT_SC Reflexion LLM_debate --use_oracle_verifier --defer_verifier
 
 ```
+</div>
