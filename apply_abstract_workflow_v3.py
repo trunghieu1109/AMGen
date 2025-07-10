@@ -1774,8 +1774,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     }
     
     verifier_hub = [
-        'o4-mini',
-        'gpt-4o_chatgpt',
+        # 'o4-mini',
+        # 'gpt-4o_chatgpt',
         'gpt-4.1-mini'
     ]
 
@@ -1910,6 +1910,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     # choose the most similar sequential only mas
     filtered_conditional_contain_workflow = await choose_the_most_similar_mas(mas_chain, conditional_contain_mas, abstract_workflow)
     
+    print("\n========= Filtered Sequential Workflow =========\n", filtered_sequential_only_workflow[0]['flow'])
+    print("\n========= Filtered Loop Workflow =========\n", filtered_loop_contain_workflow[0]['flow'])
+    
     task_content = task_queue[0].content
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
     
@@ -1925,6 +1928,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     global_n = get_global("global_n")
     global_n = global_n[str(example_id)]
     global_ns.append(global_n)
+    
+    # return -1, -1, ""
     
     '''
     ================================================== CONCRETIZE WORKFLOW ======================================================
@@ -1971,130 +1976,131 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     # decompose query into multiple subtasks
     task_decomposition = await specific_task_decomposition("o4-mini", task_queue_tmp[0].content, output_description, merge_filtered_aw, collaboration_dependencies)
     print("\n============= Task Decomposition: =============\n", task_decomposition['task_decomposition'])
-    stage_desc = str(merge_filtered_aw).replace("subtask", "stage")
+    return -1, -1, ""
+    # stage_desc = str(merge_filtered_aw).replace("subtask", "stage")
     
-    # generate new workflow that concretized for this query
-    next_solution = await generate_concretized_workflow(meta_model, task_decomposition['task_decomposition'], output_description, interaction_pattern, stage_desc, task_queue_tmp[0])
-    print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
+    # # generate new workflow that concretized for this query
+    # next_solution = await generate_concretized_workflow(meta_model, task_decomposition['task_decomposition'], output_description, interaction_pattern, stage_desc, task_queue_tmp[0])
+    # print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
     
-    # evaluate multi agent system
-    try:
-        next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
-        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
-    except Exception as e:
-        print("Error: ", str(e))
-        error_trace = traceback.format_exc()
-        print("Full error trace:\n", error_trace)
-        return -1, -1, ""
+    # # evaluate multi agent system
+    # try:
+    #     next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
+    #     acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+    # except Exception as e:
+    #     print("Error: ", str(e))
+    #     error_trace = traceback.format_exc()
+    #     print("Full error trace:\n", error_trace)
+    #     return -1, -1, ""
     
-    # save results
-    judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response")
-    with open(judge_path, 'w') as judge_file:
-        judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
+    # # save results
+    # judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response")
+    # with open(judge_path, 'w') as judge_file:
+    #     judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
 
-    if global_use_oracle_verifier:
-        acc_list = acc_oracle_verifier_list
-    else:
-        acc_list = acc_model_verifier_list
+    # if global_use_oracle_verifier:
+    #     acc_list = acc_oracle_verifier_list
+    # else:
+    #     acc_list = acc_model_verifier_list
 
-    print(f"acc_list:", acc_list)
-    print(f"mean acc_list:", np.mean(acc_list))
+    # print(f"acc_list:", acc_list)
+    # print(f"mean acc_list:", np.mean(acc_list))
     
-    extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
+    # extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
 
-    if '[TOO_HARD]' in extracted_answer:
-        extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
+    # if '[TOO_HARD]' in extracted_answer:
+    #     extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
 
-    converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_Test New Architecture_{example_id}_first_gen_converted.py')
-    with open(converted_code_filename, "w") as fh:
-        fh.write(next_solution['code'])    
+    # converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_Test New Architecture_{example_id}_first_gen_converted.py')
+    # with open(converted_code_filename, "w") as fh:
+    #     fh.write(next_solution['code'])    
     
-    print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
+    # print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
 
-    with open(oracle_acc_result_path, "a+") as fh:
-        fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+    # with open(oracle_acc_result_path, "a+") as fh:
+    #     fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
     
-    max_score = max(max_score, acc_oracle_verifier_list[0])
-    final_results.append({
-        "example_id": example_id,
-        "score": max_score,
-        "max_cost": get_global("global_COST_TOTAL")
-    })
+    # max_score = max(max_score, acc_oracle_verifier_list[0])
+    # final_results.append({
+    #     "example_id": example_id,
+    #     "score": max_score,
+    #     "max_cost": get_global("global_COST_TOTAL")
+    # })
     
-    '''
-    ================================================== REFINE WORKFLOW ======================================================
-    '''
+    # '''
+    # ================================================== REFINE WORKFLOW ======================================================
+    # '''
     
-    # if the first concretized workflow is not optimal, try to evaluate and refine it
-    if max_score == 0:
-        subtask_desc = logs
+    # # if the first concretized workflow is not optimal, try to evaluate and refine it
+    # if max_score == 0:
+    #     subtask_desc = logs
             
-        # get evaluation from many llm experts
-        evaluation = await evaluate_workflow(task_queue_tmp[0].content, subtask_desc, current_ans, output_description, verifier_hub)
-        synthesized_evaluation = await synthesize_evaluations(verifier_model, evaluation, task_queue_tmp[0].content)
+    #     # get evaluation from many llm experts
+    #     evaluation = await evaluate_workflow(task_queue_tmp[0].content, subtask_desc, current_ans, output_description, verifier_hub)
+    #     synthesized_evaluation = await synthesize_evaluations(verifier_model, evaluation, task_queue_tmp[0].content)
 
-        # regenerate workflow
-        next_solution = await refined_workflow(meta_model, next_solution['code'], interaction_pattern, synthesized_evaluation, task_queue_tmp[0])
-        print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
+    #     # regenerate workflow
+    #     next_solution = await refined_workflow(meta_model, next_solution['code'], interaction_pattern, synthesized_evaluation, task_queue_tmp[0])
+    #     print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
         
-        # re-evaluate refined workflow
-        try:
-            next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
-            acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
-        except Exception as e:
-            print("Error: ", str(e))
-            error_trace = traceback.format_exc()
-            print("Full error trace:\n", error_trace)
+    #     # re-evaluate refined workflow
+    #     try:
+    #         next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
+    #         acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+    #     except Exception as e:
+    #         print("Error: ", str(e))
+    #         error_trace = traceback.format_exc()
+    #         print("Full error trace:\n", error_trace)
         
-        # save refined results
-        judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response_refined")
-        with open(judge_path, 'w') as judge_file:
-            judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
+    #     # save refined results
+    #     judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response_refined")
+    #     with open(judge_path, 'w') as judge_file:
+    #         judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
 
-        if global_use_oracle_verifier:
-            acc_list = acc_oracle_verifier_list
-        else:
-            acc_list = acc_model_verifier_list
+    #     if global_use_oracle_verifier:
+    #         acc_list = acc_oracle_verifier_list
+    #     else:
+    #         acc_list = acc_model_verifier_list
             
-        print(f"acc_list:", acc_list)
-        print(f"mean acc_list:", np.mean(acc_list))
+    #     print(f"acc_list:", acc_list)
+    #     print(f"mean acc_list:", np.mean(acc_list))
        
-        extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
+    #     extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
 
-        if '[TOO_HARD]' in extracted_answer:
-            extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
-        # save results
+    #     if '[TOO_HARD]' in extracted_answer:
+    #         extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
+    #     # save results
 
-        converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_Test New Architecture_{example_id}_converted_refined.py')
-        with open(converted_code_filename, "w") as fh:
-            fh.write(next_solution['code'])    
+    #     converted_code_filename = os.path.join(args.save_dir, f'{expr_name}_Test New Architecture_{example_id}_converted_refined.py')
+    #     with open(converted_code_filename, "w") as fh:
+    #         fh.write(next_solution['code'])    
 
-        print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
+    #     print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
 
-        with open(oracle_acc_result_path, "a+") as fh:
-            fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+    #     with open(oracle_acc_result_path, "a+") as fh:
+    #         fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
         
-        max_score = max(max_score, acc_oracle_verifier_list[0])
+    #     max_score = max(max_score, acc_oracle_verifier_list[0])
     
-    # logs results to console
-    print("score: ", acc_oracle_verifier_list[0])
-    print("Current answer: ", current_ans)
-    print("ground truth: ", ground_truth)
+    # # logs results to console
+    # print("score: ", acc_oracle_verifier_list[0])
+    # print("Current answer: ", current_ans)
+    # print("ground truth: ", ground_truth)
                 
-    end_time_ = time.time()
-    total_time = end_time_ - start_time_        
+    # end_time_ = time.time()
+    # total_time = end_time_ - start_time_        
     
-    final_results.append({
-        "example_id": example_id,
-        "score": max_score,
-        "total_time": total_time,
-        "max_cost": get_global("global_COST_TOTAL")
-    })
+    # final_results.append({
+    #     "example_id": example_id,
+    #     "score": max_score,
+    #     "total_time": total_time,
+    #     "max_cost": get_global("global_COST_TOTAL")
+    # })
     
-    with open(final_results_path, "w") as f:
-        json.dump(final_results, f, indent=4)
+    # with open(final_results_path, "w") as f:
+    #     json.dump(final_results, f, indent=4)
             
-    return max_score, total_time, ""
+    # return max_score, total_time, ""
     # return 0, 0, ""
         
 async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):

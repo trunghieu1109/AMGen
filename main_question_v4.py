@@ -486,7 +486,7 @@ async def run_main():
 
         examples = [{'problem': questions[i], 'answer': answers[i]} for i in range(len(questions))]
         # examples = examples[:170]
-        # examples = [examples[8]]
+        examples = [examples[0]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
         set_global("global_max_round", max_round)
@@ -540,7 +540,7 @@ async def run_main():
         total_time = 0
         save_path = ""
         retries = 0
-        while retries < 2:
+        while retries < 1:
             score, total_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
             if score > -1:
                 break
