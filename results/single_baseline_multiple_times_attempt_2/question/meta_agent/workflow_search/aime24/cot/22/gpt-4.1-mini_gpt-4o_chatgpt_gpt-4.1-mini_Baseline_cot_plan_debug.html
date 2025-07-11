@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .message {
+                padding: 8px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+            }
+            .message.user {
+                background-color: #B2DFDB;
+                color: #00695C;
+            }
+            .message.assistant {
+                background-color: #B39DDB;
+                color: #4527A0;
+            }
+            .message.system {
+                background-color: #EEEEEE;
+                color: #212121;
+            }
+            .role {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .variant {
+                color: #795548;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            pre {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <h1>Metrics</h1>
+    <table>
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td><b>Score</b></td>
+        <td>0.0</td>
+    </tr>
+    
+    <tr>
+        <td>score:std</td>
+        <td>0.0</td>
+    </tr>
+    
+    </table>
+    
+    <h1>Examples</h1>
+    
+    
+<h3>Prompt conversation</h3>
+
+
+<div class="message system">
+    <div class="role">
+    system
+    
+    </div>
+    <div class="content">
+    <pre>You are a helpful assistant.
+
+Reply EXACTLY with the following JSON format.
+{&#39;thinking&#39;: &#39;Your thinking.&#39;, &#39;answer&#39;: &#39;Your answer. If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete.&#39;}
+DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
+
+</pre>
+    </div>
+</div>
+
+
+<div class="message user">
+    <div class="role">
+    user
+    
+    </div>
+    <div class="content">
+    <pre>A list of positive integers has the following properties:
+$\bullet$ The sum of the items in the list is $30$.
+$\bullet$ The unique mode of the list is $9$.
+$\bullet$ The median of the list is a positive integer that does not appear in the list itself.
+Find the sum of the squares of all the items in the list.
+
+Please think step by step and then solve the task.</pre>
+    </div>
+</div>
+
+<h3>Sampled message</h3>
+
+<div class="message assistant">
+    <div class="role">
+    assistant
+    
+    </div>
+    <div class="content">
+    <pre>To solve this problem, we need to construct a list of positive integers that satisfies all the given properties and then find the sum of the squares of the numbers in that list.
+
+1. The sum of the items in the list is 30.
+2. The unique mode of the list is 9, which means 9 appears more frequently than any other number.
+3. The median of the list is a positive integer that does not appear in the list itself.
+
+Let&#39;s start by considering the mode. Since 9 is the unique mode, it must appear more times than any other number. Let&#39;s assume 9 appears k times.
+
+To satisfy the median condition, the list must have an odd number of elements, say 2n + 1, so that the median is the (n+1)th element when sorted. The median itself cannot be in the list, which means it should be a number like 8 or 10 if 9 is the mode.
+
+Let&#39;s try k = 3 for 9. Then we have 3 nines, and the rest of the numbers must sum to 30 - 27 = 3. We need to fill the list with numbers such that the median is not in the list.
+
+If we use 1 and 2 as the other numbers, we have:
+List: [1, 2, 9, 9, 9]
+Sum: 1 + 2 + 9 + 9 + 9 = 30
+Mode: 9 (appears 3 times, more than any other number)
+Median: 9 (middle of sorted list)
+
+This doesn&#39;t work because the median is in the list. Let&#39;s try k = 4 for 9.
+
+List: [1, 1, 9, 9, 9, 9, x]
+Sum: 1 + 1 + 9 + 9 + 9 + 9 + x = 30
+
+Solving for x: 2 + 36 + x = 30 -&gt; x = -8, which is not possible.
+
+Let&#39;s try k = 2 for 9.
+
+List: [9, 9, x, y]
+Sum: 9 + 9 + x + y = 30
+
+We need 4 numbers, so let&#39;s add 2 more numbers to make the list 2n + 1:
+List: [9, 9, x, y, z]
+Sum: 9 + 9 + x + y + z = 30
+
+We need the median to be not in the list. Let&#39;s try x = 7, y = 5, z = 0:
+List: [0, 5, 7, 9, 9]
+
+This doesn&#39;t work because 0 is not positive.
+
+Let&#39;s try another configuration:
+List: [1, 6, 8, 9, 9]
+Sum: 1 + 6 + 8 + 9 + 9 = 33
+
+This is more than 30. Let&#39;s try:
+List: [1, 5, 6, 9, 9]
+Sum: 1 + 5 + 6 + 9 + 9 = 30
+
+Mode: 9
+Median: 6 (which is in the list)
+
+Let&#39;s try:
+List: [1, 2, 8, 9, 9, 1]
+Sum: 1 + 2 + 8 + 9 + 9 + 1 = 30
+
+Mode: 9
+Median: 5 (not in the list)
+
+This works. Now, calculate the sum of squares:
+1^2 + 2^2 + 8^2 + 9^2 + 9^2 + 1^2 = 1 + 4 + 64 + 81 + 81 + 1 = 232
+
+Answer:232</pre>
+    </div>
+</div>
+<h3>Results</h3>
+<p>Correct Answer: 236</p>
+<p>Extracted Answer: 232</p>
+<p>Score: 0.0</p>
+    <hr>
+    
+    </body>
+</html>

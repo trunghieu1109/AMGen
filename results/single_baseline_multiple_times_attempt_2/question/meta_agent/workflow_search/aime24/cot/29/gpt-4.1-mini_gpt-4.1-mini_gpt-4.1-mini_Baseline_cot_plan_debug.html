@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .message {
+                padding: 8px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+            }
+            .message.user {
+                background-color: #B2DFDB;
+                color: #00695C;
+            }
+            .message.assistant {
+                background-color: #B39DDB;
+                color: #4527A0;
+            }
+            .message.system {
+                background-color: #EEEEEE;
+                color: #212121;
+            }
+            .role {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .variant {
+                color: #795548;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            pre {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <h1>Metrics</h1>
+    <table>
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td><b>Score</b></td>
+        <td>0.0</td>
+    </tr>
+    
+    <tr>
+        <td>score:std</td>
+        <td>0.0</td>
+    </tr>
+    
+    </table>
+    
+    <h1>Examples</h1>
+    
+    
+<h3>Prompt conversation</h3>
+
+
+<div class="message system">
+    <div class="role">
+    system
+    
+    </div>
+    <div class="content">
+    <pre>You are a helpful assistant.
+
+Reply EXACTLY with the following JSON format.
+{&#39;thinking&#39;: &#39;Your thinking.&#39;, &#39;answer&#39;: &#39;Your answer. If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete.&#39;}
+DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
+
+</pre>
+    </div>
+</div>
+
+
+<div class="message user">
+    <div class="role">
+    user
+    
+    </div>
+    <div class="content">
+    <pre>There is a collection of $25$ indistinguishable white chips and $25$ indistinguishable black chips. Find the number of ways to place some of these chips in the $25$ unit cells of a $5\times5$ grid such that: 
+
+each cell contains at most one chip
+all chips in the same row and all chips in the same column have the same colour
+any additional chip placed on the grid would violate one or more of the previous two conditions.
+
+Please think step by step and then solve the task.</pre>
+    </div>
+</div>
+
+<h3>Sampled message</h3>
+
+<div class="message assistant">
+    <div class="role">
+    assistant
+    
+    </div>
+    <div class="content">
+    <pre>We have a 5x5 grid with 25 cells. We want to place chips (white or black) on some cells such that:
+1. Each cell contains at most one chip.
+2. All chips in the same row have the same color.
+3. All chips in the same column have the same color.
+4. The placement is maximal in the sense that adding any additional chip would violate one or more of the above conditions.
+
+First, let&#39;s analyze the color constraints:
+- Each row is monochromatic (all chips in that row are the same color).
+- Each column is monochromatic (all chips in that column are the same color).
+
+This implies that the color of the chip in cell (i, j) (if any) must be consistent with both the row i color and the column j color.
+
+If a cell contains a chip, its color is determined by the intersection of the row color and the column color. For the chip to exist, the row color and column color must be the same.
+
+Therefore, the grid can be thought of as a coloring of rows and columns in black or white, and the chips are placed exactly where the row and column colors agree.
+
+Define:
+- Let R be a subset of rows colored black (the rest white).
+- Let C be a subset of columns colored black (the rest white).
+
+Then, the black chips are placed at the intersection of black rows and black columns.
+The white chips are placed at the intersection of white rows and white columns.
+
+No chips are placed where row and column colors differ.
+
+The maximality condition means:
+- We cannot add any chip to a cell where there was no chip before without violating the conditions.
+
+Where are the empty cells?
+- Cells where row and column colors differ.
+
+Can we add a chip to such a cell?
+- If we add a chip to a cell where row and column colors differ, the cell would have a chip of one color, but the row or column would have chips of a different color, violating the monochromatic row or column condition.
+
+So, the only way to add a chip without violating the conditions is to recolor the row or column to match the new chip color, but recoloring is not allowed (the coloring is fixed).
+
+Hence, maximality means the following:
+- For every empty cell, adding a chip would violate the conditions.
+- Also, no empty cell can be filled without recoloring.
+
+But we must also consider the limited number of chips: 25 white and 25 black.
+
+Number of black chips placed: |R| * |C|
+Number of white chips placed: (5 - |R|) * (5 - |C|)
+
+We must have:
+|R| * |C| &lt;= 25 (black chips available)
+(5 - |R|) * (5 - |C|) &lt;= 25 (white chips available)
+
+Since 25 chips of each color are available, these constraints are automatically satisfied because the grid is 5x5.
+
+Now, maximality condition implies that no row or column can be recolored to add a chip.
+
+If a row has no chips, recoloring it would add chips, but no chips can be added.
+
+Similarly for columns.
+
+Therefore, every row and every column must have at least one chip.
+
+When does a row have no chips?
+- If the row is black but there is no black column (|C|=0), then black rows have no chips.
+- If the row is white but there is no white column (|C|=5), then white rows have no chips.
+
+Similarly for columns.
+
+So, to ensure every row and column has at least one chip, both |R| and |C| must be between 1 and 4 inclusive.
+
+Because if |R|=0, no black rows; if |C|=0, no black columns; if |R|=5, no white rows; if |C|=5, no white columns.
+
+Therefore, |R| and |C| can be any integer from 1 to 4.
+
+Number of ways to choose R: C(5, |R|)
+Number of ways to choose C: C(5, |C|)
+
+For each such pair (|R|, |C|) with |R|, |C| in {1,2,3,4}, number of configurations is C(5, |R|)*C(5, |C|).
+
+Total number of configurations = sum over |R|=1 to 4 and |C|=1 to 4 of C(5, |R|)*C(5, |C|)
+= (sum_{r=1}^4 C(5,r)) * (sum_{c=1}^4 C(5,c))
+
+Calculate sum_{k=1}^4 C(5,k):
+C(5,1)=5, C(5,2)=10, C(5,3)=10, C(5,4)=5
+Sum = 5+10+10+5 = 30
+
+Therefore, total configurations = 30 * 30 = 900
+
+Hence, there are 900 ways to place the chips satisfying the conditions.
+
+Answer:900</pre>
+    </div>
+</div>
+<h3>Results</h3>
+<p>Correct Answer: 902</p>
+<p>Extracted Answer: 900</p>
+<p>Score: 0.0</p>
+    <hr>
+    
+    </body>
+</html>

@@ -1,0 +1,42 @@
+Question: Consider the paths of length $16$ that follow the lines from the lower left corner to the upper right corner on an $8\times 8$ grid. Find the number of such paths that change direction exactly four times, as in the examples shown below.
+[asy] size(10cm); usepackage("tikz");label("\begin{tikzpicture}[scale=.5]\draw(0,0)grid(8,8);\draw[line width=2,red](0,0)--(2,0)--(2,3)--(5,3)--(5,8)--(8,8);\end{tikzpicture}",origin); label("\begin{tikzpicture}[scale=.5]\draw(0,0)grid(8,8);\draw[line width=2,red](0,0)--(0,3)--(3,3)--(3,5)--(8,5)--(8,8);\end{tikzpicture}",E); [/asy]
+Iteration: Baseline sc_cot
+proposed answer: We are considering paths on an 8x8 grid from the lower left corner to the upper right corner. Such a path consists of exactly 16 steps: 8 steps right (R) and 8 steps up (U). The problem asks for the number of such paths that change direction exactly 4 times. A direction change means switching from moving right to moving up, or vice versa.
+
+Since the path has 16 steps and 4 direction changes, the path consists of 5 segments (because the number of segments = number of direction changes + 1).
+
+Each segment consists of steps all in the same direction (either all R or all U). Since the path starts at the lower left corner and ends at the upper right corner, and must have 8 R steps and 8 U steps total, the segments must alternate directions starting with either R or U.
+
+We need to consider two cases:
+1. The path starts with R. Then the segments alternate: R, U, R, U, R (5 segments).
+2. The path starts with U. Then the segments alternate: U, R, U, R, U (5 segments).
+
+Let the lengths of the segments be x1, x2, x3, x4, x5.
+
+Case 1 (start with R):
+x1 + x3 + x5 = 8 (total R steps)
+x2 + x4 = 8 (total U steps)
+All xi >= 1 because each segment must have at least one step to have a direction change.
+
+Case 2 (start with U):
+x1 + x3 + x5 = 8 (total U steps)
+x2 + x4 = 8 (total R steps)
+All xi >= 1.
+
+We count the number of positive integer solutions for each case.
+
+For case 1:
+Number of positive integer solutions to x1 + x3 + x5 = 8 is C(8-1, 3-1) = C(7,2) = 21.
+Number of positive integer solutions to x2 + x4 = 8 is C(8-1, 2-1) = C(7,1) = 7.
+Total for case 1 = 21 * 7 = 147.
+
+For case 2 (symmetric):
+Number of positive integer solutions to x1 + x3 + x5 = 8 is 21.
+Number of positive integer solutions to x2 + x4 = 8 is 7.
+Total for case 2 = 21 * 7 = 147.
+
+Total number of paths with exactly 4 direction changes = 147 + 147 = 294.
+
+Answer:294
+Extracted answer: 294
+Correct answer: 294

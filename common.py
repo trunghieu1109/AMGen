@@ -262,8 +262,10 @@ async def get_json_response_from_gpt(
     response_text = ""
 
     debug_count = 0 
-    while True:
+    retries = 0
+    while retries < 5:
         debug_count += 1
+        retries += 1
         try:
             sampler_return = await sampler(msg, tempreture)
 
@@ -777,6 +779,8 @@ With no regard to the correctness of the answers, look at the following two answ
 
 Answer 1: {answer1}
 Answer 2: {answer2}
+
+Note: If the answer1 is number such as 067, and the anwer2 is 67, they are considered to be similar.
 
 Return only "Yes" or "No".
 

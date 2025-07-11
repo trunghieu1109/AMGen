@@ -1,0 +1,229 @@
+Question: Let $N$ be the greatest four-digit positive integer with the property that whenever one of its digits is changed to $1$, the resulting number is divisible by $7$. Let $Q$ and $R$ be the quotient and remainder, respectively, when $N$ is divided by $1000$. Find $Q+R$.
+Iteration: Baseline reflexion
+proposed answer: Let the four-digit number be N = 1000a + 100b + 10c + d, where a, b, c, d are digits and a ≠ 0. We want the greatest such N with the property that changing any one digit to 1 results in a number divisible by 7.
+
+Changing the thousands digit to 1: 1000*1 + 100b + 10c + d must be divisible by 7.
+Changing the hundreds digit to 1: 1000a + 100*1 + 10c + d must be divisible by 7.
+Changing the tens digit to 1: 1000a + 100b + 10*1 + d must be divisible by 7.
+Changing the units digit to 1: 1000a + 100b + 10c + 1 must be divisible by 7.
+
+We want the greatest N, so start with a=9 (largest thousands digit).
+
+Define:
+M1 = 1000*1 + 100b + 10c + d
+M2 = 1000a + 100*1 + 10c + d
+M3 = 1000a + 100b + 10*1 + d
+M4 = 1000a + 100b + 10c + 1
+
+All must be divisible by 7.
+
+Since a=9, M2, M3, M4 depend on b,c,d.
+
+We have four congruences modulo 7:
+M1 ≡ 0 (mod 7)
+M2 ≡ 0 (mod 7)
+M3 ≡ 0 (mod 7)
+M4 ≡ 0 (mod 7)
+
+Calculate modulo 7:
+1000 mod 7 = 1000 - 7*142 = 1000 - 994 = 6
+100 mod 7 = 2
+10 mod 7 = 3
+
+So:
+M1 = 6*1 + 2b + 3c + d ≡ 6 + 2b + 3c + d ≡ 0 (mod 7)
+M2 = 6a + 2*1 + 3c + d = 6*9 + 2 + 3c + d = 54 + 2 + 3c + d = 56 + 3c + d ≡ 0 (mod 7)
+M3 = 6a + 2b + 3*1 + d = 54 + 2b + 3 + d = 57 + 2b + d ≡ 0 (mod 7)
+M4 = 6a + 2b + 3c + 1 = 54 + 2b + 3c + 1 = 55 + 2b + 3c ≡ 0 (mod 7)
+
+Rewrite:
+M1: 6 + 2b + 3c + d ≡ 0 (mod 7)
+M2: 56 + 3c + d ≡ 0 (mod 7)
+M3: 57 + 2b + d ≡ 0 (mod 7)
+M4: 55 + 2b + 3c ≡ 0 (mod 7)
+
+Since 56 ≡ 0 mod 7, M2 simplifies to 3c + d ≡ 0 (mod 7)
+57 ≡ 1 mod 7, so M3: 1 + 2b + d ≡ 0 (mod 7) => 2b + d ≡ 6 (mod 7)
+55 ≡ 6 mod 7, so M4: 6 + 2b + 3c ≡ 0 (mod 7) => 2b + 3c ≡ 1 (mod 7)
+
+So the system is:
+(1) 6 + 2b + 3c + d ≡ 0 (mod 7)
+(2) 3c + d ≡ 0 (mod 7)
+(3) 2b + d ≡ 6 (mod 7)
+(4) 2b + 3c ≡ 1 (mod 7)
+
+From (2): d ≡ -3c (mod 7)
+Substitute d into (3): 2b - 3c ≡ 6 (mod 7)
+From (4): 2b + 3c ≡ 1 (mod 7)
+
+Add the last two equations:
+(2b - 3c) + (2b + 3c) = 4b ≡ 6 + 1 = 7 ≡ 0 (mod 7)
+So 4b ≡ 0 (mod 7)
+Since 4 and 7 are coprime, b ≡ 0 (mod 7) => b = 0 or 7 (but b is a digit, so b=0 or 7)
+
+Try b=0:
+From (4): 0 + 3c ≡ 1 (mod 7) => 3c ≡ 1 (mod 7)
+3*5=15 ≡ 1 (mod 7), so c=5
+From (2): d ≡ -3c = -15 ≡ -15 + 21 = 6 (mod 7), so d=6
+Check (1): 6 + 2b + 3c + d = 6 + 0 + 15 + 6 = 27 ≡ 27 - 21 = 6 ≠ 0 (mod 7)
+So b=0 fails.
+
+Try b=7:
+From (4): 2*7 + 3c = 14 + 3c ≡ 0 + 3c ≡ 1 (mod 7) => 3c ≡ 1 (mod 7)
+Again c=5
+From (2): d ≡ -3c = -15 ≡ 6 (mod 7), d=6
+Check (1): 6 + 2b + 3c + d = 6 + 14 + 15 + 6 = 41 ≡ 41 - 35 = 6 ≠ 0 (mod 7)
+Fails again.
+
+So no solution for a=9.
+
+Try a=8:
+M2: 6*8 + 2 + 3c + d = 48 + 2 + 3c + d = 50 + 3c + d ≡ 0 (mod 7)
+50 mod 7 = 1, so 1 + 3c + d ≡ 0 => 3c + d ≡ 6 (mod 7)
+M3: 6*8 + 2b + 3 + d = 48 + 2b + 3 + d = 51 + 2b + d ≡ 0 (mod 7)
+51 mod 7 = 2, so 2 + 2b + d ≡ 0 => 2b + d ≡ 5 (mod 7)
+M4: 6*8 + 2b + 3c + 1 = 48 + 2b + 3c + 1 = 49 + 2b + 3c ≡ 0 (mod 7)
+49 mod 7 = 0, so 2b + 3c ≡ 0 (mod 7)
+M1: 6 + 2b + 3c + d ≡ 0 (mod 7)
+
+System:
+(1) 6 + 2b + 3c + d ≡ 0
+(2) 3c + d ≡ 6
+(3) 2b + d ≡ 5
+(4) 2b + 3c ≡ 0
+
+From (2): d ≡ 6 - 3c
+Substitute into (3): 2b + 6 - 3c ≡ 5 => 2b - 3c ≡ -1 ≡ 6
+From (4): 2b + 3c ≡ 0
+Add last two: (2b - 3c) + (2b + 3c) = 4b ≡ 6
+4b ≡ 6 (mod 7)
+Multiply both sides by 2 (inverse of 4 mod 7): b ≡ 12 ≡ 5 (mod 7)
+So b=5
+
+From (4): 2*5 + 3c ≡ 0 => 10 + 3c ≡ 0 => 3c ≡ -10 ≡ 4
+3c ≡ 4 (mod 7)
+3*6=18 ≡ 4, so c=6
+
+From (2): d ≡ 6 - 3*6 = 6 - 18 = -12 ≡ 2 (mod 7)
+
+Check (1): 6 + 2*5 + 3*6 + 2 = 6 + 10 + 18 + 2 = 36 ≡ 1 (mod 7), not 0
+Fails.
+
+Try a=7:
+M2: 6*7 + 2 + 3c + d = 42 + 2 + 3c + d = 44 + 3c + d ≡ 0
+44 mod 7 = 2, so 2 + 3c + d ≡ 0 => 3c + d ≡ 5
+M3: 6*7 + 2b + 3 + d = 42 + 2b + 3 + d = 45 + 2b + d ≡ 0
+45 mod 7 = 3, so 3 + 2b + d ≡ 0 => 2b + d ≡ 4
+M4: 6*7 + 2b + 3c + 1 = 42 + 2b + 3c + 1 = 43 + 2b + 3c ≡ 0
+43 mod 7 = 1, so 1 + 2b + 3c ≡ 0 => 2b + 3c ≡ 6
+M1: 6 + 2b + 3c + d ≡ 0
+
+System:
+(1) 6 + 2b + 3c + d ≡ 0
+(2) 3c + d ≡ 5
+(3) 2b + d ≡ 4
+(4) 2b + 3c ≡ 6
+
+From (2): d ≡ 5 - 3c
+Substitute into (3): 2b + 5 - 3c ≡ 4 => 2b - 3c ≡ -1 ≡ 6
+From (4): 2b + 3c ≡ 6
+Add last two: (2b - 3c) + (2b + 3c) = 4b ≡ 6 + 6 = 12 ≡ 5
+4b ≡ 5
+Multiply both sides by 2: b ≡ 10 ≡ 3
+
+From (4): 2*3 + 3c ≡ 6 => 6 + 3c ≡ 6 => 3c ≡ 0 => c=0
+
+From (2): d ≡ 5 - 3*0 = 5
+
+Check (1): 6 + 2*3 + 3*0 + 5 = 6 + 6 + 0 + 5 = 17 ≡ 3 (mod 7), not 0
+Fails.
+
+Try a=6:
+M2: 6*6 + 2 + 3c + d = 36 + 2 + 3c + d = 38 + 3c + d ≡ 0
+38 mod 7 = 3, so 3 + 3c + d ≡ 0 => 3c + d ≡ 4
+M3: 6*6 + 2b + 3 + d = 36 + 2b + 3 + d = 39 + 2b + d ≡ 0
+39 mod 7 = 4, so 4 + 2b + d ≡ 0 => 2b + d ≡ 3
+M4: 6*6 + 2b + 3c + 1 = 36 + 2b + 3c + 1 = 37 + 2b + 3c ≡ 0
+37 mod 7 = 2, so 2 + 2b + 3c ≡ 0 => 2b + 3c ≡ 5
+M1: 6 + 2b + 3c + d ≡ 0
+
+System:
+(1) 6 + 2b + 3c + d ≡ 0
+(2) 3c + d ≡ 4
+(3) 2b + d ≡ 3
+(4) 2b + 3c ≡ 5
+
+From (2): d ≡ 4 - 3c
+Substitute into (3): 2b + 4 - 3c ≡ 3 => 2b - 3c ≡ -1 ≡ 6
+From (4): 2b + 3c ≡ 5
+Add last two: (2b - 3c) + (2b + 3c) = 4b ≡ 6 + 5 = 11 ≡ 4
+4b ≡ 4
+Multiply both sides by 2: b ≡ 8 ≡ 1
+
+From (4): 2*1 + 3c ≡ 5 => 2 + 3c ≡ 5 => 3c ≡ 3 => c=1
+
+From (2): d ≡ 4 - 3*1 = 4 - 3 = 1
+
+Check (1): 6 + 2*1 + 3*1 + 1 = 6 + 2 + 3 + 1 = 12 ≡ 5 (mod 7), not 0
+Fails.
+
+Try a=5:
+M2: 6*5 + 2 + 3c + d = 30 + 2 + 3c + d = 32 + 3c + d ≡ 0
+32 mod 7 = 4, so 4 + 3c + d ≡ 0 => 3c + d ≡ 3
+M3: 6*5 + 2b + 3 + d = 30 + 2b + 3 + d = 33 + 2b + d ≡ 0
+33 mod 7 = 5, so 5 + 2b + d ≡ 0 => 2b + d ≡ 2
+M4: 6*5 + 2b + 3c + 1 = 30 + 2b + 3c + 1 = 31 + 2b + 3c ≡ 0
+31 mod 7 = 3, so 3 + 2b + 3c ≡ 0 => 2b + 3c ≡ 4
+M1: 6 + 2b + 3c + d ≡ 0
+
+System:
+(1) 6 + 2b + 3c + d ≡ 0
+(2) 3c + d ≡ 3
+(3) 2b + d ≡ 2
+(4) 2b + 3c ≡ 4
+
+From (2): d ≡ 3 - 3c
+Substitute into (3): 2b + 3 - 3c ≡ 2 => 2b - 3c ≡ -1 ≡ 6
+From (4): 2b + 3c ≡ 4
+Add last two: (2b - 3c) + (2b + 3c) = 4b ≡ 6 + 4 = 10 ≡ 3
+4b ≡ 3
+Multiply both sides by 2: b ≡ 6
+
+From (4): 2*6 + 3c ≡ 4 => 12 + 3c ≡ 4 => 5 + 3c ≡ 4 => 3c ≡ 6 => c=2
+
+From (2): d ≡ 3 - 3*2 = 3 - 6 = -3 ≡ 4
+
+Check (1): 6 + 2*6 + 3*2 + 4 = 6 + 12 + 6 + 4 = 28 ≡ 0 (mod 7), good!
+
+So solution: a=5, b=6, c=2, d=4
+
+N = 5624
+
+Check all changed digits to 1:
+Change a to 1: 1624 divisible by 7? 1624/7=232, yes.
+Change b to 1: 5124/7=732, yes.
+Change c to 1: 5614/7=802, yes.
+Change d to 1: 5621/7=803, yes.
+
+N=5624 satisfies the condition.
+
+Is there a larger number with a=5? Try b=7 or higher? b=6 is already found.
+
+Try b=7:
+From previous steps, b=6 is unique solution for a=5.
+
+Try a=5, b=6, c=2, d=4 is the greatest number with a=5.
+
+Try a=4 or less will be smaller numbers.
+
+Therefore, N=5624.
+
+Now, Q and R are quotient and remainder when N is divided by 1000.
+Q = floor(5624/1000) = 5
+R = 5624 % 1000 = 624
+
+Q + R = 5 + 624 = 629
+
+Answer:629
+Extracted answer: 629
+Correct answer: 699

@@ -320,7 +320,7 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3/abstracted_workflow/abstract_workflow_description.json'
+    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
@@ -486,7 +486,7 @@ async def run_main():
 
         examples = [{'problem': questions[i], 'answer': answers[i]} for i in range(len(questions))]
         # examples = examples[:170]
-        # examples = [examples[8]]
+        # examples = [examples[170]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
         set_global("global_max_round", max_round)
@@ -510,7 +510,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'abstract_workflow_test_generation_model_v2/question/meta_agent/'
+        args.expr_name = f'single_baseline_multiple_times_attempt_3/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
@@ -540,12 +540,14 @@ async def run_main():
         total_time = 0
         save_path = ""
         retries = 0
-        while retries < 2:
-            score, total_time, total_execution_time, save_path = await apply_abstract_workflow.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
-            if score > -1:
-                break
-            retries += 1
-        # score, total_time, save_path = await apply_abstract_workflow.test_operator(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "cot")
+        # while retries < 2:
+        #     score, total_time, total_execution_time, save_path = await apply_abstract_workflow.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+        #     # score, total_time, total_execution_time, save_path = await apply_abstract_workflow.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+        #     if score > -1:
+        #         break
+        #     retries += 1
+        score, total_time, total_execution_time, save_path = await apply_abstract_workflow.run_single_agent_baselines(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "reflexion")
+        # score, total_time, total_execution_time, save_path = await apply_abstract_workflow.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
         save_path_ = save_path
         final_results[str(example_id)] = {
             'score': score,

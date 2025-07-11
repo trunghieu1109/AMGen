@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .message {
+                padding: 8px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+            }
+            .message.user {
+                background-color: #B2DFDB;
+                color: #00695C;
+            }
+            .message.assistant {
+                background-color: #B39DDB;
+                color: #4527A0;
+            }
+            .message.system {
+                background-color: #EEEEEE;
+                color: #212121;
+            }
+            .role {
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .variant {
+                color: #795548;
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+            pre {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <h1>Metrics</h1>
+    <table>
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+    <tr>
+        <td><b>Score</b></td>
+        <td>1.0</td>
+    </tr>
+    
+    <tr>
+        <td>score:std</td>
+        <td>0.0</td>
+    </tr>
+    
+    </table>
+    
+    <h1>Examples</h1>
+    
+    
+<h3>Prompt conversation</h3>
+
+
+<div class="message system">
+    <div class="role">
+    system
+    
+    </div>
+    <div class="content">
+    <pre>You are a helpful assistant.
+
+Reply EXACTLY with the following JSON format.
+{&#39;thinking&#39;: &#39;Your thinking.&#39;, &#39;answer&#39;: &#39;Your answer. If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete.&#39;}
+DO NOT MISS ANY REQUEST FIELDS and ensure that your response is a well-formed JSON object!
+
+</pre>
+    </div>
+</div>
+
+
+<div class="message user">
+    <div class="role">
+    user
+    
+    </div>
+    <div class="content">
+    <pre>Jen enters a lottery by picking $4$ distinct numbers from $S=\{1,2,3,\cdots,9,10\}.$ $4$ numbers are randomly chosen from $S.$ She wins a prize if at least two of her numbers were $2$ of the randomly chosen numbers, and wins the grand prize if all four of her numbers were the randomly chosen numbers. The probability of her winning the grand prize given that she won a prize is $\tfrac{m}{n}$ where $m$ and $n$ are relatively prime positive integers. Find $m+n$.
+
+Please think step by step and then solve the task.</pre>
+    </div>
+</div>
+
+<h3>Sampled message</h3>
+
+<div class="message assistant">
+    <div class="role">
+    assistant
+    
+    </div>
+    <div class="content">
+    <pre>Total numbers in the set S is 10. Jen picks 4 distinct numbers from S, and 4 numbers are randomly chosen from S. The total number of ways to choose 4 numbers from 10 is C(10,4) = 210.
+
+Jen wins a prize if at least two of her numbers are among the randomly chosen numbers. She wins the grand prize if all four of her numbers are chosen.
+
+Let Jen&#39;s chosen set be J with 4 numbers.
+
+1. Probability of winning the grand prize:
+   This is the probability that the 4 numbers chosen randomly are exactly Jen&#39;s 4 numbers.
+   Number of ways this can happen = 1 (only Jen&#39;s set)
+   Probability = 1 / 210
+
+2. Probability of winning a prize (at least 2 matches):
+   We need to find the number of 4-number subsets from S that have at least 2 elements in common with J.
+
+   Let&#39;s count the number of 4-subsets with exactly k matches with J, for k=0,1,2,3,4.
+
+   - Exactly 0 matches:
+     Choose all 4 numbers from the 6 numbers not in J.
+     Number of ways = C(6,4) = 15
+
+   - Exactly 1 match:
+     Choose 1 number from J and 3 numbers from outside J.
+     Number of ways = C(4,1)*C(6,3) = 4 * 20 = 80
+
+   - Exactly 2 matches:
+     Choose 2 numbers from J and 2 from outside.
+     Number of ways = C(4,2)*C(6,2) = 6 * 15 = 90
+
+   - Exactly 3 matches:
+     Choose 3 from J and 1 from outside.
+     Number of ways = C(4,3)*C(6,1) = 4 * 6 = 24
+
+   - Exactly 4 matches:
+     Choose all 4 from J.
+     Number of ways = 1
+
+   Check sum: 15 + 80 + 90 + 24 + 1 = 210 (total subsets, correct)
+
+   Number of winning sets (at least 2 matches) = 90 + 24 + 1 = 115
+
+3. Probability of winning a prize = 115 / 210
+
+4. Probability of winning the grand prize given winning a prize = (Probability of grand prize) / (Probability of prize)
+   = (1/210) / (115/210) = 1 / 115
+
+So the fraction is 1/115, where m=1 and n=115.
+
+Therefore, m + n = 1 + 115 = 116.
+
+Answer:116</pre>
+    </div>
+</div>
+<h3>Results</h3>
+<p>Correct Answer: 116</p>
+<p>Extracted Answer: 116</p>
+<p>Score: 1.0</p>
+    <hr>
+    
+    </body>
+</html>

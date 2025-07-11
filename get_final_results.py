@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "results/workflow_search/gpqa_diamond/abstract_workflow_test_generation_model_v2/o4-mini_gpt-4o-mini-2024-07-18"
+directory = "results/workflow_search/gpqa_diamond/single_baseline_multiple_times_attempt_3/reflexion/gpt-4.1-mini_gpt-4.1-mini"
 total_score = 0
 total_time = 0
 total_execution_time = 0
@@ -41,11 +41,11 @@ for filename in os.listdir(directory):
             total_score += max_score
             
 print(cnt)
-# for idx in range(0, 198):
+# for idx in range(0, 30):
 #     if file_name[idx] == 0:
 #         print(idx)
-
-print(f"Total score: {total_score / 48 * 100}")
+print(total_score)
+print(f"Total score: {(total_score) / 48 * 100}")
 print(f"Average time: {total_time / 48}")
 print(f"Average Execution time: {total_execution_time / 48}")
 print(f"Average cost: {max_cost / 48}")

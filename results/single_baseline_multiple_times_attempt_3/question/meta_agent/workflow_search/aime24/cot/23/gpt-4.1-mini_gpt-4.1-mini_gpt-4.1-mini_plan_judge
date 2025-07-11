@@ -1,0 +1,145 @@
+Question: Find the number of ways to place a digit in each cell of a 2x3 grid so that the sum of the two numbers formed by reading left to right is $999$, and the sum of the three numbers formed by reading top to bottom is $99$. The grid below is an example of such an arrangement because $8+991=999$ and $9+9+81=99$.
+\[\begin{array}{|c|c|c|} \hline 0 & 0 & 8 \\ \hline 9 & 9 & 1 \\ \hline \end{array}\]
+Iteration: Baseline cot
+proposed answer: Let the grid be:
+\[
+\begin{array}{|c|c|c|}
+\hline
+A & B & C \\
+\hline
+D & E & F \\
+\hline
+\end{array}
+\]
+
+The two numbers formed by reading left to right are ABC and DEF, and their sum is 999:
+\[ ABC + DEF = 999 \]
+
+The three numbers formed by reading top to bottom are AD, BE, CF, and their sum is 99:
+\[ AD + BE + CF = 99 \]
+
+Where each letter represents a digit (0-9).
+
+Expressing these in terms of digits:
+
+ABC = 100A + 10B + C
+DEF = 100D + 10E + F
+
+Sum left to right:
+100A + 10B + C + 100D + 10E + F = 999
+
+AD = 10A + D
+BE = 10B + E
+CF = 10C + F
+
+Sum top to bottom:
+(10A + D) + (10B + E) + (10C + F) = 99
+10A + D + 10B + E + 10C + F = 99
+
+Rewrite the two equations:
+
+1) 100A + 10B + C + 100D + 10E + F = 999
+2) 10A + D + 10B + E + 10C + F = 99
+
+Group terms:
+1) (100A + 100D) + (10B + 10E) + (C + F) = 999
+2) (10A + D) + (10B + E) + (10C + F) = 99
+
+Let x = A + D, y = B + E, z = C + F
+
+Rewrite equations in terms of x, y, z:
+
+1) 100A + 100D + 10B + 10E + C + F = 100x + 10y + z = 999
+2) 10A + D + 10B + E + 10C + F = 10A + 10B + 10C + D + E + F = 10(A + B + C) + (D + E + F) = 99
+
+But from the definition of x, y, z:
+D = x - A
+E = y - B
+F = z - C
+
+Substitute D, E, F into the second equation:
+
+10A + (x - A) + 10B + (y - B) + 10C + (z - C) = 99
+(10A - A) + (10B - B) + (10C - C) + x + y + z = 99
+9A + 9B + 9C + x + y + z = 99
+
+Recall from first equation:
+100x + 10y + z = 999
+
+From this, z = 999 - 100x - 10y
+
+Substitute z into the second equation:
+9A + 9B + 9C + x + y + (999 - 100x - 10y) = 99
+9A + 9B + 9C + x + y + 999 - 100x - 10y = 99
+9A + 9B + 9C + 999 + x - 100x + y - 10y = 99
+9A + 9B + 9C + 999 - 99x - 9y = 99
+
+Bring constants to right:
+9A + 9B + 9C - 99x - 9y = 99 - 999 = -900
+Divide both sides by 9:
+A + B + C - 11x - y = -100
+
+Recall x = A + D, y = B + E, z = C + F
+
+Rewrite:
+A + B + C - 11(A + D) - (B + E) = -100
+A + B + C - 11A - 11D - B - E = -100
+(A - 11A) + (B - B) + C - 11D - E = -100
+-10A + C - 11D - E = -100
+
+This is complicated; try to find integer solutions for x, y, z first.
+
+From 100x + 10y + z = 999
+x, y, z are sums of digits of two digits, so x, y, z in [0,18]
+
+Try to find x, y, z such that 100x + 10y + z = 999
+
+Try x = 9:
+100*9 = 900
+Then 10y + z = 99
+Try y = 9:
+10*9 = 90
+Then z = 9
+
+So x=9, y=9, z=9
+
+Now check second equation:
+9A + 9B + 9C + x + y + z = 99
+9A + 9B + 9C + 9 + 9 + 9 = 99
+9A + 9B + 9C + 27 = 99
+9A + 9B + 9C = 72
+A + B + C = 8
+
+Recall x = A + D = 9
+y = B + E = 9
+z = C + F = 9
+
+So D = 9 - A
+E = 9 - B
+F = 9 - C
+
+Digits must be between 0 and 9, so A, B, C must be between 0 and 8 (since D, E, F must be >= 0).
+
+Also A + B + C = 8
+
+Number of non-negative integer solutions to A + B + C = 8 with A, B, C <= 8 is the number of partitions of 8 into 3 parts where each part <= 8. Since 8 <= 8, no restriction.
+
+Number of solutions = C(8+3-1, 3-1) = C(10,2) = 45
+
+For each solution (A,B,C), D=9-A, E=9-B, F=9-C are determined and valid digits.
+
+Therefore, total number of ways = 45
+
+Check example given:
+A=0, B=0, C=8
+D=9, E=9, F=1
+Sum left to right: 008 + 991 = 999
+Sum top to bottom: 09 + 09 + 81 = 99
+
+Matches the example.
+
+Answer: 45
+
+Answer:45
+Extracted answer: 45
+Correct answer: 045

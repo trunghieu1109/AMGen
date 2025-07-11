@@ -1,0 +1,47 @@
+Question: Consider the paths of length $16$ that follow the lines from the lower left corner to the upper right corner on an $8\times 8$ grid. Find the number of such paths that change direction exactly four times, as in the examples shown below.
+[asy] size(10cm); usepackage("tikz");label("\begin{tikzpicture}[scale=.5]\draw(0,0)grid(8,8);\draw[line width=2,red](0,0)--(2,0)--(2,3)--(5,3)--(5,8)--(8,8);\end{tikzpicture}",origin); label("\begin{tikzpicture}[scale=.5]\draw(0,0)grid(8,8);\draw[line width=2,red](0,0)--(0,3)--(3,3)--(3,5)--(8,5)--(8,8);\end{tikzpicture}",E); [/asy]
+Iteration: Baseline cot
+proposed answer: We are considering paths from the lower left corner to the upper right corner of an 8x8 grid, moving only right or up. Each path consists of 16 steps: 8 steps right (R) and 8 steps up (U). We want the number of such paths that change direction exactly 4 times.
+
+A change of direction occurs when the path switches from moving right to moving up or vice versa. Since the path has 16 steps composed of 8 Rs and 8 Us, the path can be represented as a sequence of blocks of consecutive Rs or Us.
+
+If the path changes direction exactly 4 times, then the path consists of 5 blocks (because the number of blocks is one more than the number of changes). These blocks alternate between R and U.
+
+Let’s denote the blocks as B1, B2, B3, B4, B5, with lengths a1, a2, a3, a4, a5 respectively.
+
+Since the path starts at the lower left corner and must end at the upper right corner, the first move can be either right or up. However, the problem examples show paths starting with a horizontal move (right) or vertical move (up), so both are possible.
+
+We consider both cases:
+
+Case 1: The first block is R.
+Then the blocks alternate: R, U, R, U, R.
+So the sum of R blocks is a1 + a3 + a5 = 8 (total right steps), and the sum of U blocks is a2 + a4 = 8 (total up steps).
+
+Case 2: The first block is U.
+Then the blocks alternate: U, R, U, R, U.
+So the sum of U blocks is a1 + a3 + a5 = 8, and the sum of R blocks is a2 + a4 = 8.
+
+In both cases, we need to count the number of positive integer solutions to these equations, since each block must have at least one step (no zero-length blocks).
+
+For Case 1:
+- a1 + a3 + a5 = 8, with a_i >= 1
+- a2 + a4 = 8, with a_i >= 1
+
+Number of positive integer solutions for a sum of k parts equal to n is C(n-1, k-1).
+
+So for a1 + a3 + a5 = 8, number of solutions = C(8-1, 3-1) = C(7, 2) = 21.
+For a2 + a4 = 8, number of solutions = C(8-1, 2-1) = C(7, 1) = 7.
+
+Total number of paths in Case 1 = 21 * 7 = 147.
+
+For Case 2:
+- a1 + a3 + a5 = 8 (U steps), number of solutions = 21 (same as above)
+- a2 + a4 = 8 (R steps), number of solutions = 7
+
+Total number of paths in Case 2 = 21 * 7 = 147.
+
+Therefore, total number of paths with exactly 4 direction changes = 147 + 147 = 294.
+
+Answer:294
+Extracted answer: 294
+Correct answer: 294

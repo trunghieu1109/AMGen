@@ -240,7 +240,7 @@ class LLMAgentBase():
 
             if global_format_choice == 'json':
 
-                prompt = input_infos_text + f'Given the above, answer the following question: {instruction}\n\n Return your answer in the "answer" entry and justify detailedly why you think so in the "thinking" entry. Answer is a string include the answer for this query'# instruction (sub-task in above)
+                prompt = input_infos_text + f'Given the above, answer the following question: {instruction}\n\n Return your answer in the "answer" entry and justify detailedly why you think so in the "thinking" entry. Answer is a string include the answer for this query. If you require to return `feedback` and `correct`, just return the these fields.'
                 # prompt = input_infos_text + f'''Given the above, answer the following question: {instruction} \n\n then justify completely and detailedly, step-by-step why you think so in the "thinking" entry. 
                 # If stuck in loop and cannot to solve this problem, stop and add [TOO HARD] in the last position.
                 # Again, your task is only to answer the question {instruction} and explaination.'''# instruction (sub-task in above)
@@ -663,7 +663,7 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
-    
+
     start_time_ = time.time()
     total_execution_time = 0
     total_execution_cost = 0
@@ -674,7 +674,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     print(f"problem length: {len(questions)}")
     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
         default_mas_chain = json.load(f)
     result_path = expr_name + f"{args.dataset}"
     expr_name = expr_name + f"{args.dataset}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
@@ -694,8 +694,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_test_generation_model_v2/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/abstract_workflow_test_generation_model_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_based_methods_test_mulplt_times_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_based_methods_test_mulplt_times_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -936,10 +936,10 @@ Return your result in valid JSON format with the following structure. Each eleme
     
     embeddings = await abstractor.embedding_subtask(merged_subtasks)
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/kmeans.pkl', 'rb') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/kmeans.pkl', 'rb') as f:
         kmeans = pkl.load(f)
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/pca.pkl', 'rb') as f:
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/pca.pkl', 'rb') as f:
         pca = pkl.load(f)
         
     normalized_embeddings = normalize(embeddings, norm="l2")
@@ -989,7 +989,7 @@ Return your result in valid JSON format with the following structure. Each eleme
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/abstract_workflow_test_generation_model_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/abstract_based_methods_test_mulplt_times_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1451,7 +1451,7 @@ Given the evaluations from the verifier models and the query context, generate a
 async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
 
     # if example_id < 150:
-    #     return 0, 0, ""
+    #     return 0, 0, 0, ""
 
     questions = get_global("global_questions")
     questions = questions[str(example_id)]
@@ -1481,8 +1481,8 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-    result_path = f'results/{args.dataset}/single_agent_baselines_v2/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines_v2/{pattern}/{meta_model}_{global_node_model}_oracle.results'
+    result_path = f'results/{args.dataset}/single_baseline_multiple_times_attempt_3/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
+    oracle_acc_result_path = f'results/{args.dataset}/single_baseline_multiple_times_attempt_3/{pattern}/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1531,7 +1531,7 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
 
     global_ns = []
     
-    final_results_path = f'results/{args.dataset}/single_agent_baselines_v2/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/single_baseline_multiple_times_attempt_3/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     final_results = []
@@ -1619,4 +1619,196 @@ async def run_single_agent_baselines(args, expr_name, example_id, task_queue, me
     with open(final_results_path, "w") as f:
         json.dump(final_results, f, indent=4)
     
-    return acc_oracle_verifier_list[0], total_time, result_path
+    return acc_oracle_verifier_list[0], total_time, 0, result_path
+
+
+async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
+
+    # if example_id < 1 or example_id > 1:
+    #     return 0, 0, 0, ""
+
+    start_time_ = time.time()
+    total_execution_time = 0
+    total_execution_cost = 0
+    questions = get_global("global_questions")
+    questions = questions[str(example_id)]
+    global_node_model = get_global("global_node_model")
+
+    print(f"problem length: {len(questions)}")
+    max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
+    
+    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
+        default_mas_chain = json.load(f)
+    result_path = expr_name + f"{args.dataset}"
+    expr_name = expr_name + f"{args.dataset}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
+
+    if 'gpqa_diamond' in args.dataset:
+        task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
+    else:
+        task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
+
+    set_global("global_max_workers", max_workers)
+    global_task_queue = get_global('global_task_queue')
+    global_task_queue[str(example_id)] = task_queue    
+    set_global("global_task_queue", global_task_queue)
+
+    next_solution_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_next_solution.json")
+    msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
+    mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
+    file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
+    result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_based_methods_test_mulplt_times_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/abstract_based_methods_test_mulplt_times_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_path = Path(oracle_acc_result_path)
+    oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result_acc_path = Path(result_path)
+    result_acc_path.parent.mkdir(parents=True, exist_ok=True)
+
+    judge_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_judge")
+    reponse_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_reponse")
+    os.makedirs(os.path.dirname(judge_path), exist_ok=True)
+
+    print('file_path: ',file_path)
+    print('msg_path: ',msg_path)
+    print('result_path: ',result_path)
+    print('next_solution_path: ',next_solution_path)
+    print('oracle_acc_result_path: ',oracle_acc_result_path)
+    print('judge_path: ',judge_path)
+    print('reponse_path: ',reponse_path)
+    print('mem_path: ',mem_path)
+
+    global_judge_path = get_global('global_judge_path')
+    global_judge_path[str(example_id)] = judge_path
+
+    set_global("global_judge_path", global_judge_path)
+    
+    global_reponse_path = get_global('global_reponse_path')
+    global_reponse_path[str(example_id)] = reponse_path
+
+    set_global("global_reponse_path", global_reponse_path)
+
+    if os.path.exists(mem_path):
+        with open(mem_path, 'r') as json_file:
+            memory = json.load(json_file)
+    else:
+        memory = []
+
+    if os.path.exists(reponse_path):
+        with open(reponse_path, 'r') as json_file:
+            global_response = json.load(json_file)
+            
+        global_response_dict = get_global('global_response_dict')
+        global_response_dict[str(example_id)] = global_response
+        
+        set_global("global_response_dict", global_response_dict)
+
+    global_use_oracle_verifier = get_global("global_use_oracle_verifier")
+
+    global_ns = []
+    
+    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_queue[0].content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
+    
+    global_task_queue = get_global('global_task_queue')
+    global_task_queue[str(example_id)] = task_queue_tmp    
+    set_global("global_task_queue", global_task_queue)
+    output_description = get_global("global_output_description")
+    max_attempt = 2
+    acc_oracle_verifier_list = [0]
+    total_time = 0
+    final_results_path = f'results/{args.dataset}/abstract_based_methods_test_mulplt_times_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    result_path = Path(final_results_path)
+    result_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    final_results = []
+    max_score = 0
+    next_solution = {
+        'code': ""
+    }
+    
+    code_path = f"results/abstracted_based_same_model/question/meta_agent/workflow_search/aime24/{example_id}"
+    model = "o4-mini"
+    
+    for filename in os.listdir(code_path):
+        if filename.startswith(model) and filename.endswith(".py"):
+            file_path = os.path.join(code_path, filename)
+            with open(file_path, "r", encoding="utf-8") as f:
+                next_solution['code'] = f.read()
+                print(f"Nội dung của {filename}:\n")
+                # print(content)
+            break 
+    else:
+        print("Không tìm thấy file Python nào bắt đầu bằng 'o4_mini' và kết thúc bằng '.py'")
+    
+    print(f'============Initial Example: {example_id}=================')
+    default_global_n = get_global("global_n")
+    default_global_n[str(example_id)] = f"Test_multiple_times_{example_id}"
+    set_global("global_n", default_global_n)
+
+    global_n = get_global("global_n")
+    global_n = global_n[str(example_id)]
+    global_ns.append(global_n)
+    
+    # TODO: Load corresponding mas
+
+    try:
+        next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
+        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+        total_execution_time += total_time
+    except Exception as e:
+        print("Error: ", str(e))
+        error_trace = traceback.format_exc()
+        print("Full error trace:\n", error_trace)
+        return -1, -1, -1, ""
+    
+    # judge_path = os.path.join(args.save_dir, f"{expr_name}_Test_multiple_time_{example_id}_full_response")
+    # with open(judge_path, 'w') as judge_file:
+    #     judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test_multiple_time\nFull Response:{raw_results}')
+
+    if global_use_oracle_verifier:
+        acc_list = acc_oracle_verifier_list
+    else:
+        acc_list = acc_model_verifier_list
+
+    print(f"acc_list:", acc_list)
+    print(f"mean acc_list:", np.mean(acc_list))
+    # print(f"bootstrap_confidence_interval: {fitness_str}")
+
+    if 'swe_bench' in args.dataset:
+        extracted_answer = final_reponse[0].split('\n\nAnswer:', 1)[-1].strip()
+        if '<patch>' in extracted_answer:
+            extracted_answer = extract_xml(extracted_answer, 'patch').strip()   
+    else:
+        extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
+
+    if '[TOO_HARD]' in extracted_answer:
+        extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
+    # memory.append({extracted_answer:fitness_str})
+    # print(f'save json to {mem_path}')
+    # with open(mem_path, 'w') as json_file:
+    #     json.dump(memory, json_file, indent=4)
+        
+    print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
+
+    with open(oracle_acc_result_path, "a+") as fh:
+        fh.write(f'experiemnt {example_id}: 1 (initial Test_multiple_times): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
+    
+    max_score = max(max_score, acc_oracle_verifier_list[0])
+            
+    end_time_ = time.time()
+    total_time = end_time_ - start_time_        
+    
+    final_results.append({
+        "example_id": example_id,
+        "score": max_score,
+        "total_time": total_time,
+        "total_execution_time": total_execution_time,
+        "max_cost": get_global("global_COST_TOTAL"),
+        "max_execution_cost": get_global("global_COST_EXECUTION")
+    })
+    
+    with open(final_results_path, "w") as f:
+        json.dump(final_results, f, indent=4)
+            
+    return acc_oracle_verifier_list[0], total_time, total_execution_time, result_path
+        
