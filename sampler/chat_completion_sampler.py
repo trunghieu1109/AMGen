@@ -71,7 +71,7 @@ class ChatCompletionSampler(SamplerBase):
         model: str,
         system_message: str | None = None,
         temperature: float = 0.5,
-        max_tokens: int = 1024,
+        max_tokens: int = 4096,
     ):
         self.api_key_name = "OPENAI_API_KEY"
         self.client = AsyncOpenAI()

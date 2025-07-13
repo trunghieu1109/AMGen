@@ -1,0 +1,173 @@
+
+============== high level task decomposition ================
+[{'objective': 'Model the rectangles and points on a coordinate system to determine relative positions and given conditions.'}, {'objective': 'Use the collinearity of points D, E, C, F and the cyclic nature of points A, D, H, G to derive geometric constraints.'}, {'objective': 'Formulate equations based on rectangle properties, circle theorems, and segment lengths relating to CE.'}, {'objective': 'Solve the system of equations to find the exact length of segment CE.'}]
+============== task analysis ================
+1. Extract and Summarize Given Information:
+- Two rectangles named ABCD and EFGH.
+- Points D, E, C, F are collinear.
+- Points A, D, H, G lie on a common circle.
+- Side lengths given: BC = 16, AB = 107 for rectangle ABCD; FG = 17, EF = 184 for rectangle EFGH.
+- The problem asks for the length CE.
+
+Properties:
+- ABCD and EFGH are rectangles, so all angles are right angles, opposite sides are equal and parallel.
+- The points D, E, C, F lie on a straight line, implying a linear alignment of these four points.
+- Points A, D, H, G are concyclic, meaning they lie on the circumference of the same circle.
+
+2. Analyze Relationships Between Components:
+- Since ABCD and EFGH are rectangles, their sides are perpendicular and lengths are as given.
+- The collinearity of D, E, C, F suggests a geometric constraint linking the two rectangles, possibly indicating that these points lie on a common line segment or axis.
+- The concyclicity of A, D, H, G imposes a circle passing through these four points, which may relate the positions of the two rectangles.
+- The given side lengths provide scale and dimension for both rectangles.
+- The length CE, connecting a vertex from ABCD (C) to a vertex from EFGH (E), is the unknown segment to be determined.
+
+3. Identify the Field of Study:
+- The problem lies primarily in Euclidean Geometry.
+- Subfields involved include properties of rectangles, circle geometry (cyclic quadrilaterals), and collinearity.
+- Potential applications include geometric problem solving in mathematical competitions or coordinate geometry.
+
+4. Highlight Aspects Needing Clarification:
+- The relative positions and orientations of the two rectangles are not explicitly stated (e.g., how they are placed with respect to each other).
+- The exact order of points D, E, C, F on the line is not specified.
+- The problem does not specify whether the rectangles are in the same plane or if any coordinate system is assumed.
+- The nature of the circle passing through A, D, H, G is not detailed (e.g., radius, center).
+- Without additional constraints or coordinate references, multiple configurations might satisfy the given conditions, making the problem potentially ambiguous.
+============== task decomposition 0 ================
+{'stage_0': {'subtask_1': {'objective': 'Derive coordinate or vector representations for rectangles ABCD and EFGH using given side lengths and rectangle properties, and represent points D, E, C, F and A, D, H, G accordingly.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}}, 'stage_1': {'subtask_2': {'objective': 'Apply and verify the collinearity condition of points D, E, C, F to constrain their relative positions and orientations.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Debate'}, 'subtask_3': {'objective': 'Apply and verify the concyclicity condition of points A, D, H, G to further constrain the configuration of the rectangles and their points.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Debate'}}, 'stage_2': {'subtask_4': {'objective': 'Combine the constraints from collinearity and concyclicity along with the rectangle properties and given side lengths to derive the length of segment CE.', 'dependencies': ['subtask_2', 'subtask_3'], 'agent_collaboration': 'Reflexion'}}}
+============== code generate 0 ================
+async def forward(self, taskInfo):
+    from collections import Counter
+    print("Task Requirement: ", taskInfo)
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    cot_instruction = "Sub-task 1: Derive coordinate or vector representations for rectangles ABCD and EFGH using given side lengths and rectangle properties, and represent points D, E, C, F and A, D, H, G accordingly." 
+    cot_agent = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    subtask_desc1 = {
+        "subtask_id": "subtask_1",
+        "instruction": cot_instruction,
+        "context": ["user query"],
+        "agent_collaboration": "CoT"
+    }
+    thinking1, answer1 = await cot_agent([taskInfo], cot_instruction, is_sub_task=True)
+    agents.append(f"CoT agent {cot_agent.id}, deriving coordinate/vector representations, thinking: {thinking1.content}; answer: {answer1.content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking1.content}; answer - {answer1.content}")
+    subtask_desc1['response'] = {
+        "thinking": thinking1,
+        "answer": answer1
+    }
+    logs.append(subtask_desc1)
+    print("Step 1: ", sub_tasks[-1])
+
+    debate_instr_collinearity = "Sub-task 2: Apply and verify the collinearity condition of points D, E, C, F to constrain their relative positions and orientations. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_instr_concyclicity = "Sub-task 3: Apply and verify the concyclicity condition of points A, D, H, G to further constrain the configuration of the rectangles and their points. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+
+    debate_agents_collinearity = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    debate_agents_concyclicity = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+
+    N_max = self.max_round
+
+    all_thinking_col = [[] for _ in range(N_max)]
+    all_answer_col = [[] for _ in range(N_max)]
+    all_thinking_con = [[] for _ in range(N_max)]
+    all_answer_con = [[] for _ in range(N_max)]
+
+    subtask_desc2 = {
+        "subtask_id": "subtask_2",
+        "instruction": debate_instr_collinearity,
+        "context": ["user query", thinking1.content, answer1.content],
+        "agent_collaboration": "Debate"
+    }
+
+    subtask_desc3 = {
+        "subtask_id": "subtask_3",
+        "instruction": debate_instr_concyclicity,
+        "context": ["user query", thinking1.content, answer1.content],
+        "agent_collaboration": "Debate"
+    }
+
+    for r in range(N_max):
+        for i, agent in enumerate(debate_agents_collinearity):
+            if r == 0:
+                thinking_col, answer_col = await agent([taskInfo, thinking1, answer1], debate_instr_collinearity, r, is_sub_task=True)
+            else:
+                input_infos_col = [taskInfo, thinking1, answer1] + all_thinking_col[r-1] + all_answer_col[r-1]
+                thinking_col, answer_col = await agent(input_infos_col, debate_instr_collinearity, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, collinearity, thinking: {thinking_col.content}; answer: {answer_col.content}")
+            all_thinking_col[r].append(thinking_col)
+            all_answer_col[r].append(answer_col)
+
+        for j, agent in enumerate(debate_agents_concyclicity):
+            if r == 0:
+                thinking_con, answer_con = await agent([taskInfo, thinking1, answer1], debate_instr_concyclicity, r, is_sub_task=True)
+            else:
+                input_infos_con = [taskInfo, thinking1, answer1] + all_thinking_con[r-1] + all_answer_con[r-1]
+                thinking_con, answer_con = await agent(input_infos_con, debate_instr_concyclicity, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, concyclicity, thinking: {thinking_con.content}; answer: {answer_con.content}")
+            all_thinking_con[r].append(thinking_con)
+            all_answer_con[r].append(answer_con)
+
+    final_decision_instr_col = "Given all the above thinking and answers, reason over them carefully and provide a final answer for collinearity condition."
+    final_decision_instr_con = "Given all the above thinking and answers, reason over them carefully and provide a final answer for concyclicity condition."
+
+    final_decision_agent_col = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    final_decision_agent_con = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+
+    thinking2, answer2 = await final_decision_agent_col([taskInfo, thinking1, answer1] + all_thinking_col[-1] + all_answer_col[-1], final_decision_instr_col, is_sub_task=True)
+    agents.append(f"Final Decision agent collinearity, thinking: {thinking2.content}; answer: {answer2.content}")
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking2.content}; answer - {answer2.content}")
+    subtask_desc2['response'] = {
+        "thinking": thinking2,
+        "answer": answer2
+    }
+    logs.append(subtask_desc2)
+    print("Step 2: ", sub_tasks[-1])
+
+    thinking3, answer3 = await final_decision_agent_con([taskInfo, thinking1, answer1] + all_thinking_con[-1] + all_answer_con[-1], final_decision_instr_con, is_sub_task=True)
+    agents.append(f"Final Decision agent concyclicity, thinking: {thinking3.content}; answer: {answer3.content}")
+    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking3.content}; answer - {answer3.content}")
+    subtask_desc3['response'] = {
+        "thinking": thinking3,
+        "answer": answer3
+    }
+    logs.append(subtask_desc3)
+    print("Step 3: ", sub_tasks[-1])
+
+    reflect_inst = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
+    cot_reflect_instruction = "Sub-task 4: Combine the constraints from collinearity and concyclicity along with the rectangle properties and given side lengths to derive the length of segment CE." + reflect_inst
+
+    cot_agent_reflect = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    critic_agent = LLMAgentBase(["feedback", "correct"], "Critic Agent", model=self.node_model, temperature=0.0)
+
+    cot_inputs = [taskInfo, thinking1, answer1, thinking2, answer2, thinking3, answer3]
+
+    subtask_desc4 = {
+        "subtask_id": "subtask_4",
+        "instruction": cot_reflect_instruction,
+        "context": ["user query", thinking1.content, answer1.content, thinking2.content, answer2.content, thinking3.content, answer3.content],
+        "agent_collaboration": "Reflexion"
+    }
+
+    thinking4, answer4 = await cot_agent_reflect(cot_inputs, cot_reflect_instruction, 0, is_sub_task=True)
+    agents.append(f"Reflexion CoT agent {cot_agent_reflect.id}, initial solution for length CE, thinking: {thinking4.content}; answer: {answer4.content}")
+
+    for i in range(self.max_round):
+        feedback, correct = await critic_agent([taskInfo, thinking4, answer4], "Please review the answer above and criticize on where might be wrong. If you are absolutely sure it is correct, output exactly 'True' in 'correct'", i, is_sub_task=True)
+        agents.append(f"Critic agent {critic_agent.id}, feedback: {feedback.content}; correctness: {correct.content}")
+        if correct.content.strip() == "True":
+            break
+        cot_inputs.extend([thinking4, answer4, feedback])
+        thinking4, answer4 = await cot_agent_reflect(cot_inputs, cot_reflect_instruction, i + 1, is_sub_task=True)
+        agents.append(f"Reflexion CoT agent {cot_agent_reflect.id}, refined solution for length CE, thinking: {thinking4.content}; answer: {answer4.content}")
+
+    sub_tasks.append(f"Sub-task 4 output: thinking - {thinking4.content}; answer - {answer4.content}")
+    subtask_desc4['response'] = {
+        "thinking": thinking4,
+        "answer": answer4
+    }
+    logs.append(subtask_desc4)
+    print("Step 4: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking4, answer4, sub_tasks, agents)
+    return final_answer, logs

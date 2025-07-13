@@ -1,8 +1,8 @@
 import re
 from collections import defaultdict
 
-input_file = "results/workflow_search/aime24/dev18/gpt-4.1-mini_gpt-4.1-mini_oracle.results"
-output_file = "merged_output2.txt"
+input_file = "results/workflow_search/aime24/dev19_attemp3/o4-mini_o4-mini_oracle.results"
+output_file = "merged_output.txt"
 
 # Dictionary để lưu max acc_oracle_verifier_list theo experiment
 exp_to_max_acc = defaultdict(int)

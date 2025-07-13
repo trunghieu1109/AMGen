@@ -1,0 +1,143 @@
+
+============== high level task decomposition ================
+[{'objective': 'Determine the mass dimensions of the fields and constants in the Lagrangian.'}, {'objective': 'Calculate the mass dimension of \\kappa using the mass dimensions of the fields and constants.'}, {'objective': 'Evaluate the renormalizability of the theory based on the mass dimension of \\kappa and the structure of the Lagrangian.'}]
+============== task analysis ================
+{'Extract and Summarize Given Information': {'Lagrangian': '\\mathcal{L}_{int}=\\kappa\\bar{\\psi}\\sigma_{\\mu\\nu}\\psi F^{\\mu\\nu}', 'Sigma Definition': '\\sigma_{\\mu\\nu}=\\frac{i}{2}\\left[\\gamma_{\\mu},\\gamma_{\\nu}\\right]', 'Key Entities': {'kappa': 'Coupling constant', 'psi': 'Spinor field', 'F^{\\mu\\nu}': 'Field strength tensor', 'gamma_{\\mu}': 'Gamma matrices'}}, 'Analyze Relationships Between Components': {'Interconnections': 'The Lagrangian involves interactions between spinor fields and a field strength tensor mediated by the coupling constant \\kappa.', 'Constraints': 'The commutator of gamma matrices defines \\sigma_{\\mu\\nu}, which is a key component in the interaction term.', 'Hypothesis': 'The mass dimension of \\kappa and the structure of the Lagrangian will influence the renormalizability of the theory.'}, 'Identify the Field of Study': {'Mathematical Domain': 'Quantum Field Theory', 'Subfields': 'Renormalization, Dimensional Analysis', 'Applications': 'Theoretical physics, particle interactions'}, 'Highlight Aspects Needing Clarification': {'Ambiguities': 'The problem does not specify the spacetime dimension, which affects the mass dimension analysis.', 'Challenges': 'Determining the mass dimension of \\kappa requires knowledge of the dimensions of the fields and constants involved.'}}
+============== task decomposition 0 ================
+{'stage_0': {'subtask_1': {'objective': 'Extract and summarize the given information from the Lagrangian, including definitions and key entities.', 'dependencies': [], 'agent_collaboration': 'CoT'}, 'subtask_2': {'objective': 'Identify the mathematical domain and subfields relevant to the problem, focusing on quantum field theory and renormalization.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'CoT'}}, 'stage_1': {'subtask_1': {'objective': 'Perform dimensional analysis to determine the mass dimension of \\(\\kappa\\) using the dimensions of the fields and constants involved.', 'dependencies': ['stage_0.subtask_1', 'stage_0.subtask_2'], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Analyze the structure of the Lagrangian to assess the renormalizability of the theory.', 'dependencies': ['stage_1.subtask_1'], 'agent_collaboration': 'Debate'}}, 'stage_2': {'subtask_1': {'objective': 'Evaluate the possible choices provided in the query against the criteria of mass dimension and renormalizability, and select the correct answer.', 'dependencies': ['stage_1.subtask_2'], 'agent_collaboration': 'Debate'}}}
+============== code generate 0 ================
+async def forward(self, taskInfo):
+    from collections import Counter
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    cot_instruction_0_1 = "Sub-task 1: Extract and summarize the given information from the Lagrangian, including definitions and key entities."
+    cot_agent_0_1 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    subtask_desc_0_1 = {
+        "subtask_id": "stage_0_subtask_1",
+        "instruction": cot_instruction_0_1,
+        "context": ["user query"],
+        "agent_collaboration": "CoT"
+    }
+    thinking_0_1, answer_0_1 = await cot_agent_0_1([taskInfo], cot_instruction_0_1, is_sub_task=True)
+    agents.append(f"CoT agent {cot_agent_0_1.id}, analyzing Lagrangian, thinking: {thinking_0_1.content}; answer: {answer_0_1.content}")
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking_0_1.content}; answer - {answer_0_1.content}")
+    subtask_desc_0_1['response'] = {
+        "thinking": thinking_0_1,
+        "answer": answer_0_1
+    }
+    logs.append(subtask_desc_0_1)
+    print("Step 1: ", sub_tasks[-1])
+
+    cot_instruction_0_2 = "Sub-task 2: Identify the mathematical domain and subfields relevant to the problem, focusing on quantum field theory and renormalization."
+    cot_agent_0_2 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    subtask_desc_0_2 = {
+        "subtask_id": "stage_0_subtask_2",
+        "instruction": cot_instruction_0_2,
+        "context": ["user query", "thinking of stage_0_subtask_1", "answer of stage_0_subtask_1"],
+        "agent_collaboration": "CoT"
+    }
+    thinking_0_2, answer_0_2 = await cot_agent_0_2([taskInfo, thinking_0_1, answer_0_1], cot_instruction_0_2, is_sub_task=True)
+    agents.append(f"CoT agent {cot_agent_0_2.id}, identifying domain, thinking: {thinking_0_2.content}; answer: {answer_0_2.content}")
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking_0_2.content}; answer - {answer_0_2.content}")
+    subtask_desc_0_2['response'] = {
+        "thinking": thinking_0_2,
+        "answer": answer_0_2
+    }
+    logs.append(subtask_desc_0_2)
+    print("Step 2: ", sub_tasks[-1])
+
+    cot_sc_instruction_1_1 = "Sub-task 1: Perform dimensional analysis to determine the mass dimension of kappa using the dimensions of the fields and constants involved."
+    N = self.max_sc
+    cot_agents_1_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_1_1 = []
+    possible_thinkings_1_1 = []
+    subtask_desc_1_1 = {
+        "subtask_id": "stage_1_subtask_1",
+        "instruction": cot_sc_instruction_1_1,
+        "context": ["user query", "thinking of stage_0_subtask_1", "answer of stage_0_subtask_1", "thinking of stage_0_subtask_2", "answer of stage_0_subtask_2"],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking_1_1, answer_1_1 = await cot_agents_1_1[i]([taskInfo, thinking_0_1, answer_0_1, thinking_0_2, answer_0_2], cot_sc_instruction_1_1, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1_1[i].id}, performing dimensional analysis, thinking: {thinking_1_1.content}; answer: {answer_1_1.content}")
+        possible_answers_1_1.append(answer_1_1)
+        possible_thinkings_1_1.append(thinking_1_1)
+    final_instr_1_1 = "Given all the above thinking and answers, find the most consistent and correct solutions for the mass dimension of kappa."
+    final_decision_agent_1_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1_1, answer_1_1 = await final_decision_agent_1_1([taskInfo, thinking_0_1, answer_0_1, thinking_0_2, answer_0_2] + possible_thinkings_1_1 + possible_answers_1_1, "Sub-task 1: Synthesize and choose the most consistent answer for mass dimension of kappa." + final_instr_1_1, is_sub_task=True)
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking_1_1.content}; answer - {answer_1_1.content}")
+    subtask_desc_1_1['response'] = {
+        "thinking": thinking_1_1,
+        "answer": answer_1_1
+    }
+    logs.append(subtask_desc_1_1)
+    print("Step 3: ", sub_tasks[-1])
+
+    debate_instruction_1_2 = "Sub-task 2: Analyze the structure of the Lagrangian to assess the renormalizability of the theory."
+    debate_agents_1_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_1_2 = self.max_round
+    all_thinking_1_2 = [[] for _ in range(N_max_1_2)]
+    all_answer_1_2 = [[] for _ in range(N_max_1_2)]
+    subtask_desc_1_2 = {
+        "subtask_id": "stage_1_subtask_2",
+        "instruction": debate_instruction_1_2,
+        "context": ["user query", "thinking of stage_1_subtask_1", "answer of stage_1_subtask_1"],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_1_2):
+        for i, agent in enumerate(debate_agents_1_2):
+            if r == 0:
+                thinking_1_2, answer_1_2 = await agent([taskInfo, thinking_1_1, answer_1_1], debate_instruction_1_2, r, is_sub_task=True)
+            else:
+                input_infos_1_2 = [taskInfo, thinking_1_1, answer_1_1] + all_thinking_1_2[r-1] + all_answer_1_2[r-1]
+                thinking_1_2, answer_1_2 = await agent(input_infos_1_2, debate_instruction_1_2, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, analyzing renormalizability, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
+            all_thinking_1_2[r].append(thinking_1_2)
+            all_answer_1_2[r].append(answer_1_2)
+    final_instr_1_2 = "Given all the above thinking and answers, reason over them carefully and provide a final answer on renormalizability."
+    final_decision_agent_1_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1_2, answer_1_2 = await final_decision_agent_1_2([taskInfo, thinking_1_1, answer_1_1] + all_thinking_1_2[-1] + all_answer_1_2[-1], "Sub-task 2: Assess renormalizability." + final_instr_1_2, is_sub_task=True)
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking_1_2.content}; answer - {answer_1_2.content}")
+    subtask_desc_1_2['response'] = {
+        "thinking": thinking_1_2,
+        "answer": answer_1_2
+    }
+    logs.append(subtask_desc_1_2)
+    print("Step 4: ", sub_tasks[-1])
+
+    debate_instruction_2_1 = "Sub-task 1: Evaluate the possible choices provided in the query against the criteria of mass dimension and renormalizability, and select the correct answer."
+    debate_agents_2_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_2_1 = self.max_round
+    all_thinking_2_1 = [[] for _ in range(N_max_2_1)]
+    all_answer_2_1 = [[] for _ in range(N_max_2_1)]
+    subtask_desc_2_1 = {
+        "subtask_id": "stage_2_subtask_1",
+        "instruction": debate_instruction_2_1,
+        "context": ["user query", "thinking of stage_1_subtask_2", "answer of stage_1_subtask_2"],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_2_1):
+        for i, agent in enumerate(debate_agents_2_1):
+            if r == 0:
+                thinking_2_1, answer_2_1 = await agent([taskInfo, thinking_1_2, answer_1_2], debate_instruction_2_1, r, is_sub_task=True)
+            else:
+                input_infos_2_1 = [taskInfo, thinking_1_2, answer_1_2] + all_thinking_2_1[r-1] + all_answer_2_1[r-1]
+                thinking_2_1, answer_2_1 = await agent(input_infos_2_1, debate_instruction_2_1, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, evaluating choices, thinking: {thinking_2_1.content}; answer: {answer_2_1.content}")
+            all_thinking_2_1[r].append(thinking_2_1)
+            all_answer_2_1[r].append(answer_2_1)
+    final_instr_2_1 = "Given all the above thinking and answers, reason over them carefully and provide a final answer."
+    final_decision_agent_2_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_2_1, answer_2_1 = await final_decision_agent_2_1([taskInfo, thinking_1_2, answer_1_2] + all_thinking_2_1[-1] + all_answer_2_1[-1], "Sub-task 1: Select the correct answer." + final_instr_2_1, is_sub_task=True)
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking_2_1.content}; answer - {answer_2_1.content}")
+    subtask_desc_2_1['response'] = {
+        "thinking": thinking_2_1,
+        "answer": answer_2_1
+    }
+    logs.append(subtask_desc_2_1)
+    print("Step 5: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking_2_1, answer_2_1, sub_tasks, agents)
+    return final_answer, logs

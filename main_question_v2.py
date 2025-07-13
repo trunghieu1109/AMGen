@@ -324,7 +324,7 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24/abstracted_workflow/abstract_workflow_description.json'
+    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
@@ -381,7 +381,7 @@ async def run_main():
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
         # examples = [examples[28]]
-        # examples = examples[:5]
+        # examples = examples[:11]
         test_size = 0.6
         
         val_set, test_set = split_array(examples, test_size)
@@ -514,7 +514,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'dev18/question/meta_agent/'
+        args.expr_name = f'dev19_attemp4/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
