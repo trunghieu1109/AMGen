@@ -81,6 +81,10 @@ model_price_map = {
         'prompt': 0.0004,
         'completion': 0.0016   
     },
+    "gpt-4.1-nano": {
+        'prompt': 0.0004,
+        'completion': 0.0016   
+    },
     # follow aflow: "gpt-4o": {"prompt": 0.005, "completion": 0.015}
     # in https://github.com/geekan/MetaGPT/blob/main/metagpt/utils/token_counter.py
 
@@ -250,7 +254,7 @@ async def get_json_response_from_gpt(
         msg,
         model,
         output_fields,
-        tempreture,
+        temperature=0.0,
         is_execution=False
 ):
     # We do not do anything with system prompt
@@ -267,7 +271,7 @@ async def get_json_response_from_gpt(
         debug_count += 1
         retries += 1
         try:
-            sampler_return = await sampler(msg, tempreture)
+            sampler_return = await sampler(msg, temperature)
 
             #TODO: we do not want to break here. If it is just excution, it must be runnable by keep retrying
             # if sampler_return == "" or debug_count > 5: #bad request

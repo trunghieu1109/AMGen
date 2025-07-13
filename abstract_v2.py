@@ -396,12 +396,18 @@ Analyze the provided query and abstract workflow to produce the JSON output, ens
         
         return analysis['subtasks'], analysis['flow']
     
-    async def abstract_task_decomposition(self, query, subtasks):
+    async def abstract_task_decomposition(self, query, subtasks, potential_subtask_names = [], abstracted_subtask = []):
         # generate the first generation
         print("================== Abstracting Workflow ==================")
         
         recent_subtask_names = self.subtask_names_set
+        if len(recent_subtask_names) == 0:
+            print("Pass subtask names")
+            recent_subtask_names = potential_subtask_names
         recent_abstracted_objectives = self.abstracted_objectives[-20:] if len(self.abstracted_objectives) >= 20 else self.abstracted_objectives
+        if len(recent_abstracted_objectives) == 0:
+            print("Pass abstracted objectives")
+            recent_abstracted_objectives = abstracted_subtask
         
         abstract_td_user_prompt = f"""
 You are a reasoning abstraction expert tasked with converting a list of domain-specific reasoning steps (subtasks), originally designed for a specific query, into purely functional, domain-independent, and query-agnostic versions. The abstracted subtasks must be so generalized that they bear no resemblance to the original query or domain, functioning as universal steps applicable to any query in any field. Follow these guidelines for each subtask:
@@ -458,7 +464,7 @@ Return the result in the following JSON format in English:
             {"role": "user", "content": abstract_td_user_prompt}
         ]
 
-        abstracted_subtasks,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "o4-mini", ['thought', 'abstracted_subtasks'], 0.0)
+        abstracted_subtasks,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4.1-mini", ['thought', 'abstracted_subtasks'], 0.0)
         
         for subtask in abstracted_subtasks['abstracted_subtasks']:
             print(subtask)

@@ -68,10 +68,10 @@ class ChatCompletionSampler(SamplerBase):
 
     def __init__(
         self,
-        model: str = "gpt-3.5-turbo",
+        model: str,
         system_message: str | None = None,
         temperature: float = 0.5,
-        # max_tokens: int = 1024,
+        max_tokens: int = 1024,
     ):
         self.api_key_name = "OPENAI_API_KEY"
         self.client = AsyncOpenAI()
@@ -79,7 +79,7 @@ class ChatCompletionSampler(SamplerBase):
         self.model = model
         self.system_message = system_message
         self.temperature = temperature
-        # self.max_tokens = max_tokens
+        self.max_tokens = max_tokens
         self.image_format = "url"
 
     def _handle_image(
@@ -115,7 +115,7 @@ class ChatCompletionSampler(SamplerBase):
                         model=self.model,
                         messages=message_list,
                         temperature= temperature if temperature is not None else self.temperature,              
-                        # max_tokens=self.max_tokens
+                        max_tokens=self.max_tokens
                     )               
                 else:
                     response = await self.client.chat.completions.create(

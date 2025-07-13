@@ -1,14 +1,16 @@
 import re
 from collections import defaultdict
 
-input_file = "results/workflow_search/aime24/single_baseline_multiple_times_attempt_2/cot/gpt-4.1-mini_o4-mini_oracle.results"
-output_file = "merged_output.txt"
+input_file = "results/workflow_search/aime24/dev18/gpt-4.1-mini_gpt-4.1-mini_oracle.results"
+output_file = "merged_output2.txt"
 
 # Dictionary để lưu max acc_oracle_verifier_list theo experiment
 exp_to_max_acc = defaultdict(int)
 # Đọc file
 with open(input_file, "r") as f:
     for line in f:
+        line = line.replace("0.0", "0")
+        line = line.replace("1.0", "1")
         match = re.search(r"experiemnt (\d+):.*?acc_oracle_verifier_list: \[(\d+)\]", line)
         print(line)
         if match:

@@ -22,6 +22,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 import asyncio
 import time
+import datetime
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--valid_size', type=int, default=128)
@@ -269,6 +270,9 @@ async def run_main():
         "gpt-4.1-mini": ChatCompletionSampler(
             model="gpt-4.1-mini",
         ),
+        "gpt-4.1-nano": ChatCompletionSampler(
+            model="gpt-4.1-nano",
+        ),
         "gpt-4o-mini-2024-07-18": ChatCompletionSampler(
             model="gpt-4o-mini",
         ),
@@ -371,12 +375,12 @@ async def run_main():
         # output_description = "Return ONLY an integer. DO NOT return anything other than the integer answer."
         output_description = "If the question is asked for a numeric result, Return ONLY an integer and DO NOT return anything other than the integer answer; If the question is asked for more than numeric results, Return what the question asked and make sure the answer is complete."
 
-        debate_role = ['Math Professor', 'Grade School Teacher']
+        debate_role = ['Algebraist', 'Geometer', 'Logician', 'The Universal Mathematician']
 
         dataset = load_dataset("simplescaling/aime24_nofigures")
         df = pd.DataFrame(dataset['train'])
         examples = [row.to_dict() for _, row in df.iterrows()]
-        examples = [examples[13]]
+        # examples = [examples[28]]
         # examples = examples[:5]
         test_size = 0.6
         
@@ -510,7 +514,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'dev1/question/meta_agent/'
+        args.expr_name = f'dev18/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         print('args.expr_name: ', args.expr_name)
 
@@ -540,8 +544,9 @@ async def run_main():
         total_time = 0
         save_path = ""
         retries = 0
+        now = datetime.datetime.now()
         while retries < 2:
-            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v5.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v5.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now))
             # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v5.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
             if score > -1:
                 break
@@ -590,7 +595,8 @@ async def run_main():
     total_execution_cost = get_global("global_COST_EXECUTION")
     total_execution_time = 0
     for k, v in final_results.items():
-        total_accuracy += v['score']
+        if v['score'] > 0:
+            total_accuracy += v['score']
         total_time += v['total_time']
         total_execution_time += v['total_execution_time']
     

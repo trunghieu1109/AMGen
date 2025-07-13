@@ -10,7 +10,7 @@ async def forward(self, taskInfo):
 
     # Instantiate a new LLM agent specifically for CoT
     # To allow LLM thinking before answering, we need to set an additional output field 'thinking'.
-    cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent',  model=self.node_model, temperature=0.5)
+    cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent',  model=self.node_model, temperature=0.0)
 
     # Prepare the inputs for the CoT agent
     # The input should be a list of Info, and the first one is often the taskInfo

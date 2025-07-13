@@ -614,7 +614,7 @@ Return the result in the following JSON format in English:
             {"role": "user", "content": abstract_td_user_prompt}
         ]
 
-        abstracted_subtasks,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "o4-mini", ['thought', 'abstracted_subtasks'], 0.0)
+        abstracted_subtasks,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), "gpt-4.1-mini", ['thought', 'abstracted_subtasks'], 0.0)
         
         for subtask in abstracted_subtasks['abstracted_subtasks']:
             print(subtask)
@@ -713,7 +713,7 @@ Return your result in valid JSON format with the following structure:
         
     async def clustering(self, embeddings):
         sse = []  # Sum of Squared Errors
-        k_range = range(1, 100)
+        k_range = range(1, 20)
         
         normalized_embeddings = normalize(embeddings, norm="l2")
         dim_90, dim_95 = await self.find_optimal_k(normalized_embeddings)
@@ -1326,7 +1326,7 @@ async def main():
     
     mas_zero_workflow = []
     
-    with open("mas_zero_gpqa_diamond.json", "r", encoding="utf-8") as f:
+    with open("mas_zero_aime24.json", "r", encoding="utf-8") as f:
         mas_zero_workflow = json.load(f)
     mas_zero_workflow = mas_zero_workflow[:750]
     print(len(mas_zero_workflow))
@@ -1340,7 +1340,7 @@ async def main():
         mas_idx = int(idx / 5)
         iteration = int(mas['iteration'])
         
-        if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa_diamond_test/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
+        if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v2/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"):
             continue 
         
         if iteration != 0:
@@ -1349,7 +1349,7 @@ async def main():
         print(f"Workflow {mas_idx}, iteration: {iteration}")
         subtask_list = await abstractor(mas['problem'], mas['code'])
     
-        dir_path = f"workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa_diamond_test"
+        dir_path = f"workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v2"
         file_path = f"{dir_path}/mas_zero_workflow_analysis_{mas_idx}_iteration_{iteration}.json"
 
         # Ensure the directory exists
@@ -1359,11 +1359,11 @@ async def main():
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(subtask_list, f, ensure_ascii=False, indent=4)
             
-    cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa_diamond_test")
+    cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v2")
     cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
     cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
     cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
-    await abstractor.clustering_workflow("workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa_diamond_test", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
+    await abstractor.clustering_workflow("workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v2", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
     
     end_time = time.time()
     
