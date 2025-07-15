@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "results/workflow_search/gpqa_diamond/dev19_attemp4/o4-mini_o4-mini"
+directory = "results/workflow_search/gpqa_diamond/dev19_execution_model_test/gpt-4.1-mini_gpt-4o_chatgpt"
 total_score = 0
 total_time = 0
 total_execution_time = 0
@@ -21,6 +21,9 @@ for filename in os.listdir(directory):
         
         if number < 150:
             continue
+        
+        # if number in [176, 174, 195]:
+        #     continue
         
         cnt += 1
         # print(filename)
@@ -45,9 +48,9 @@ for idx in range(150, 198):
     if file_name[idx] == 0:
         print(idx)
 print(total_score)
-print(f"Total score: {(total_score) / 48 * 100}")
-print(f"Average time: {total_time / 48}")
-print(f"Average Execution time: {total_execution_time / 48}")
-print(f"Average cost: {max_cost / 48}")
-print(f"Average Execution cost: {max_execution_cost / 48}")
+print(f"Total score: {(total_score) / cnt * 100}")
+print(f"Average time: {total_time / cnt}")
+print(f"Average Execution time: {total_execution_time / cnt}")
+print(f"Average cost: {max_cost / cnt}")
+print(f"Average Execution cost: {max_execution_cost / cnt}")
 print(f"Max cost: {max_cost}")

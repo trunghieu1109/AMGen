@@ -1,0 +1,194 @@
+
+============== high level task decomposition ================
+[{'objective': 'Identify the neutrino energy spectra and flux contributions from the pp-III branch and other solar neutrino production branches in the 700-800 keV and 800-900 keV bands.'}, {'objective': 'Determine the effect of stopping the pp-III branch 8.5 minutes ago on the neutrino flux reaching Earth now, considering neutrino travel time.'}, {'objective': 'Calculate the new neutrino flux values in the 700-800 keV and 800-900 keV bands after the pp-III branch stops.'}, {'objective': 'Compute the ratio of the neutrino flux in the 700-800 keV band to that in the 800-900 keV band based on the adjusted fluxes.'}]
+============== task analysis ================
+1. Extract and Summarize Given Information:
+- The Sun produces a very large flux of neutrinos, measured as number per cm² per second.
+- Hypothetically, the pp-III branch of solar fusion reactions stops suddenly in the Sun's core about 8.5 minutes ago.
+- All other fusion reaction branches (pp-I, pp-II, etc.) continue unchanged.
+- Two neutrino energy bands are considered: 700-800 keV (band 1) and 800-900 keV (band 2).
+- The problem asks for the approximate ratio of fluxes: Flux(band 1) / Flux(band 2).
+- Additional notes clarify that only the pp-III branch is stopped, and neutrino flavor oscillations are not relevant here.
+
+Properties:
+- The pp-III branch is one of the branches in the proton-proton chain reaction in the Sun, producing neutrinos with characteristic energy spectra.
+- Neutrino fluxes depend on the nuclear reactions occurring in the Sun's core and their respective neutrino energy distributions.
+
+2. Analyze Relationships Between Components:
+- The neutrino flux in each energy band is a sum of contributions from different reaction branches.
+- The pp-III branch contributes neutrinos primarily in a certain energy range, likely overlapping with one or both of the given bands.
+- Stopping the pp-III branch removes its neutrino contribution, altering the flux in the affected energy band(s).
+- Since the pp-III branch is stopped, the flux in the energy band(s) where pp-III neutrinos dominate will decrease significantly.
+- The ratio Flux(band 1) / Flux(band 2) will change depending on which band is more affected by the pp-III branch cessation.
+- The 8.5 minutes delay corresponds roughly to the neutrino travel time from the Sun to Earth, implying the flux change is just now observable.
+
+3. Identify the Field of Study:
+- The problem lies in astrophysics and nuclear physics, specifically solar neutrino physics.
+- It involves particle physics concepts related to neutrino production and energy spectra.
+- The problem also touches on nuclear reaction chains in stellar interiors.
+- Relevant subfields include solar astrophysics, neutrino astronomy, and nuclear reaction modeling.
+- Such problems are common in astrophysics research and advanced physics education.
+
+4. Highlight Aspects Needing Clarification:
+- The exact neutrino energy spectra and flux contributions from each pp chain branch are not provided.
+- The problem assumes knowledge of which neutrino energies correspond to which branches.
+- The spatial and temporal dynamics of neutrino production and propagation are simplified (instantaneous change observed after 8.5 minutes).
+- The problem ignores neutrino flavor oscillations, which in reality affect detected fluxes.
+- Potential challenge: determining the relative contributions of pp-III neutrinos to the specified energy bands without explicit data.
+- Ambiguity in how sharply the flux changes after stopping the pp-III branch, given possible delays or mixing effects inside the Sun.
+============== task decomposition 0 ================
+{'stage_0': {'subtask_0_1': {'objective': 'Extract and summarize the key physical features of the solar neutrino production relevant to the problem, including the role of the pp-III branch and the neutrino energy bands specified.', 'dependencies': [], 'agent_collaboration': 'Debate'}, 'subtask_0_2': {'objective': 'Identify and characterize the neutrino energy spectra and flux contributions from each proton-proton chain branch (pp-I, pp-II, pp-III), focusing on their overlap with the 700-800 keV and 800-900 keV bands.', 'dependencies': ['subtask_0_1'], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_1_1': {'objective': 'Compute the approximate neutrino flux contributions in each energy band (700-800 keV and 800-900 keV) from all branches assuming normal operation (including pp-III).', 'dependencies': ['subtask_0_2'], 'agent_collaboration': 'SC_CoT'}, 'subtask_1_2': {'objective': 'Compute the neutrino flux contributions in each energy band after the hypothetical cessation of the pp-III branch, keeping other branches unchanged.', 'dependencies': ['subtask_1_1'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_2_1': {'objective': 'Combine the computed fluxes to determine the new flux ratio Flux(band 1) / Flux(band 2) after stopping the pp-III branch.', 'dependencies': ['subtask_1_2'], 'agent_collaboration': 'Reflexion'}}, 'stage_3': {'subtask_3_1': {'objective': 'Select the approximate ratio value from the given choices (0.1, 10, 1, 0.01) that best matches the computed flux ratio, justifying the choice based on the analysis.', 'dependencies': ['subtask_2_1'], 'agent_collaboration': 'Debate'}}}
+============== code generate 0 ================
+async def forward(self, taskInfo):
+    from collections import Counter
+    print("Task Requirement: ", taskInfo)
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    debate_instr_0_1 = "Sub-task 0_1: Extract and summarize the key physical features of the solar neutrino production relevant to the problem, including the role of the pp-III branch and the neutrino energy bands specified. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_0_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    all_thinking_0_1 = []
+    all_answer_0_1 = []
+    subtask_desc_0_1 = {
+        "subtask_id": "subtask_0_1",
+        "instruction": debate_instr_0_1,
+        "context": ["user query"],
+        "agent_collaboration": "Debate"
+    }
+    for i, agent in enumerate(debate_agents_0_1):
+        thinking, answer = await agent([taskInfo], debate_instr_0_1, 0, is_sub_task=True)
+        agents.append(f"Debate agent {agent.id}, round 0, subtask_0_1, thinking: {thinking.content}; answer: {answer.content}")
+        all_thinking_0_1.append(thinking)
+        all_answer_0_1.append(answer)
+    final_decision_agent_0_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_0_1, answer_0_1 = await final_decision_agent_0_1([taskInfo] + all_thinking_0_1 + all_answer_0_1, "Sub-task 0_1: Extract and summarize key physical features of solar neutrino production." + "Given all the above thinking and answers, reason over them carefully and provide a final answer.", is_sub_task=True)
+    agents.append(f"Final Decision agent 0_1, thinking: {thinking_0_1.content}; answer: {answer_0_1.content}")
+    sub_tasks.append(f"Sub-task 0_1 output: thinking - {thinking_0_1.content}; answer - {answer_0_1.content}")
+    subtask_desc_0_1['response'] = {"thinking": thinking_0_1, "answer": answer_0_1}
+    logs.append(subtask_desc_0_1)
+    print("Step 0_1: ", sub_tasks[-1])
+
+    debate_instr_0_2 = "Sub-task 0_2: Identify and characterize the neutrino energy spectra and flux contributions from each proton-proton chain branch (pp-I, pp-II, pp-III), focusing on their overlap with the 700-800 keV and 800-900 keV bands. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_0_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    all_thinking_0_2 = []
+    all_answer_0_2 = []
+    subtask_desc_0_2 = {
+        "subtask_id": "subtask_0_2",
+        "instruction": debate_instr_0_2,
+        "context": ["user query", thinking_0_1, answer_0_1],
+        "agent_collaboration": "Debate"
+    }
+    for i, agent in enumerate(debate_agents_0_2):
+        thinking, answer = await agent([taskInfo, thinking_0_1, answer_0_1], debate_instr_0_2, 0, is_sub_task=True)
+        agents.append(f"Debate agent {agent.id}, round 0, subtask_0_2, thinking: {thinking.content}; answer: {answer.content}")
+        all_thinking_0_2.append(thinking)
+        all_answer_0_2.append(answer)
+    final_decision_agent_0_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_0_2, answer_0_2 = await final_decision_agent_0_2([taskInfo, thinking_0_1, answer_0_1] + all_thinking_0_2 + all_answer_0_2, "Sub-task 0_2: Identify and characterize neutrino energy spectra and flux contributions." + "Given all the above thinking and answers, reason over them carefully and provide a final answer.", is_sub_task=True)
+    agents.append(f"Final Decision agent 0_2, thinking: {thinking_0_2.content}; answer: {answer_0_2.content}")
+    sub_tasks.append(f"Sub-task 0_2 output: thinking - {thinking_0_2.content}; answer - {answer_0_2.content}")
+    subtask_desc_0_2['response'] = {"thinking": thinking_0_2, "answer": answer_0_2}
+    logs.append(subtask_desc_0_2)
+    print("Step 0_2: ", sub_tasks[-1])
+
+    cot_sc_instruction_1_1 = "Sub-task 1_1: Compute the approximate neutrino flux contributions in each energy band (700-800 keV and 800-900 keV) from all branches assuming normal operation (including pp-III)."
+    N = self.max_sc
+    cot_agents_1_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_1_1 = []
+    possible_thinkings_1_1 = []
+    subtask_desc_1_1 = {
+        "subtask_id": "subtask_1_1",
+        "instruction": cot_sc_instruction_1_1,
+        "context": ["user query", thinking_0_2, answer_0_2],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking, answer = await cot_agents_1_1[i]([taskInfo, thinking_0_2, answer_0_2], cot_sc_instruction_1_1, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1_1[i].id}, subtask_1_1, thinking: {thinking.content}; answer: {answer.content}")
+        possible_answers_1_1.append(answer)
+        possible_thinkings_1_1.append(thinking)
+    final_decision_agent_1_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1_1, answer_1_1 = await final_decision_agent_1_1([taskInfo, thinking_0_2, answer_0_2] + possible_thinkings_1_1 + possible_answers_1_1, "Sub-task 1_1: Synthesize and choose the most consistent neutrino flux contributions assuming normal operation.", is_sub_task=True)
+    agents.append(f"Final Decision agent 1_1, thinking: {thinking_1_1.content}; answer: {answer_1_1.content}")
+    sub_tasks.append(f"Sub-task 1_1 output: thinking - {thinking_1_1.content}; answer - {answer_1_1.content}")
+    subtask_desc_1_1['response'] = {"thinking": thinking_1_1, "answer": answer_1_1}
+    logs.append(subtask_desc_1_1)
+    print("Step 1_1: ", sub_tasks[-1])
+
+    cot_sc_instruction_1_2 = "Sub-task 1_2: Compute the neutrino flux contributions in each energy band after the hypothetical cessation of the pp-III branch, keeping other branches unchanged."
+    cot_agents_1_2 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_1_2 = []
+    possible_thinkings_1_2 = []
+    subtask_desc_1_2 = {
+        "subtask_id": "subtask_1_2",
+        "instruction": cot_sc_instruction_1_2,
+        "context": ["user query", thinking_1_1, answer_1_1],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking, answer = await cot_agents_1_2[i]([taskInfo, thinking_1_1, answer_1_1], cot_sc_instruction_1_2, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1_2[i].id}, subtask_1_2, thinking: {thinking.content}; answer: {answer.content}")
+        possible_answers_1_2.append(answer)
+        possible_thinkings_1_2.append(thinking)
+    final_decision_agent_1_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1_2, answer_1_2 = await final_decision_agent_1_2([taskInfo, thinking_1_1, answer_1_1] + possible_thinkings_1_2 + possible_answers_1_2, "Sub-task 1_2: Synthesize and choose the most consistent neutrino flux contributions after stopping pp-III branch.", is_sub_task=True)
+    agents.append(f"Final Decision agent 1_2, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
+    sub_tasks.append(f"Sub-task 1_2 output: thinking - {thinking_1_2.content}; answer - {answer_1_2.content}")
+    subtask_desc_1_2['response'] = {"thinking": thinking_1_2, "answer": answer_1_2}
+    logs.append(subtask_desc_1_2)
+    print("Step 1_2: ", sub_tasks[-1])
+
+    reflect_inst_2_1 = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
+    cot_reflect_instruction_2_1 = "Sub-task 2_1: Combine the computed fluxes to determine the new flux ratio Flux(band 1) / Flux(band 2) after stopping the pp-III branch." + reflect_inst_2_1
+    cot_agent_2_1 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    critic_agent_2_1 = LLMAgentBase(["feedback", "correct"], "Critic Agent", model=self.node_model, temperature=0.0)
+    N_max = self.max_round
+    cot_inputs_2_1 = [taskInfo, thinking_1_2, answer_1_2]
+    subtask_desc_2_1 = {
+        "subtask_id": "subtask_2_1",
+        "instruction": cot_reflect_instruction_2_1,
+        "context": ["user query", thinking_1_2, answer_1_2],
+        "agent_collaboration": "Reflexion"
+    }
+    thinking_2_1, answer_2_1 = await cot_agent_2_1(cot_inputs_2_1, cot_reflect_instruction_2_1, 0, is_sub_task=True)
+    agents.append(f"Reflexion CoT agent {cot_agent_2_1.id}, subtask_2_1, thinking: {thinking_2_1.content}; answer: {answer_2_1.content}")
+    critic_inst_2_1 = "Please review the answer above and criticize on where might be wrong. If you are absolutely sure it is correct, output exactly 'True' in 'correct'"
+    for i in range(N_max):
+        feedback, correct = await critic_agent_2_1([taskInfo, thinking_2_1, answer_2_1], "Please review and provide the limitations of provided solutions." + critic_inst_2_1, i, is_sub_task=True)
+        agents.append(f"Critic agent {critic_agent_2_1.id}, subtask_2_1, feedback: {feedback.content}; correct: {correct.content}")
+        if correct.content == "True":
+            break
+        cot_inputs_2_1.extend([thinking_2_1, answer_2_1, feedback])
+        thinking_2_1, answer_2_1 = await cot_agent_2_1(cot_inputs_2_1, cot_reflect_instruction_2_1, i + 1, is_sub_task=True)
+        agents.append(f"Reflexion CoT agent {cot_agent_2_1.id}, subtask_2_1, refining thinking: {thinking_2_1.content}; answer: {answer_2_1.content}")
+    sub_tasks.append(f"Sub-task 2_1 output: thinking - {thinking_2_1.content}; answer - {answer_2_1.content}")
+    subtask_desc_2_1['response'] = {"thinking": thinking_2_1, "answer": answer_2_1}
+    logs.append(subtask_desc_2_1)
+    print("Step 2_1: ", sub_tasks[-1])
+
+    debate_instr_3_1 = "Sub-task 3_1: Select the approximate ratio value from the given choices (0.1, 10, 1, 0.01) that best matches the computed flux ratio, justifying the choice based on the analysis. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_3_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    all_thinking_3_1 = []
+    all_answer_3_1 = []
+    subtask_desc_3_1 = {
+        "subtask_id": "subtask_3_1",
+        "instruction": debate_instr_3_1,
+        "context": ["user query", thinking_2_1, answer_2_1],
+        "agent_collaboration": "Debate"
+    }
+    for i, agent in enumerate(debate_agents_3_1):
+        thinking, answer = await agent([taskInfo, thinking_2_1, answer_2_1], debate_instr_3_1, 0, is_sub_task=True)
+        agents.append(f"Debate agent {agent.id}, subtask_3_1, thinking: {thinking.content}; answer: {answer.content}")
+        all_thinking_3_1.append(thinking)
+        all_answer_3_1.append(answer)
+    final_decision_agent_3_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_3_1, answer_3_1 = await final_decision_agent_3_1([taskInfo, thinking_2_1, answer_2_1] + all_thinking_3_1 + all_answer_3_1, "Sub-task 3_1: Select the best matching flux ratio from given choices." + "Given all the above thinking and answers, reason over them carefully and provide a final answer.", is_sub_task=True)
+    agents.append(f"Final Decision agent 3_1, thinking: {thinking_3_1.content}; answer: {answer_3_1.content}")
+    sub_tasks.append(f"Sub-task 3_1 output: thinking - {thinking_3_1.content}; answer - {answer_3_1.content}")
+    subtask_desc_3_1['response'] = {"thinking": thinking_3_1, "answer": answer_3_1}
+    logs.append(subtask_desc_3_1)
+    print("Step 3_1: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking_3_1, answer_3_1, sub_tasks, agents)
+    return final_answer, logs

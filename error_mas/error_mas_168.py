@@ -4,162 +4,128 @@ async def forward_168(self, taskInfo):
     sub_tasks = []
     agents = []
     logs = []
-    
-    cot_instruction_0_1 = "Sub-task 1: Extract and summarize the key components of the original nuclear decay process and the variant process."
-    cot_agent_0_1 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                                model=self.node_model, temperature=0.0)
-    subtask_desc_0_1 = {
-        "subtask_id": "subtask_0_1",
-        "instruction": cot_instruction_0_1,
+
+    # Stage 0: Extract and summarize defining features (Debate)
+    debate_instr_0 = "Sub-task 1: Extract and summarize the defining features of the original and variant decay processes, including particle types, decay products, and known spectral properties. Ensure clarity on the masses and nature of particles (noting M is massless), and the known continuity and endpoint Q of the original E particle spectrum." + \
+                   " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_0 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_0 = self.max_round
+    all_thinking_0 = [[] for _ in range(N_max_0)]
+    all_answer_0 = [[] for _ in range(N_max_0)]
+    subtask_desc_0 = {
+        "subtask_id": "stage_0.subtask_1",
+        "instruction": debate_instr_0,
         "context": ["user query"],
-        "agent_collaboration": "SC_CoT"
-    }
-    thinking_0_1, answer_0_1 = await cot_agent_0_1([taskInfo], cot_instruction_0_1, is_sub_task=True)
-    agents.append(f"CoT agent {cot_agent_0_1.id}, analyzing decay process, thinking: {thinking_0_1.content}; answer: {answer_0_1.content}")
-    sub_tasks.append(f"Sub-task 0_1 output: thinking - {thinking_0_1.content}; answer - {answer_0_1.content}")
-    subtask_desc_0_1['response'] = {
-        "thinking": thinking_0_1,
-        "answer": answer_0_1
-    }
-    logs.append(subtask_desc_0_1)
-    
-    debate_instruction_0_2 = "Sub-task 2: Identify and describe the relationships between the components of the decay processes, focusing on energy conservation and particle interactions."
-    debate_agents_0_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
-                                     model=self.node_model, role=role, temperature=0.5) 
-                        for role in self.debate_role]
-    N_max_0_2 = self.max_round
-    all_thinking_0_2 = [[] for _ in range(N_max_0_2)]
-    all_answer_0_2 = [[] for _ in range(N_max_0_2)]
-    subtask_desc_0_2 = {
-        "subtask_id": "subtask_0_2",
-        "instruction": debate_instruction_0_2,
-        "context": ["user query", "thinking of subtask 0_1", "answer of subtask 0_1"],
         "agent_collaboration": "Debate"
     }
-    for r in range(N_max_0_2):
-        for i, agent in enumerate(debate_agents_0_2):
+    for r in range(N_max_0):
+        for i, agent in enumerate(debate_agents_0):
             if r == 0:
-                thinking_0_2, answer_0_2 = await agent([taskInfo, thinking_0_1, answer_0_1], 
-                                               debate_instruction_0_2, r, is_sub_task=True)
+                thinking_0, answer_0 = await agent([taskInfo], debate_instr_0, r, is_sub_task=True)
             else:
-                input_infos_0_2 = [taskInfo, thinking_0_1, answer_0_1] + all_thinking_0_2[r-1] + all_answer_0_2[r-1]
-                thinking_0_2, answer_0_2 = await agent(input_infos_0_2, debate_instruction_0_2, r, is_sub_task=True)
-            agents.append(f"Debate agent {agent.id}, round {r}, analyzing relationships, thinking: {thinking_0_2.content}; answer: {answer_0_2.content}")
-            all_thinking_0_2[r].append(thinking_0_2)
-            all_answer_0_2[r].append(answer_0_2)
-    final_instr_0_2 = "Given all the above thinking and answers, reason over them carefully and provide a final answer."
-    final_decision_agent_0_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                           model=self.node_model, temperature=0.0)
-    thinking_0_2, answer_0_2 = await final_decision_agent_0_2([taskInfo, thinking_0_1, answer_0_1] + all_thinking_0_2[-1] + all_answer_0_2[-1], 
-                                                     "Sub-task 0_2: Analyze relationships" + final_instr_0_2, 
-                                                     is_sub_task=True)
-    sub_tasks.append(f"Sub-task 0_2 output: thinking - {thinking_0_2.content}; answer - {answer_0_2.content}")
-    subtask_desc_0_2['response'] = {
-        "thinking": thinking_0_2,
-        "answer": answer_0_2
-    }
-    logs.append(subtask_desc_0_2)
-    
-    cot_sc_instruction_1_1 = "Sub-task 1: Assess the impact of replacing 2V with a massless particle M on the energy spectrum of the E particles."
-    N_1_1 = self.max_sc
-    cot_agents_1_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                                  model=self.node_model, temperature=0.5) for _ in range(N_1_1)]
-    possible_answers_1_1 = []
-    possible_thinkings_1_1 = []
+                input_infos_0 = [taskInfo] + all_thinking_0[r-1] + all_answer_0[r-1]
+                thinking_0, answer_0 = await agent(input_infos_0, debate_instr_0, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, thinking: {thinking_0.content}; answer: {answer_0.content}")
+            all_thinking_0[r].append(thinking_0)
+            all_answer_0[r].append(answer_0)
+    final_decision_agent_0 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    final_instr_0 = "Sub-task 1: Extract and summarize decay features. Given all the above thinking and answers, reason over them carefully and provide a final answer."
+    thinking_0, answer_0 = await final_decision_agent_0([taskInfo] + all_thinking_0[-1] + all_answer_0[-1], final_instr_0, is_sub_task=True)
+    agents.append(f"Final Decision agent stage_0, thinking: {thinking_0.content}; answer: {answer_0.content}")
+    sub_tasks.append(f"Stage 0 Sub-task 1 output: thinking - {thinking_0.content}; answer - {answer_0.content}")
+    subtask_desc_0['response'] = {"thinking": thinking_0, "answer": answer_0}
+    logs.append(subtask_desc_0)
+    print("Step 0: ", sub_tasks[-1])
+
+    # Stage 1 Subtask 1: Formulate explicit relativistic energy and momentum conservation equations (SC_CoT)
+    cot_sc_instruction_1 = "Sub-task 1: Formulate explicit relativistic energy and momentum conservation equations for both the original decay (2A -> 2B + 2E + 2V) and the variant decay (2A -> 2B + 2E + M). Write symbolic expressions for the endpoint energies Q_old and Q_new, including rest mass terms, to rigorously analyze how replacing two massive V particles with one massless M affects the maximum available kinetic energy for the E particles. Use stepwise, physics-grounded reasoning."
+    N_sc = self.max_sc
+    cot_agents_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N_sc)]
+    possible_answers_1 = []
+    possible_thinkings_1 = []
     subtask_desc_1_1 = {
-        "subtask_id": "subtask_1_1",
-        "instruction": cot_sc_instruction_1_1,
-        "context": ["user query", "thinking of subtask 0_2", "answer of subtask 0_2"],
+        "subtask_id": "stage_1.subtask_1",
+        "instruction": cot_sc_instruction_1,
+        "context": ["user query", thinking_0, answer_0],
         "agent_collaboration": "SC_CoT"
     }
-    for i in range(N_1_1):
-        thinking_1_1, answer_1_1 = await cot_agents_1_1([taskInfo, thinking_0_2, answer_0_2], cot_sc_instruction_1_1, is_sub_task=True)
-        agents.append(f"CoT-SC agent {cot_agents_1_1[i].id}, assessing impact, thinking: {thinking_1_1.content}; answer: {answer_1_1.content}")
-        possible_answers_1_1.append(answer_1_1)
-        possible_thinkings_1_1.append(thinking_1_1)
-    final_instr_1_1 = "Given all the above thinking and answers, find the most consistent and correct solutions for the impact assessment."
-    final_decision_agent_1_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                           model=self.node_model, temperature=0.0)
-    thinking_1_1, answer_1_1 = await final_decision_agent_1_1([taskInfo, thinking_0_2, answer_0_2] + possible_thinkings_1_1 + possible_answers_1_1, 
-                                                     "Sub-task 1_1: Synthesize impact assessment" + final_instr_1_1, 
-                                                     is_sub_task=True)
-    sub_tasks.append(f"Sub-task 1_1 output: thinking - {thinking_1_1.content}; answer - {answer_1_1.content}")
-    subtask_desc_1_1['response'] = {
-        "thinking": thinking_1_1,
-        "answer": answer_1_1
-    }
+    for i in range(N_sc):
+        thinking_1, answer_1 = await cot_agents_1[i]([taskInfo, thinking_0, answer_0], cot_sc_instruction_1, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1[i].id}, thinking: {thinking_1.content}; answer: {answer_1.content}")
+        possible_answers_1.append(answer_1)
+        possible_thinkings_1.append(thinking_1)
+    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    final_instr_1 = "Sub-task 1: Synthesize and choose the most consistent and correct solutions for the energy conservation and endpoint expressions."
+    thinking_1, answer_1 = await final_decision_agent_1([taskInfo, thinking_0, answer_0] + possible_thinkings_1 + possible_answers_1, final_instr_1, is_sub_task=True)
+    agents.append(f"Final Decision agent stage_1.subtask_1, thinking: {thinking_1.content}; answer: {answer_1.content}")
+    sub_tasks.append(f"Stage 1 Sub-task 1 output: thinking - {thinking_1.content}; answer - {answer_1.content}")
+    subtask_desc_1_1['response'] = {"thinking": thinking_1, "answer": answer_1}
     logs.append(subtask_desc_1_1)
-    
-    reflect_inst_1_2 = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
-    cot_reflect_instruction_1_2 = "Sub-task 2: Transform the understanding of the decay process to reflect the changes in the energy spectrum due to the introduction of particle M." + reflect_inst_1_2
-    cot_agent_1_2 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                                model=self.node_model, temperature=0.0)
-    critic_agent_1_2 = LLMAgentBase(["feedback", "correct"], "Critic Agent", 
-                                   model=self.node_model, temperature=0.0)
+    print("Step 1.1: ", sub_tasks[-1])
+
+    # Stage 1 Subtask 2: Analyze impact on shape and continuity of spectrum (Debate)
+    debate_instr_1_2 = "Sub-task 2: Analyze the impact of the altered final state on the shape and continuity of the total energy spectrum of the E particles, incorporating the results from the explicit energy-balance derivation. Emphasize that the spectrum remains continuous due to multi-body kinematics, but the shape and endpoint shift according to the energy available." + \
+                     " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_1_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
     N_max_1_2 = self.max_round
-    cot_inputs_1_2 = [taskInfo, thinking_0_2, answer_0_2, thinking_1_1, answer_1_1]
+    all_thinking_1_2 = [[] for _ in range(N_max_1_2)]
+    all_answer_1_2 = [[] for _ in range(N_max_1_2)]
     subtask_desc_1_2 = {
-        "subtask_id": "subtask_1_2",
-        "instruction": cot_reflect_instruction_1_2,
-        "context": ["user query", "thinking of subtask 0_2", "answer of subtask 0_2", "thinking of subtask 1_1", "answer of subtask 1_1"],
-        "agent_collaboration": "Reflexion"
-    }
-    thinking_1_2, answer_1_2 = await cot_agent_1_2(cot_inputs_1_2, cot_reflect_instruction_1_2, 0, is_sub_task=True)
-    agents.append(f"Reflexion CoT agent {cot_agent_1_2.id}, refining understanding, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
-    critic_inst_1_2 = "Please review the answer above and criticize on where might be wrong. If you are absolutely sure it is correct, output exactly 'True' in 'correct'"
-    for i in range(N_max_1_2):
-        feedback_1_2, correct_1_2 = await critic_agent_1_2([taskInfo, thinking_1_2, answer_1_2], 
-                                               "Please review and provide the limitations of provided solutions" + critic_inst_1_2, 
-                                               i, is_sub_task=True)
-        agents.append(f"Critic agent {critic_agent_1_2.id}, providing feedback, thinking: {feedback_1_2.content}; answer: {correct_1_2.content}")
-        if correct_1_2.content == "True":
-            break
-        cot_inputs_1_2.extend([thinking_1_2, answer_1_2, feedback_1_2])
-        thinking_1_2, answer_1_2 = await cot_agent_1_2(cot_inputs_1_2, cot_reflect_instruction_1_2, i + 1, is_sub_task=True)
-        agents.append(f"Reflexion CoT agent {cot_agent_1_2.id}, refining understanding, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
-    sub_tasks.append(f"Sub-task 1_2 output: thinking - {thinking_1_2.content}; answer - {answer_1_2.content}")
-    subtask_desc_1_2['response'] = {
-        "thinking": thinking_1_2,
-        "answer": answer_1_2
-    }
-    logs.append(subtask_desc_1_2)
-    
-    debate_instruction_2_1 = "Sub-task 1: Analyze the adjusted energy spectrum of the E particles and classify it according to the provided choices."
-    debate_agents_2_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
-                                     model=self.node_model, role=role, temperature=0.5) 
-                        for role in self.debate_role]
-    N_max_2_1 = self.max_round
-    all_thinking_2_1 = [[] for _ in range(N_max_2_1)]
-    all_answer_2_1 = [[] for _ in range(N_max_2_1)]
-    subtask_desc_2_1 = {
-        "subtask_id": "subtask_2_1",
-        "instruction": debate_instruction_2_1,
-        "context": ["user query", "thinking of subtask 1_2", "answer of subtask 1_2"],
+        "subtask_id": "stage_1.subtask_2",
+        "instruction": debate_instr_1_2,
+        "context": ["user query", thinking_0, answer_0, thinking_1, answer_1],
         "agent_collaboration": "Debate"
     }
-    for r in range(N_max_2_1):
-        for i, agent in enumerate(debate_agents_2_1):
+    for r in range(N_max_1_2):
+        for i, agent in enumerate(debate_agents_1_2):
             if r == 0:
-                thinking_2_1, answer_2_1 = await agent([taskInfo, thinking_1_2, answer_1_2], 
-                                               debate_instruction_2_1, r, is_sub_task=True)
+                thinking_1_2, answer_1_2 = await agent([taskInfo, thinking_0, answer_0, thinking_1, answer_1], debate_instr_1_2, r, is_sub_task=True)
             else:
-                input_infos_2_1 = [taskInfo, thinking_1_2, answer_1_2] + all_thinking_2_1[r-1] + all_answer_2_1[r-1]
-                thinking_2_1, answer_2_1 = await agent(input_infos_2_1, debate_instruction_2_1, r, is_sub_task=True)
-            agents.append(f"Debate agent {agent.id}, round {r}, classifying spectrum, thinking: {thinking_2_1.content}; answer: {answer_2_1.content}")
-            all_thinking_2_1[r].append(thinking_2_1)
-            all_answer_2_1[r].append(answer_2_1)
-    final_instr_2_1 = "Given all the above thinking and answers, reason over them carefully and provide a final answer."
-    final_decision_agent_2_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                           model=self.node_model, temperature=0.0)
-    thinking_2_1, answer_2_1 = await final_decision_agent_2_1([taskInfo, thinking_1_2, answer_1_2] + all_thinking_2_1[-1] + all_answer_2_1[-1], 
-                                                     "Sub-task 2_1: Classify spectrum" + final_instr_2_1, 
-                                                     is_sub_task=True)
-    sub_tasks.append(f"Sub-task 2_1 output: thinking - {thinking_2_1.content}; answer - {answer_2_1.content}")
-    subtask_desc_2_1['response'] = {
-        "thinking": thinking_2_1,
-        "answer": answer_2_1
+                input_infos_1_2 = [taskInfo, thinking_0, answer_0, thinking_1, answer_1] + all_thinking_1_2[r-1] + all_answer_1_2[r-1]
+                thinking_1_2, answer_1_2 = await agent(input_infos_1_2, debate_instr_1_2, r, is_sub_task=True)
+            agents.append(f"Debate agent stage_1.subtask_2 {agent.id}, round {r}, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
+            all_thinking_1_2[r].append(thinking_1_2)
+            all_answer_1_2[r].append(answer_1_2)
+    final_decision_agent_1_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    final_instr_1_2 = "Sub-task 2: Analyze spectrum shape and continuity. Given all the above thinking and answers, reason over them carefully and provide a final answer."
+    thinking_1_2, answer_1_2 = await final_decision_agent_1_2([taskInfo, thinking_0, answer_0, thinking_1, answer_1] + all_thinking_1_2[-1] + all_answer_1_2[-1], final_instr_1_2, is_sub_task=True)
+    agents.append(f"Final Decision agent stage_1.subtask_2, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
+    sub_tasks.append(f"Stage 1 Sub-task 2 output: thinking - {thinking_1_2.content}; answer - {answer_1_2.content}")
+    subtask_desc_1_2['response'] = {"thinking": thinking_1_2, "answer": answer_1_2}
+    logs.append(subtask_desc_1_2)
+    print("Step 1.2: ", sub_tasks[-1])
+
+    # Stage 2 Subtask 1: Synthesize findings and classify spectrum (Debate)
+    debate_instr_2 = "Sub-task 1: Synthesize the findings from the kinematic derivation and spectral shape analysis to classify the resulting energy spectrum of the E particles in the variant decay. Confirm that the spectrum remains continuous with an adjusted shape and that the endpoint increases compared to the original decay." + \
+                   " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_2 = self.max_round
+    all_thinking_2 = [[] for _ in range(N_max_2)]
+    all_answer_2 = [[] for _ in range(N_max_2)]
+    subtask_desc_2 = {
+        "subtask_id": "stage_2.subtask_1",
+        "instruction": debate_instr_2,
+        "context": ["user query", thinking_1, answer_1, thinking_1_2, answer_1_2],
+        "agent_collaboration": "Debate"
     }
-    logs.append(subtask_desc_2_1)
-    
-    final_answer = await self.make_final_answer(thinking_2_1, answer_2_1, sub_tasks, agents)
+    for r in range(N_max_2):
+        for i, agent in enumerate(debate_agents_2):
+            if r == 0:
+                thinking_2, answer_2 = await agent([taskInfo, thinking_1, answer_1, thinking_1_2, answer_1_2], debate_instr_2, r, is_sub_task=True)
+            else:
+                input_infos_2 = [taskInfo, thinking_1, answer_1, thinking_1_2, answer_1_2] + all_thinking_2[r-1] + all_answer_2[r-1]
+                thinking_2, answer_2 = await agent(input_infos_2, debate_instr_2, r, is_sub_task=True)
+            agents.append(f"Debate agent stage_2.subtask_1 {agent.id}, round {r}, thinking: {thinking_2.content}; answer: {answer_2.content}")
+            all_thinking_2[r].append(thinking_2)
+            all_answer_2[r].append(answer_2)
+    final_decision_agent_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    final_instr_2 = "Sub-task 1: Synthesize and finalize classification of the energy spectrum. Given all the above thinking and answers, reason over them carefully and provide a final answer."
+    thinking_2, answer_2 = await final_decision_agent_2([taskInfo, thinking_1, answer_1, thinking_1_2, answer_1_2] + all_thinking_2[-1] + all_answer_2[-1], final_instr_2, is_sub_task=True)
+    agents.append(f"Final Decision agent stage_2.subtask_1, thinking: {thinking_2.content}; answer: {answer_2.content}")
+    sub_tasks.append(f"Stage 2 Sub-task 1 output: thinking - {thinking_2.content}; answer - {answer_2.content}")
+    subtask_desc_2['response'] = {"thinking": thinking_2, "answer": answer_2}
+    logs.append(subtask_desc_2)
+    print("Step 2: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking_2, answer_2, sub_tasks, agents)
     return final_answer, logs

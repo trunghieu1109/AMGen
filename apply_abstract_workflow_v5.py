@@ -673,7 +673,7 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None, date_time=""):
-    if not example_id in [174, 176, 195]:
+    if not example_id in [157, 165, 175, 176, 180, 190]:
         return 0, 0, 0, ""
     
     start_time_ = time.time()
@@ -712,8 +712,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_attemp4/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_attemp4/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1083,7 +1083,7 @@ Do not include any additional fields or explanations outside of the objective ke
         #     workflow_index.append(idx)
 
     if len(workflow_index) == 0:
-        workflow_index = [random.randint(0, len(default_mas_chain))]
+        workflow_index = [random.randint(0, len(default_mas_chain) - 1)]
 
     print("workflow index: ", workflow_index)
     # return 1, 1, 1, ""
@@ -1155,7 +1155,7 @@ Do not include any additional fields or explanations outside of the objective ke
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/dev19_attemp4/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1680,8 +1680,8 @@ Return JSON with:
 #     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
 #     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
 #     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-#     result_path = f'results/{args.dataset}/dev19_attemp4/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-#     oracle_acc_result_path = f'results/{args.dataset}/dev19_attemp4/{pattern}/{meta_model}_{global_node_model}_oracle.results'
+#     result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
+#     oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_oracle.results'
 #     oracle_acc_path = Path(oracle_acc_result_path)
 #     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1730,7 +1730,7 @@ Return JSON with:
 
 #     global_ns = []
     
-#     final_results_path = f'results/{args.dataset}/dev19_attemp4/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+#     final_results_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
 #     result_path = Path(final_results_path)
 #     result_path.parent.mkdir(parents=True, exist_ok=True)
 #     final_results = []
@@ -1856,8 +1856,8 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_attemp4/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_attemp4/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1915,7 +1915,7 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/dev19_attemp4/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     

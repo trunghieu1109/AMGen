@@ -5,145 +5,121 @@ async def forward_162(self, taskInfo):
     agents = []
     logs = []
 
-    # Stage 0: Stoichiometric calculation using Debate
-    debate_instr = "Sub-task 0: Derive the stoichiometric relationship and calculate the moles of Fe(OH)3 and the corresponding moles of H+ required to completely dissolve Fe(OH)3 at 25°C." + \
-                  " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
-    debate_agents_0 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", 
-                                    model=self.node_model, role=role, temperature=0.5) 
-                      for role in self.debate_role]
+    # Stage 0: Calculate moles of Fe(OH)3 and required moles of H+ (Debate)
+    debate_instr_0 = "Sub-task 1: Calculate the moles of Fe(OH)3 from the given mass and molar mass, and determine the moles of H+ ions required to completely dissolve Fe(OH)3 based on the neutralization stoichiometry." + \
+                   "Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_0 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
     N_max_0 = self.max_round
-
-    all_thinking0 = [[] for _ in range(N_max_0)]
-    all_answer0 = [[] for _ in range(N_max_0)]
-
-    subtask_desc0 = {
-        "subtask_id": "subtask_0",
-        "instruction": debate_instr,
+    all_thinking_0 = [[] for _ in range(N_max_0)]
+    all_answer_0 = [[] for _ in range(N_max_0)]
+    subtask_desc_0 = {
+        "subtask_id": "subtask_1",
+        "instruction": debate_instr_0,
         "context": ["user query"],
         "agent_collaboration": "Debate"
     }
-
     for r in range(N_max_0):
         for i, agent in enumerate(debate_agents_0):
             if r == 0:
-                thinking0, answer0 = await agent([taskInfo], debate_instr, r, is_sub_task=True)
+                thinking_0, answer_0 = await agent([taskInfo], debate_instr_0, r, is_sub_task=True)
             else:
-                input_infos_0 = [taskInfo] + all_thinking0[r-1] + all_answer0[r-1]
-                thinking0, answer0 = await agent(input_infos_0, debate_instr, r, is_sub_task=True)
-            agents.append(f"Debate agent {agent.id}, round {r}, thinking: {thinking0.content}; answer: {answer0.content}")
-            all_thinking0[r].append(thinking0)
-            all_answer0[r].append(answer0)
-
-    final_instr_0 = "Given all the above thinking and answers, reason over them carefully and provide a final answer."
-    final_decision_agent_0 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                          model=self.node_model, temperature=0.0)
-    thinking0, answer0 = await final_decision_agent_0([taskInfo] + all_thinking0[-1] + all_answer0[-1], 
-                                                     "Sub-task 0: Stoichiometric calculation." + final_instr_0, 
-                                                     is_sub_task=True)
-    agents.append(f"Final Decision agent, thinking: {thinking0.content}; answer: {answer0.content}")
-    sub_tasks.append(f"Sub-task 0 output: thinking - {thinking0.content}; answer - {answer0.content}")
-    subtask_desc0['response'] = {"thinking": thinking0, "answer": answer0}
-    logs.append(subtask_desc0)
+                input_infos_0 = [taskInfo] + all_thinking_0[r-1] + all_answer_0[r-1]
+                thinking_0, answer_0 = await agent(input_infos_0, debate_instr_0, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, calculating moles, thinking: {thinking_0.content}; answer: {answer_0.content}")
+            all_thinking_0[r].append(thinking_0)
+            all_answer_0[r].append(answer_0)
+    final_decision_agent_0 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_0, answer_0 = await final_decision_agent_0([taskInfo] + all_thinking_0[-1] + all_answer_0[-1], 
+                                                      "Sub-task 1: Synthesize and choose the most consistent answer for moles calculation. Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                      is_sub_task=True)
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking_0.content}; answer - {answer_0.content}")
+    subtask_desc_0['response'] = {"thinking": thinking_0, "answer": answer_0}
+    logs.append(subtask_desc_0)
     print("Step 0: ", sub_tasks[-1])
 
-    # Stage 1: Calculate minimum acid volume using SC_CoT
-    cot_sc_instruction_1 = "Sub-task 1: Based on the output from Sub-task 0, compute the minimum volume (cm3) of 0.1 M monobasic strong acid needed to completely dissolve Fe(OH)3 at 25°C." 
-    N_1 = self.max_sc
-    cot_agents_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                                  model=self.node_model, temperature=0.5) for _ in range(N_1)]
+    # Stage 1: Calculate minimum volume of acid (SC_CoT)
+    cot_sc_instruction_1 = "Sub-task 1: Based on the output from Sub-task 1, calculate the minimum volume of 0.1 M monobasic strong acid needed to provide the required moles of H+ ions to dissolve Fe(OH)3, considering the total solution volume constraint."
+    N_sc_1 = self.max_sc
+    cot_agents_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N_sc_1)]
     possible_answers_1 = []
     possible_thinkings_1 = []
-    subtask_desc1 = {
+    subtask_desc_1 = {
         "subtask_id": "subtask_1",
         "instruction": cot_sc_instruction_1,
-        "context": ["user query", thinking0, answer0],
+        "context": ["user query", thinking_0, answer_0],
         "agent_collaboration": "SC_CoT"
     }
-    for i in range(N_1):
-        thinking1, answer1 = await cot_agents_1[i]([taskInfo, thinking0, answer0], cot_sc_instruction_1, is_sub_task=True)
-        agents.append(f"CoT-SC agent {cot_agents_1[i].id}, thinking: {thinking1.content}; answer: {answer1.content}")
-        possible_answers_1.append(answer1)
-        possible_thinkings_1.append(thinking1)
-
-    final_instr_1 = "Given all the above thinking and answers, find the most consistent and correct solution for the minimum acid volume needed."
-    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                          model=self.node_model, temperature=0.0)
-    thinking1, answer1 = await final_decision_agent_1([taskInfo, thinking0, answer0] + possible_thinkings_1 + possible_answers_1, 
-                                                     "Sub-task 1: Minimum acid volume calculation." + final_instr_1, 
-                                                     is_sub_task=True)
-    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking1.content}; answer - {answer1.content}")
-    subtask_desc1['response'] = {"thinking": thinking1, "answer": answer1}
-    logs.append(subtask_desc1)
+    for i in range(N_sc_1):
+        thinking_1, answer_1 = await cot_agents_1[i]([taskInfo, thinking_0, answer_0], cot_sc_instruction_1, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1[i].id}, calculating minimum acid volume, thinking: {thinking_1.content}; answer: {answer_1.content}")
+        possible_answers_1.append(answer_1)
+        possible_thinkings_1.append(thinking_1)
+    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1, answer_1 = await final_decision_agent_1([taskInfo, thinking_0, answer_0] + possible_thinkings_1 + possible_answers_1, 
+                                                      "Sub-task 1: Synthesize and choose the most consistent answer for minimum acid volume. Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                      is_sub_task=True)
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking_1.content}; answer - {answer_1.content}")
+    subtask_desc_1['response'] = {"thinking": thinking_1, "answer": answer_1}
+    logs.append(subtask_desc_1)
     print("Step 1: ", sub_tasks[-1])
 
-    # Stage 2: Calculate pH using SC_CoT
-    cot_sc_instruction_2 = "Sub-task 2: Calculate the pH of the resulting solution after dissolution, considering the total volume (100 cm3) and the acid volume used, based on acid-base equilibrium and excess acid concentration." 
-    N_2 = self.max_sc
-    cot_agents_2 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                                  model=self.node_model, temperature=0.5) for _ in range(N_2)]
+    # Stage 2: Derive pH of resulting solution (SC_CoT)
+    cot_sc_instruction_2 = "Sub-task 1: Derive the pH of the resulting solution after dissolution and neutralization, accounting for the acid volume added and the total solution volume."
+    N_sc_2 = self.max_sc
+    cot_agents_2 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N_sc_2)]
     possible_answers_2 = []
     possible_thinkings_2 = []
-    subtask_desc2 = {
-        "subtask_id": "subtask_2",
+    subtask_desc_2 = {
+        "subtask_id": "subtask_1",
         "instruction": cot_sc_instruction_2,
-        "context": ["user query", thinking0, answer0, thinking1, answer1],
+        "context": ["user query", thinking_1, answer_1, thinking_0, answer_0],
         "agent_collaboration": "SC_CoT"
     }
-    for i in range(N_2):
-        thinking2, answer2 = await cot_agents_2[i]([taskInfo, thinking0, answer0, thinking1, answer1], cot_sc_instruction_2, is_sub_task=True)
-        agents.append(f"CoT-SC agent {cot_agents_2[i].id}, thinking: {thinking2.content}; answer: {answer2.content}")
-        possible_answers_2.append(answer2)
-        possible_thinkings_2.append(thinking2)
-
-    final_instr_2 = "Given all the above thinking and answers, find the most consistent and correct solution for the pH of the resulting solution."
-    final_decision_agent_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", 
-                                          model=self.node_model, temperature=0.0)
-    thinking2, answer2 = await final_decision_agent_2([taskInfo, thinking0, answer0, thinking1, answer1] + possible_thinkings_2 + possible_answers_2, 
-                                                     "Sub-task 2: pH calculation." + final_instr_2, 
-                                                     is_sub_task=True)
-    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking2.content}; answer - {answer2.content}")
-    subtask_desc2['response'] = {"thinking": thinking2, "answer": answer2}
-    logs.append(subtask_desc2)
+    for i in range(N_sc_2):
+        thinking_2, answer_2 = await cot_agents_2[i]([taskInfo, thinking_1, answer_1, thinking_0, answer_0], cot_sc_instruction_2, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_2[i].id}, calculating pH, thinking: {thinking_2.content}; answer: {answer_2.content}")
+        possible_answers_2.append(answer_2)
+        possible_thinkings_2.append(thinking_2)
+    final_decision_agent_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_2, answer_2 = await final_decision_agent_2([taskInfo, thinking_1, answer_1, thinking_0, answer_0] + possible_thinkings_2 + possible_answers_2, 
+                                                      "Sub-task 1: Synthesize and choose the most consistent answer for pH calculation. Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                      is_sub_task=True)
+    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking_2.content}; answer - {answer_2.content}")
+    subtask_desc_2['response'] = {"thinking": thinking_2, "answer": answer_2}
+    logs.append(subtask_desc_2)
     print("Step 2: ", sub_tasks[-1])
 
-    # Stage 3: Compare with multiple-choice options using Reflexion
-    reflect_inst = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
-    cot_reflect_instruction = "Sub-task 3: Compare the calculated minimum acid volume and pH values with the given multiple-choice options to select the correct answer pair." + reflect_inst
-    cot_agent_3 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", 
-                               model=self.node_model, temperature=0.0)
-    critic_agent_3 = LLMAgentBase(["feedback", "correct"], "Critic Agent", 
-                                  model=self.node_model, temperature=0.0)
+    # Stage 3: Compare with multiple-choice options and select correct answer (Debate)
+    debate_instr_3 = "Sub-task 1: Compare the calculated minimum acid volume and pH with the given multiple-choice options to select the correct answer." + \
+                    "Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_3 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
     N_max_3 = self.max_round
-
-    cot_inputs_3 = [taskInfo, thinking1, answer1, thinking2, answer2]
-
-    subtask_desc3 = {
-        "subtask_id": "subtask_3",
-        "instruction": cot_reflect_instruction,
-        "context": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"],
-        "agent_collaboration": "Reflexion"
+    all_thinking_3 = [[] for _ in range(N_max_3)]
+    all_answer_3 = [[] for _ in range(N_max_3)]
+    subtask_desc_3 = {
+        "subtask_id": "subtask_1",
+        "instruction": debate_instr_3,
+        "context": ["user query", thinking_2, answer_2, thinking_1, answer_1, thinking_0, answer_0],
+        "agent_collaboration": "Debate"
     }
-
-    thinking3, answer3 = await cot_agent_3(cot_inputs_3, cot_reflect_instruction, 0, is_sub_task=True)
-    agents.append(f"Reflexion CoT agent {cot_agent_3.id}, thinking: {thinking3.content}; answer: {answer3.content}")
-
-    critic_inst_3 = "Please review the answer above and criticize on where might be wrong. If you are absolutely sure it is correct, output exactly 'True' in 'correct'"
-
-    for i in range(N_max_3):
-        feedback, correct = await critic_agent_3([taskInfo, thinking3, answer3], 
-                                                "Please review and provide the limitations of provided solutions." + critic_inst_3, 
-                                                i, is_sub_task=True)
-        agents.append(f"Critic agent {critic_agent_3.id}, feedback: {feedback.content}; correct: {correct.content}")
-        if correct.content.strip() == "True":
-            break
-        cot_inputs_3.extend([thinking3, answer3, feedback])
-        thinking3, answer3 = await cot_agent_3(cot_inputs_3, cot_reflect_instruction, i + 1, is_sub_task=True)
-        agents.append(f"Reflexion CoT agent {cot_agent_3.id}, refining thinking: {thinking3.content}; answer: {answer3.content}")
-
-    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking3.content}; answer - {answer3.content}")
-    subtask_desc3['response'] = {"thinking": thinking3, "answer": answer3}
-    logs.append(subtask_desc3)
+    for r in range(N_max_3):
+        for i, agent in enumerate(debate_agents_3):
+            if r == 0:
+                thinking_3, answer_3 = await agent([taskInfo, thinking_2, answer_2, thinking_1, answer_1, thinking_0, answer_0], debate_instr_3, r, is_sub_task=True)
+            else:
+                input_infos_3 = [taskInfo, thinking_2, answer_2, thinking_1, answer_1, thinking_0, answer_0] + all_thinking_3[r-1] + all_answer_3[r-1]
+                thinking_3, answer_3 = await agent(input_infos_3, debate_instr_3, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, selecting correct answer, thinking: {thinking_3.content}; answer: {answer_3.content}")
+            all_thinking_3[r].append(thinking_3)
+            all_answer_3[r].append(answer_3)
+    final_decision_agent_3 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_3, answer_3 = await final_decision_agent_3([taskInfo, thinking_2, answer_2, thinking_1, answer_1, thinking_0, answer_0] + all_thinking_3[-1] + all_answer_3[-1], 
+                                                      "Sub-task 1: Synthesize and choose the most consistent final answer. Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                      is_sub_task=True)
+    sub_tasks.append(f"Sub-task 4 output: thinking - {thinking_3.content}; answer - {answer_3.content}")
+    subtask_desc_3['response'] = {"thinking": thinking_3, "answer": answer_3}
+    logs.append(subtask_desc_3)
     print("Step 3: ", sub_tasks[-1])
 
-    final_answer = await self.make_final_answer(thinking3, answer3, sub_tasks, agents)
+    final_answer = await self.make_final_answer(thinking_3, answer_3, sub_tasks, agents)
     return final_answer, logs
