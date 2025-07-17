@@ -1,97 +1,78 @@
 async def forward_152(self, taskInfo):
-    from collections import Counter
-    print("Task Requirement: ", taskInfo)
-    sub_tasks = []
-    agents = []
     logs = []
 
-    cot_instruction_0 = (
-        "Sub-task 1: Extract and classify all reactants, reagents, and reaction conditions for the three Michael addition reactions, "
-        "and summarize the key mechanistic features relevant to product formation, based on the user query."
-    )
-    cot_agent_0 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
-    subtask_desc_0 = {
-        "subtask_id": "stage_0.subtask_1",
-        "instruction": cot_instruction_0,
-        "context": ["user query"],
-        "agent_collaboration": "CoT"
+    cot_sc_instruction1 = "Sub-task 1: Extract and summarize all given chemical information including reactants, reagents, reaction conditions, and definitions related to Michael addition from the query."
+    cot_sc_desc1 = {
+        'instruction': cot_sc_instruction1,
+        'input': [taskInfo],
+        'temperature': 0.5,
+        'context': ["user query"]
     }
-    thinking_0, answer_0 = await cot_agent_0([taskInfo], cot_instruction_0, is_sub_task=True)
-    agents.append(f"CoT agent {cot_agent_0.id}, extracting and classifying reactants and conditions, thinking: {thinking_0.content}; answer: {answer_0.content}")
-    sub_tasks.append(f"Stage 0 output: thinking - {thinking_0.content}; answer - {answer_0.content}")
-    subtask_desc_0['response'] = {"thinking": thinking_0, "answer": answer_0}
-    logs.append(subtask_desc_0)
-    print("Step 0: ", sub_tasks[-1])
-
-    cot_sc_instruction_1 = (
-        "Sub-task 1: Based on the extracted reactants, reagents, and conditions from Stage 0, "
-        "derive the expected major products of each Michael addition reaction (A, B, and C) by applying mechanistic reasoning, "
-        "considering nucleophile and electrophile identities, reaction conditions, and resonance stabilization."
+    results1, log1 = await self.sc_cot(
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_sc_desc1,
+        n_repeat=self.max_sc
     )
-    N = self.max_sc
-    cot_sc_agents_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
-    possible_answers_1 = []
-    possible_thinkings_1 = []
-    subtask_desc_1 = {
-        "subtask_id": "stage_1.subtask_1",
-        "instruction": cot_sc_instruction_1,
-        "context": ["user query", thinking_0, answer_0],
-        "agent_collaboration": "SC_CoT"
+    logs.append(log1)
+
+    cot_sc_instruction2 = "Sub-task 2: Classify the chemical species involved (nucleophiles, electrophiles, intermediates) and analyze the reaction conditions to understand their roles in the Michael addition reactions, based on the output from Sub-task 1."
+    cot_sc_desc2 = {
+        'instruction': cot_sc_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'temperature': 0.5,
+        'context': ["user query", "thinking of subtask 1", "answer of subtask 1"]
     }
-    for i in range(N):
-        thinking_i, answer_i = await cot_sc_agents_1[i]([taskInfo, thinking_0, answer_0], cot_sc_instruction_1, is_sub_task=True)
-        agents.append(f"CoT-SC agent {cot_sc_agents_1[i].id}, deducing major products, thinking: {thinking_i.content}; answer: {answer_i.content}")
-        possible_answers_1.append(answer_i)
-        possible_thinkings_1.append(thinking_i)
-
-    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
-    thinking_1, answer_1 = await final_decision_agent_1(
-        [taskInfo, thinking_0, answer_0] + possible_thinkings_1 + possible_answers_1,
-        "Sub-task 1: Synthesize and choose the most consistent and correct major products for reactions A, B, and C.",
-        is_sub_task=True
+    results2, log2 = await self.sc_cot(
+        subtask_id="subtask_2",
+        cot_agent_desc=cot_sc_desc2,
+        n_repeat=self.max_sc
     )
-    sub_tasks.append(f"Stage 1 output: thinking - {thinking_1.content}; answer - {answer_1.content}")
-    subtask_desc_1['response'] = {"thinking": thinking_1, "answer": answer_1}
-    logs.append(subtask_desc_1)
-    print("Step 1: ", sub_tasks[-1])
+    logs.append(log2)
 
-    debate_instruction_2 = (
-        "Sub-task 1: Evaluate the four given multiple-choice options by comparing their product structures and names with the deduced products from Stage 1, "
-        "and prioritize the choice that best matches the expected outcomes. "
-        "Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
-    )
-    debate_agents_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
-    N_max_2 = self.max_round
-    all_thinking_2 = [[] for _ in range(N_max_2)]
-    all_answer_2 = [[] for _ in range(N_max_2)]
-    subtask_desc_2 = {
-        "subtask_id": "stage_2.subtask_1",
-        "instruction": debate_instruction_2,
-        "context": ["user query", thinking_1, answer_1],
-        "agent_collaboration": "Debate"
+    cot_reflect_instruction3 = "Sub-task 3: Derive the expected major products of each Michael addition reaction (A, B, and C) based on the reactants, reagents, and mechanistic understanding from Stage 0 outputs."
+    cot_reflect_desc3 = {
+        'instruction': cot_reflect_instruction3,
+        'input': [taskInfo, results1['thinking'], results1['answer'], results2['thinking'], results2['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.0,
+        'context': ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"]
     }
-    for r in range(N_max_2):
-        for i, agent in enumerate(debate_agents_2):
-            if r == 0:
-                thinking_2, answer_2 = await agent([taskInfo, thinking_1, answer_1], debate_instruction_2, r, is_sub_task=True)
-            else:
-                input_infos_2 = [taskInfo, thinking_1, answer_1] + all_thinking_2[r-1] + all_answer_2[r-1]
-                thinking_2, answer_2 = await agent(input_infos_2, debate_instruction_2, r, is_sub_task=True)
-            agents.append(f"Debate agent {agent.id}, round {r}, evaluating choices, thinking: {thinking_2.content}; answer: {answer_2.content}")
-            all_thinking_2[r].append(thinking_2)
-            all_answer_2[r].append(answer_2)
-
-    final_decision_agent_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
-    thinking_2, answer_2 = await final_decision_agent_2(
-        [taskInfo, thinking_1, answer_1] + all_thinking_2[-1] + all_answer_2[-1],
-        "Sub-task 1: Given all the above thinking and answers, reason over them carefully and provide a final answer.",
-        is_sub_task=True
+    results3, log3 = await self.reflexion(
+        subtask_id="subtask_3",
+        reflect_desc=cot_reflect_desc3,
+        n_repeat=self.max_round
     )
-    agents.append(f"Final Decision agent, calculating final output, thinking: {thinking_2.content}; answer: {answer_2.content}")
-    sub_tasks.append(f"Stage 2 output: thinking - {thinking_2.content}; answer - {answer_2.content}")
-    subtask_desc_2['response'] = {"thinking": thinking_2, "answer": answer_2}
-    logs.append(subtask_desc_2)
-    print("Step 2: ", sub_tasks[-1])
+    logs.append(log3)
 
-    final_answer = await self.make_final_answer(thinking_2, answer_2, sub_tasks, agents)
+    debate_instruction4 = "Sub-task 4: Evaluate the proposed product structures in the multiple-choice options against the derived products from Sub-task 3 to identify the correct assignments for A, B, and C."
+    debate_desc4 = {
+        'instruction': debate_instruction4,
+        'context': ["user query", "thinking of subtask 3", "answer of subtask 3"],
+        'input': [taskInfo, results3['thinking'], results3['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results4, log4 = await self.debate(
+        subtask_id="subtask_4",
+        debate_desc=debate_desc4,
+        n_repeat=self.max_round
+    )
+    logs.append(log4)
+
+    debate_instruction5 = "Sub-task 5: Prioritize and select the best matching choice from the given options based on chemical reasoning and consistency with the reaction mechanisms and product structures, using the output of Sub-task 4."
+    debate_desc5 = {
+        'instruction': debate_instruction5,
+        'context': ["user query", "thinking of subtask 4", "answer of subtask 4"],
+        'input': [taskInfo, results4['thinking'], results4['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results5, log5 = await self.debate(
+        subtask_id="subtask_5",
+        debate_desc=debate_desc5,
+        n_repeat=self.max_round
+    )
+    logs.append(log5)
+
+    final_answer = await self.make_final_answer(results5['thinking'], results5['answer'])
     return final_answer, logs

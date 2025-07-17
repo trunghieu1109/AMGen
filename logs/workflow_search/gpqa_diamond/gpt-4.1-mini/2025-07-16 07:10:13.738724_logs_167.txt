@@ -1,0 +1,205 @@
+
+============== high level task decomposition ================
+[{'objective': 'Identify and understand the nature of each listed issue in genomics data analysis'}, {'objective': 'Evaluate the frequency and impact of each issue as a source of difficult-to-spot errors'}, {'objective': 'Compare the evaluated issues to determine which are the most common sources of such errors'}, {'objective': 'Select the correct choice from the provided options based on the comparison'}]
+============== abstracted high level task decomposition ================
+['Analyze and Classify Elements: Analyze and classify elements to identify and characterize their defining attributes or nature.', 'Evaluate, Select, and Prioritize Elements by Criteria Conformity: Evaluate, select, and prioritize elements based on conformity to defined criteria reflecting their significance or impact.', 'Select and Prioritize Elements by Multi-Criteria Conformity: Select and prioritize elements that satisfy multiple criteria to identify those most relevant or significant.', 'Derive Target Output: Derive a target output by selecting from given options based on prior evaluations and defined selection rules.']
+============== Abstract MAS choosing ================
+Query-based chain: ['5', '7', '8']
+Similar chain: ['5', ['10', '3', '7', '0', '9']]
+Levenshtein distance: 1
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- The problem provides four specific issues encountered in genomics data analysis:
+  1) Mutually incompatible data formats
+  2) The "chr" / "no chr" confusion
+  3) Reference assembly mismatch
+  4) Incorrect ID conversion
+- Four answer choices are given, each listing different combinations of these issues.
+
+2. Analyze Relationships Between Components:
+- Each issue represents a potential source of error in genomics data processing pipelines.
+- "Mutually incompatible data formats" refers to data files or inputs that cannot be directly integrated due to format differences.
+- The "chr" / "no chr" confusion relates to inconsistencies in chromosome naming conventions (e.g., "chr1" vs "1"), which can cause misalignment or misinterpretation of genomic coordinates.
+- Reference assembly mismatch involves using different versions of the reference genome, leading to coordinate discrepancies.
+- Incorrect ID conversion pertains to errors in mapping gene or variant identifiers between databases or annotation systems.
+- These issues are interconnected in that they all affect data compatibility and integrity, potentially leading to erroneous results that are difficult to detect.
+- The constraints imply that some combinations of these issues are more commonly problematic than others.
+
+3. Identify the Field of Study:
+- The problem lies within the domain of bioinformatics and computational genomics.
+- It involves data management, genome assembly referencing, and identifier mapping.
+- Relevant subfields include data integration, genome annotation, and computational data quality control.
+- Such problems commonly arise in genomic research, clinical genomics, and large-scale sequencing data analysis.
+
+4. Highlight Aspects Needing Clarification:
+- The problem does not define what criteria determine "most common sources"—frequency, impact, or both.
+- It is unclear whether "mutually incompatible data formats" is considered as impactful as the other issues.
+- The exact context or dataset type (e.g., variant calling, gene expression) is not specified, which might influence which issues are most critical.
+- Potential challenges include differentiating subtle errors caused by these issues and the overlap between them in practical scenarios.
+============== Task Decomposition ================
+{'stage_0': {'subtask_1': {'objective': "Analyze and classify each of the four issues (mutually incompatible data formats, 'chr' / 'no chr' confusion, reference assembly mismatch, incorrect ID conversion) in terms of their definitions, causes, and potential impact on genomics data analysis.", 'dependencies': [], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Evaluate the relationships and overlaps between these issues, including how they contribute to data incompatibility and erroneous results, and identify which are inherently more difficult to detect.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_3': {'objective': 'Select and prioritize the issues based on their frequency and impact as common sources of difficult-to-spot errors in genomics data analysis, considering practical scenarios and typical workflows.', 'dependencies': ['subtask_2'], 'agent_collaboration': 'Debate'}, 'subtask_4': {'objective': 'Compare the prioritized issues against the provided answer choices to determine which combination best represents the most common sources of difficult-to-spot erroneous results.', 'dependencies': ['subtask_3'], 'agent_collaboration': 'SC_CoT'}}}
+============== Concretized MAS ================
+async def forward_167(self, taskInfo):
+    logs = []
+
+    cot_instruction1 = (
+        "Sub-task 1: Analyze and classify each of the four issues in genomics data analysis: "
+        "mutually incompatible data formats, 'chr' / 'no chr' confusion, reference assembly mismatch, incorrect ID conversion. "
+        "Determine their definitions, causes, and potential impact with context from the query."
+    )
+    cot_agent_desc = {
+        'instruction': cot_instruction1,
+        'input': [taskInfo],
+        'temperature': 0.0,
+        'context': ["user query"]
+    }
+    results1, log1 = await self.sc_cot(
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_agent_desc,
+        n_repeat=self.max_sc
+    )
+    logs.append(log1)
+
+    debate_instruction2 = (
+        "Sub-task 2: Evaluate the relationships and overlaps between the four issues analyzed in Sub-task 1, "
+        "including how they contribute to data incompatibility and difficult-to-spot erroneous results in genomics data analysis. "
+        "Identify which issues are inherently more difficult to detect."
+    )
+    debate_desc2 = {
+        'instruction': debate_instruction2,
+        'context': ["user query", results1['thinking'], results1['answer']],
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results2, log2 = await self.debate(
+        subtask_id="subtask_2",
+        debate_desc=debate_desc2,
+        n_repeat=self.max_round
+    )
+    logs.append(log2)
+
+    debate_instruction3 = (
+        "Sub-task 3: Based on the outputs from Sub-task 2, select and prioritize the issues by their frequency and impact "
+        "as common sources of difficult-to-spot errors in genomics data analysis, considering practical scenarios and workflows."
+    )
+    debate_desc3 = {
+        'instruction': debate_instruction3,
+        'context': ["user query", results2['thinking'], results2['answer']],
+        'input': [taskInfo, results2['thinking'], results2['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results3, log3 = await self.debate(
+        subtask_id="subtask_3",
+        debate_desc=debate_desc3,
+        n_repeat=self.max_round
+    )
+    logs.append(log3)
+
+    cot_sc_instruction4 = (
+        "Sub-task 4: Compare the prioritized issues from Sub-task 3 against the provided answer choices, "
+        "and determine which combination best represents the most common sources of difficult-to-spot erroneous results in genomics data analysis."
+    )
+    cot_sc_desc4 = {
+        'instruction': cot_sc_instruction4,
+        'input': [taskInfo, results3['thinking'], results3['answer']],
+        'temperature': 0.0,
+        'context': ["user query", results3['thinking'], results3['answer']]
+    }
+    results4, log4 = await self.sc_cot(
+        subtask_id="subtask_4",
+        cot_agent_desc=cot_sc_desc4,
+        n_repeat=self.max_sc
+    )
+    logs.append(log4)
+
+    final_answer = await self.make_final_answer(results4['thinking'], results4['answer'])
+    return final_answer, logs
+
+============== Evaluation from verifiers ================
+[{'verifier_name': 'o4-mini', 'evaluation': {'failure_reason': 'The pipeline treated all four issues as equally ‘difficult-to-spot’, but in reality mutually incompatible formats typically cause immediate, obvious failures and are not subtle. The subtle, hard-to-detect errors come from the chr/no-chr mismatch, reference assembly mismatch, and incorrect ID conversion (choice 4).', 'feedback': 'At Sub-task 3, agents never applied the key criterion ‘difficult-to-spot’: they simply ranked all four issues by frequency/impact and so included incompatible formats. That issue usually produces overt parse or tool-error messages and is caught early. Because the pipeline never challenged whether an error is subtle versus obvious, it propagated a wrong assumption into Sub-tasks 3 and 4 and selected “All of the above.”', 'suggestion': 'Introduce an explicit subtask or reflection step to classify each issue by how easily it is detected. Before ranking or selecting from the choices, ask: “Does this issue produce hidden errors or immediate failures?” This forces agents to drop issue 1 from the final subtle-error list. A lightweight ‘Reflect’ agent could validate that chosen items meet the ‘difficult-to-spot’ criterion before producing the answer.'}}, {'verifier_name': 'gpt-4.1-mini', 'evaluation': {'failure_reason': "The previous reasoning process incorrectly included 'mutually incompatible data formats' as one of the most common sources of difficult-to-spot erroneous results in genomics data analysis, leading to the selection of option C ('All of the above'). This was a misjudgment because, although incompatible data formats cause errors, they typically result in immediate, obvious failures or errors during data processing rather than subtle, difficult-to-spot errors. The subtle errors more commonly arise from 'chr' / 'no chr' confusion, reference assembly mismatch, and incorrect ID conversion. Therefore, the final answer failed to correctly prioritize the issues by their subtlety and frequency of causing difficult-to-spot errors.", 'feedback': "The key flaw in the reasoning was the assumption that all four issues equally contribute to difficult-to-spot erroneous results. Specifically, the agents treated 'mutually incompatible data formats' as a common source of subtle errors, whereas in practice, format incompatibility usually causes immediate and detectable failures (e.g., software crashes, parsing errors). This led to an overinclusive conclusion (option C) that did not align with the nuanced understanding of error detectability in genomics workflows. The error originated in Sub-task 1 and propagated through subsequent subtasks without critical reassessment. The agents failed to differentiate between errors that cause outright failures versus those that silently propagate incorrect results. Additionally, the context lacked explicit emphasis on the nature of 'difficult-to-spot' errors, which should have guided the prioritization. The collaboration pattern (SC_CoT and Debate) was effective in gathering definitions and relationships but insufficient in challenging assumptions or weighting the impact and detectability of each issue. The subtasks passed outputs correctly, but the reasoning did not critically evaluate the relative subtlety and frequency of each error type, leading to a consensus on an incorrect comprehensive answer.", 'suggestion': "1) Refine Sub-task 1 and Sub-task 2 instructions to explicitly require agents to distinguish between errors that cause immediate, obvious failures (e.g., incompatible data formats) and those that cause subtle, difficult-to-detect errors (e.g., 'chr' / 'no chr' confusion, reference assembly mismatch, incorrect ID conversion). This will focus the analysis on the core question about 'difficult-to-spot' errors.\n\n2) Change the collaboration pattern for Sub-task 3 and Sub-task 4 from SC_CoT and Debate to a Reflexion or Multi-Agent Critique pattern, where agents explicitly challenge prior assumptions and weigh the practical detectability and frequency of each issue. This can help avoid groupthink and overgeneralization, leading to a more nuanced and accurate prioritization of error sources."}}]
+============== Refined Task Decomposition ================
+{'stage_1': {'subtask_1': {'objective': "Analyze and define each of the four issues (mutually incompatible data formats, 'chr' / 'no chr' confusion, reference assembly mismatch, incorrect ID conversion) in terms of their definitions, causes, and typical impacts on genomics data analysis. Embed the feedback that previous attempts failed to distinguish error detectability, so this subtask must prepare detailed descriptions to support later classification.", 'dependencies': [], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Explicitly classify each issue by the nature of the errors it produces: whether it causes immediate, obvious failures (e.g., parsing errors, crashes) or subtle, difficult-to-spot erroneous results that silently propagate. This step addresses the key failure in prior reasoning by forcing a clear distinction before prioritization. Use the detailed definitions from Subtask 1 as context.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Reflexion'}}, 'stage_2': {'subtask_3': {'objective': 'Analyze the relationships and overlaps between the issues that produce subtle, difficult-to-spot errors (as identified in Subtask 2). Evaluate their frequency and impact as common sources of such errors in practical genomics workflows. This subtask must explicitly avoid including issues classified as causing immediate failures. Embed feedback to challenge assumptions and weigh detectability and frequency carefully.', 'dependencies': ['subtask_2'], 'agent_collaboration': 'Debate'}, 'subtask_4': {'objective': "Critically review and validate the prioritized list of subtle, difficult-to-spot error sources from Subtask 3 against the provided answer choices. This subtask must explicitly reflect on whether the selected issues meet the 'difficult-to-spot' criterion and reconcile the final answer accordingly. Use a multi-agent critique or reflexion pattern to avoid groupthink and ensure nuanced reasoning, as recommended by feedback.", 'dependencies': ['subtask_3'], 'agent_collaboration': 'Reflexion'}}}
+============== Refined MAS ================
+async def forward_167(self, taskInfo):
+    logs = []
+
+    cot_sc_instruction1 = (
+        "Subtask 1: Analyze and define each of the four issues in genomics data analysis: "
+        "mutually incompatible data formats, 'chr' / 'no chr' confusion, reference assembly mismatch, and incorrect ID conversion. "
+        "Provide detailed definitions, causes, and typical impacts, emphasizing error detectability to support later classification. "
+        "Use context from the user query."
+    )
+    cot_sc_desc1 = {
+        'instruction': cot_sc_instruction1,
+        'input': [taskInfo],
+        'temperature': 0.5,
+        'context': ["user query"]
+    }
+    results1, log1 = await self.sc_cot(
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_sc_desc1,
+        n_repeat=self.max_sc
+    )
+    logs.append(log1)
+
+    cot_reflect_instruction2 = (
+        "Subtask 2: Using the detailed definitions from Subtask 1, classify each issue by the nature of errors it produces: "
+        "whether it causes immediate, obvious failures (e.g., parsing errors, crashes) or subtle, difficult-to-spot erroneous results that silently propagate. "
+        "Embed reasoning to clearly distinguish error detectability."
+    )
+    cot_reflect_desc2 = {
+        'instruction': cot_reflect_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.0,
+        'context': ["user query", "thinking of subtask 1", "answer of subtask 1"]
+    }
+    results2, log2 = await self.reflexion(
+        subtask_id="subtask_2",
+        reflect_desc=cot_reflect_desc2,
+        n_repeat=self.max_round
+    )
+    logs.append(log2)
+
+    debate_instruction3 = (
+        "Subtask 3: Analyze relationships and overlaps between issues classified as causing subtle, difficult-to-spot errors from Subtask 2. "
+        "Evaluate their frequency and impact as common sources of such errors in practical genomics workflows. "
+        "Explicitly exclude issues causing immediate failures. Challenge assumptions and weigh detectability and frequency carefully."
+    )
+    debate_desc3 = {
+        'instruction': debate_instruction3,
+        'context': ["user query", "thinking of subtask 2", "answer of subtask 2"],
+        'input': [taskInfo, results2['thinking'], results2['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results3, log3 = await self.debate(
+        subtask_id="subtask_3",
+        debate_desc=debate_desc3,
+        n_repeat=self.max_round
+    )
+    logs.append(log3)
+
+    cot_reflect_instruction4 = (
+        "Subtask 4: Critically review and validate the prioritized list of subtle, difficult-to-spot error sources from Subtask 3 against the provided answer choices. "
+        "Explicitly reflect on whether the selected issues meet the 'difficult-to-spot' criterion and reconcile the final answer accordingly. "
+        "Use multi-agent critique or reflexion pattern to avoid groupthink and ensure nuanced reasoning."
+    )
+    cot_reflect_desc4 = {
+        'instruction': cot_reflect_instruction4,
+        'input': [taskInfo, results3['thinking'], results3['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.0,
+        'context': ["user query", "thinking of subtask 3", "answer of subtask 3"]
+    }
+    results4, log4 = await self.reflexion(
+        subtask_id="subtask_4",
+        reflect_desc=cot_reflect_desc4,
+        n_repeat=self.max_round
+    )
+    logs.append(log4)
+
+    final_answer = await self.make_final_answer(results4['thinking'], results4['answer'])
+    return final_answer, logs

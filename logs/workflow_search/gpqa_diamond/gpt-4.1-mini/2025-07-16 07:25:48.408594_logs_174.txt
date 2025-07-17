@@ -1,0 +1,174 @@
+
+============== high level task decomposition ================
+[{'objective': 'Analyze the radiation pattern of an oscillating spheroidal charge distribution to express the radiated power per unit solid angle as a function of angle θ.'}, {'objective': 'Determine the maximum radiated power A and calculate the fraction of A radiated at the specific angle θ = 30°.'}, {'objective': 'Establish the functional dependence of the radiated power on the wavelength λ.'}, {'objective': 'Combine the angular fraction and wavelength dependence results to select the correct functional form matching the given choices.'}]
+============== task analysis ================
+1. Extract and Summarize Given Information:
+- The charge distribution is oscillating and has a spheroidal shape with its symmetry axis along the z-axis.
+- The system radiates electromagnetic power at a wavelength λ.
+- In the radiation zone (far-field), the radiated power per unit solid angle is given by a function f(λ, θ), where θ is the angle measured from the z-axis.
+- The maximum radiated power is denoted by A.
+- The problem focuses on the fraction of A radiated at θ = 30° and the possible functional form of f.
+- Four multiple-choice options are provided, each pairing a fraction of A with a power-law dependence on λ.
+
+2. Analyze Relationships Between Components:
+- The spheroidal shape with symmetry along z implies the radiation pattern depends on θ, the polar angle relative to the symmetry axis.
+- The function f(λ, θ) represents angular distribution and wavelength dependence of radiated power per unit solid angle.
+- The maximum power A corresponds to the peak value of f over θ.
+- The fraction of A at θ = 30° indicates the relative angular intensity at that angle.
+- The power-law dependence on λ (e.g., λ^{-4}, λ^{-6}, λ^{-3}) suggests how the radiation intensity scales with wavelength, reflecting underlying physical laws (e.g., dipole or multipole radiation characteristics).
+- The constraints imply that f(λ, θ) can be separated or expressed as a product or function involving angular dependence and wavelength scaling.
+
+3. Identify the Field of Study:
+- The problem lies primarily in classical electrodynamics, specifically electromagnetic radiation from oscillating charge distributions.
+- Subfields include antenna theory, radiation patterns, and multipole expansions.
+- Mathematical concepts involved include spherical coordinates, angular distributions, and power-law scaling.
+- Such problems are common in physics (electromagnetism), applied mathematics, and engineering (antenna design).
+
+4. Highlight Aspects Needing Clarification:
+- The exact mathematical form of the spheroid (prolate or oblate) and its dimensions are not specified.
+- The nature of the oscillation (frequency, mode) is not detailed.
+- The explicit form of f(λ, θ) is not given, only possible forms are suggested.
+- It is unclear whether the wavelength dependence is derived from fundamental radiation theory or empirical.
+- The problem assumes knowledge of how angular distribution and wavelength scaling relate to the shape and oscillation mode.
+- Potential challenges include interpreting the angular dependence of radiation from a spheroidal source and connecting it to the given power-law wavelength dependencies.
+============== task decomposition 0 ================
+{'stage_0': {'subtask_1': {'objective': 'Extract and summarize the defining features of the oscillating spheroidal charge distribution, including its symmetry, radiation characteristics, and the meaning of the function f(λ, θ) and maximum power A.', 'dependencies': [], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_1': {'objective': 'Compute the angular dependence of the radiated power fraction at θ = 30° based on the spheroidal symmetry and typical radiation patterns (e.g., dipole or multipole radiation).', 'dependencies': ['stage_0.subtask_1'], 'agent_collaboration': 'Debate'}, 'subtask_2': {'objective': 'Determine the wavelength dependence of the radiated power per unit solid angle, identifying the correct power-law scaling (e.g., λ^{-4}, λ^{-6}, or λ^{-3}) from electromagnetic radiation theory for the given charge distribution.', 'dependencies': ['stage_0.subtask_1'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_1': {'objective': 'Combine the angular fraction at θ = 30° and the wavelength dependence to form the function f(λ, θ) and express the fraction of maximum power A radiated at θ = 30°.', 'dependencies': ['stage_1.subtask_1', 'stage_1.subtask_2'], 'agent_collaboration': 'SC_CoT'}}, 'stage_3': {'subtask_1': {'objective': 'Select the correct choice from the given options by comparing the computed fraction of A at θ = 30° and the wavelength dependence with the provided multiple-choice answers.', 'dependencies': ['stage_2.subtask_1'], 'agent_collaboration': 'Debate'}}}
+============== code generate 0 ================
+async def forward(self, taskInfo):
+    from collections import Counter
+    print("Task Requirement: ", taskInfo)
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    debate_instr_0 = "Sub-task 1: Extract and summarize the defining features of the oscillating spheroidal charge distribution, including its symmetry, radiation characteristics, and the meaning of the function f(lambda, theta) and maximum power A. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_0 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_0 = self.max_round
+    all_thinking_0 = [[] for _ in range(N_max_0)]
+    all_answer_0 = [[] for _ in range(N_max_0)]
+    subtask_desc_0 = {
+        "subtask_id": "stage_0.subtask_1",
+        "instruction": debate_instr_0,
+        "context": ["user query"],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_0):
+        for i, agent in enumerate(debate_agents_0):
+            if r == 0:
+                thinking_0, answer_0 = await agent([taskInfo], debate_instr_0, r, is_sub_task=True)
+            else:
+                input_infos_0 = [taskInfo] + all_thinking_0[r-1] + all_answer_0[r-1]
+                thinking_0, answer_0 = await agent(input_infos_0, debate_instr_0, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, analyzing problem features, thinking: {thinking_0.content}; answer: {answer_0.content}")
+            all_thinking_0[r].append(thinking_0)
+            all_answer_0[r].append(answer_0)
+    final_decision_agent_0 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_0, answer_0 = await final_decision_agent_0([taskInfo] + all_thinking_0[-1] + all_answer_0[-1], "Sub-task 1: Synthesize and finalize summary of problem features. Given all the above thinking and answers, reason over them carefully and provide a final answer.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task stage_0.subtask_1 output: thinking - {thinking_0.content}; answer - {answer_0.content}")
+    subtask_desc_0['response'] = {"thinking": thinking_0, "answer": answer_0}
+    logs.append(subtask_desc_0)
+    print("Step 0: ", sub_tasks[-1])
+
+    debate_instr_1_1 = "Sub-task 1: Compute the angular dependence of the radiated power fraction at theta = 30 degrees based on the spheroidal symmetry and typical radiation patterns (e.g., dipole or multipole radiation). Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_1_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_1_1 = self.max_round
+    all_thinking_1_1 = [[] for _ in range(N_max_1_1)]
+    all_answer_1_1 = [[] for _ in range(N_max_1_1)]
+    subtask_desc_1_1 = {
+        "subtask_id": "stage_1.subtask_1",
+        "instruction": debate_instr_1_1,
+        "context": ["user query", thinking_0, answer_0],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_1_1):
+        for i, agent in enumerate(debate_agents_1_1):
+            if r == 0:
+                thinking_1_1, answer_1_1 = await agent([taskInfo, thinking_0, answer_0], debate_instr_1_1, r, is_sub_task=True)
+            else:
+                input_infos_1_1 = [taskInfo, thinking_0, answer_0] + all_thinking_1_1[r-1] + all_answer_1_1[r-1]
+                thinking_1_1, answer_1_1 = await agent(input_infos_1_1, debate_instr_1_1, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, computing angular dependence, thinking: {thinking_1_1.content}; answer: {answer_1_1.content}")
+            all_thinking_1_1[r].append(thinking_1_1)
+            all_answer_1_1[r].append(answer_1_1)
+    final_decision_agent_1_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1_1, answer_1_1 = await final_decision_agent_1_1([taskInfo, thinking_0, answer_0] + all_thinking_1_1[-1] + all_answer_1_1[-1], "Sub-task 1: Synthesize and finalize angular dependence at 30 degrees. Given all the above thinking and answers, reason over them carefully and provide a final answer.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task stage_1.subtask_1 output: thinking - {thinking_1_1.content}; answer - {answer_1_1.content}")
+    subtask_desc_1_1['response'] = {"thinking": thinking_1_1, "answer": answer_1_1}
+    logs.append(subtask_desc_1_1)
+    print("Step 1.1: ", sub_tasks[-1])
+
+    cot_sc_instruction_1_2 = "Sub-task 2: Determine the wavelength dependence of the radiated power per unit solid angle, identifying the correct power-law scaling (e.g., lambda^-4, lambda^-6, or lambda^-3) from electromagnetic radiation theory for the given charge distribution."
+    N_sc = self.max_sc
+    cot_agents_1_2 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N_sc)]
+    possible_answers_1_2 = []
+    possible_thinkings_1_2 = []
+    subtask_desc_1_2 = {
+        "subtask_id": "stage_1.subtask_2",
+        "instruction": cot_sc_instruction_1_2,
+        "context": ["user query", thinking_0, answer_0],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N_sc):
+        thinking_1_2, answer_1_2 = await cot_agents_1_2[i]([taskInfo, thinking_0, answer_0], cot_sc_instruction_1_2, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1_2[i].id}, determining wavelength dependence, thinking: {thinking_1_2.content}; answer: {answer_1_2.content}")
+        possible_answers_1_2.append(answer_1_2)
+        possible_thinkings_1_2.append(thinking_1_2)
+    final_decision_agent_1_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_1_2, answer_1_2 = await final_decision_agent_1_2([taskInfo, thinking_0, answer_0] + possible_thinkings_1_2 + possible_answers_1_2, "Sub-task 2: Synthesize and choose the most consistent wavelength dependence. Given all the above thinking and answers, find the most consistent and correct solution.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task stage_1.subtask_2 output: thinking - {thinking_1_2.content}; answer - {answer_1_2.content}")
+    subtask_desc_1_2['response'] = {"thinking": thinking_1_2, "answer": answer_1_2}
+    logs.append(subtask_desc_1_2)
+    print("Step 1.2: ", sub_tasks[-1])
+
+    cot_sc_instruction_2_1 = "Sub-task 1: Combine the angular fraction at theta = 30 degrees and the wavelength dependence to form the function f(lambda, theta) and express the fraction of maximum power A radiated at theta = 30 degrees."
+    cot_agents_2_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N_sc)]
+    possible_answers_2_1 = []
+    possible_thinkings_2_1 = []
+    subtask_desc_2_1 = {
+        "subtask_id": "stage_2.subtask_1",
+        "instruction": cot_sc_instruction_2_1,
+        "context": ["user query", thinking_1_1, answer_1_1, thinking_1_2, answer_1_2],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N_sc):
+        thinking_2_1, answer_2_1 = await cot_agents_2_1[i]([taskInfo, thinking_1_1, answer_1_1, thinking_1_2, answer_1_2], cot_sc_instruction_2_1, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_2_1[i].id}, combining angular and wavelength dependence, thinking: {thinking_2_1.content}; answer: {answer_2_1.content}")
+        possible_answers_2_1.append(answer_2_1)
+        possible_thinkings_2_1.append(thinking_2_1)
+    final_decision_agent_2_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_2_1, answer_2_1 = await final_decision_agent_2_1([taskInfo, thinking_1_1, answer_1_1, thinking_1_2, answer_1_2] + possible_thinkings_2_1 + possible_answers_2_1, "Sub-task 1: Synthesize and finalize combined function f(lambda, theta) and fraction of A at 30 degrees. Given all the above thinking and answers, find the most consistent and correct solution.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task stage_2.subtask_1 output: thinking - {thinking_2_1.content}; answer - {answer_2_1.content}")
+    subtask_desc_2_1['response'] = {"thinking": thinking_2_1, "answer": answer_2_1}
+    logs.append(subtask_desc_2_1)
+    print("Step 2.1: ", sub_tasks[-1])
+
+    debate_instr_3_1 = "Sub-task 1: Select the correct choice from the given options by comparing the computed fraction of A at theta = 30 degrees and the wavelength dependence with the provided multiple-choice answers. Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_3_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_3_1 = self.max_round
+    all_thinking_3_1 = [[] for _ in range(N_max_3_1)]
+    all_answer_3_1 = [[] for _ in range(N_max_3_1)]
+    subtask_desc_3_1 = {
+        "subtask_id": "stage_3.subtask_1",
+        "instruction": debate_instr_3_1,
+        "context": ["user query", thinking_2_1, answer_2_1],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_3_1):
+        for i, agent in enumerate(debate_agents_3_1):
+            if r == 0:
+                thinking_3_1, answer_3_1 = await agent([taskInfo, thinking_2_1, answer_2_1], debate_instr_3_1, r, is_sub_task=True)
+            else:
+                input_infos_3_1 = [taskInfo, thinking_2_1, answer_2_1] + all_thinking_3_1[r-1] + all_answer_3_1[r-1]
+                thinking_3_1, answer_3_1 = await agent(input_infos_3_1, debate_instr_3_1, r, is_sub_task=True)
+            agents.append(f"Debate agent {agent.id}, round {r}, selecting correct choice, thinking: {thinking_3_1.content}; answer: {answer_3_1.content}")
+            all_thinking_3_1[r].append(thinking_3_1)
+            all_answer_3_1[r].append(answer_3_1)
+    final_decision_agent_3_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking_3_1, answer_3_1 = await final_decision_agent_3_1([taskInfo, thinking_2_1, answer_2_1] + all_thinking_3_1[-1] + all_answer_3_1[-1], "Sub-task 1: Final selection of correct multiple-choice answer. Given all the above thinking and answers, reason over them carefully and provide a final answer.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task stage_3.subtask_1 output: thinking - {thinking_3_1.content}; answer - {answer_3_1.content}")
+    subtask_desc_3_1['response'] = {"thinking": thinking_3_1, "answer": answer_3_1}
+    logs.append(subtask_desc_3_1)
+    print("Step 3.1: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking_3_1, answer_3_1, sub_tasks, agents)
+    return final_answer, logs

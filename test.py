@@ -1,27 +1,52 @@
 import matplotlib.pyplot as plt
-import numpy as np
+from matplotlib.patches import Patch
+import math
 
-# Các trục (tiêu chí đánh giá)
-labels = ['Accuracy', 'Speed', 'Cost', 'Stability', 'Scalability']
-num_vars = len(labels)
+models = ['gpt-4.1-mini', 'gpt-4o', 'o4-mini']
+cost = [0.09, 0.258, 0.20]
+accuracy = [83.33, 66.67, 89.58]
+time = [387.71, 342.49, 411.68]
 
-# Giá trị mẫu
-values = [0.8, 0.6, 0.3, 0.9, 0.7]
-# Đóng vòng tròn bằng cách lặp lại phần tử đầu
-values += values[:1]
+# Gán mỗi model một màu riêng
+colors = ['#1f77b4', '#2ca02c', '#d62728']  # Blue, Green, Red
 
-# Góc cho từng trục
-angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
-angles += angles[:1]
+plt.figure(figsize=(10, 6))
+bubble_sizes = [c * 40000 for c in cost]
 
-# Tạo biểu đồ
-fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-ax.plot(angles, values, color='blue', linewidth=2)
-ax.fill(angles, values, color='blue', alpha=0.25)
+scatter = plt.scatter(
+    time, accuracy,
+    s=bubble_sizes,
+    c=colors,
+    alpha=0.7
+)
 
-# Thêm nhãn cho từng trục
-ax.set_xticks(angles[:-1])
-ax.set_xticklabels(labels)
+# Annotate và thêm tâm và đường nét đứt
+for i, model in enumerate(models):
+    # Vẽ tâm của bubble
+    plt.plot(time[i], accuracy[i], '+', markersize=4)  # 'ko' = black circle
 
-plt.title('Model Performance (Spider Plot)')
-plt.savefig("spider_plot.jpg")
+    # Vẽ đường nét đứt đến trục X
+    plt.plot([time[i], time[i]], [0, accuracy[i]], linestyle='dotted', color='gray', alpha=0.6)
+
+    # Vẽ đường nét đứt đến trục Y
+    plt.plot([0, time[i]], [accuracy[i], accuracy[i]], linestyle='dotted', color='gray', alpha=0.6)
+
+    # Hiển thị tên model và cost ở phía trên bubble
+    text_offset = - (math.sqrt((bubble_sizes[i]) / math.pi) + 20)
+    plt.annotate(f"{model}\n(${cost[i]})",
+                 (time[i], accuracy[i]),
+                 xytext=(0, text_offset),
+                 textcoords='offset points',
+                 ha='center')
+
+# Thiết lập trục và biểu đồ
+plt.xlabel('Time (s)')
+plt.ylabel('Accuracy (%)')
+plt.xlim(250, 450)
+plt.ylim(40, 100)
+plt.title('Execution Model Analysis: Accuracy vs Time vs Cost')
+plt.grid(linestyle='--', alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("execution_model_analysis.png")
+plt.show()

@@ -1,0 +1,119 @@
+
+============== high level task decomposition ================
+[{'objective': 'Review the ESPRESSO spectrograph specifications and performance parameters relevant to S/N for a 1-hour exposure on an 8m VLT telescope'}, {'objective': 'Calculate the apparent V magnitude of each star using its absolute magnitude and distance'}, {'objective': 'Estimate the expected signal-to-noise ratio per binned pixel for each star during a 1-hour exposure using the ESPRESSO instrument parameters'}, {'objective': 'Determine which stars achieve a S/N of at least 10 and count the total number of detectable stars'}]
+============== abstracted high level task decomposition ================
+['Extract defining features: Review and extract relevant input parameters and performance characteristics necessary for subsequent quantitative evaluation.', 'Apply Transformation: Transform input values by applying defined relationships to derive adjusted or intermediate quantitative values.', 'Compute Quantitative or Conditional Measure: Compute quantitative measures for each element by applying defined operations and input parameters to estimate expected outcomes.', 'Evaluate, select, and prioritize elements by criteria conformity: Evaluate elements against a defined threshold criterion and identify those that satisfy the condition, then aggregate the count of such elements.']
+============== Abstract MAS choosing ================
+Query-based chain: ['9', '1', '4', '7']
+Similar chain: ['9', '5', '0', '7']
+Levenshtein distance: 2
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- The instrument involved is the ESPRESSO spectrograph coupled with an 8m Very Large Telescope (VLT) at Paranal Observatory.
+- Detectability criterion: signal-to-noise ratio (S/N) ≥ 10 per binned pixel during a 1-hour exposure.
+- Stars listed:
+  a) Canopus
+  b) Polaris
+  c) Star at RA=0°, DEC=0°, Absolute V magnitude = 15 mag, distance = 10 pc
+  d) Same as (c) but distance = 200 pc
+  e) Same as (c) but distance = 5 pc
+  f) Same as (c) but distance = 50 pc
+- Absolute V magnitude is given for stars c-f; apparent magnitude can be derived from absolute magnitude and distance.
+
+2. Analyze Relationships Between Components:
+- The detectability depends on the star's apparent brightness, which is a function of absolute magnitude and distance via the distance modulus.
+- The S/N ratio depends on the flux received, which decreases with distance squared.
+- The fixed exposure time (1 hour) and instrument parameters (ESPRESSO on 8m VLT) set the sensitivity threshold.
+- The positions (RA, DEC) may affect observability due to telescope pointing constraints or atmospheric conditions but are fixed here.
+- The problem implicitly relates stellar brightness, distance, and instrument sensitivity to determine detectability.
+
+3. Identify the Field of Study:
+- Astrophysics and observational astronomy.
+- Instrumentation and photometry related to spectroscopy.
+- Concepts involved include stellar magnitudes, signal-to-noise ratio, telescope sensitivity.
+- Relevant in contexts such as astronomical surveys, telescope time allocation, and observational planning.
+
+4. Highlight Aspects Needing Clarification:
+- The exact apparent magnitudes of Canopus and Polaris are not given explicitly; their detectability depends on their brightness and distance.
+- The problem assumes knowledge of how to convert absolute magnitude and distance to apparent magnitude.
+- The impact of atmospheric conditions, telescope efficiency, and instrument throughput is not detailed but may affect S/N.
+- The term "per binned pixel" could require clarification regarding binning parameters.
+- Potential challenges include estimating S/N from given magnitudes and instrument characteristics without explicit formulas or sensitivity curves.
+============== Task Decomposition ================
+{'stage_1': {'subtask_1': {'objective': 'Extract and summarize all relevant information about the stars (including apparent magnitudes derived from absolute magnitudes and distances) and the ESPRESSO instrument parameters relevant to detectability.', 'dependencies': [], 'agent_collaboration': 'Debate'}, 'subtask_2': {'objective': 'Analyze and classify the stars based on their apparent brightness and positional information to assess their potential observability with the ESPRESSO spectrograph on the 8m VLT.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_3': {'objective': 'Transform the apparent magnitudes and star parameters into expected signal-to-noise ratios (S/N) for a 1-hour exposure using ESPRESSO on the 8m VLT, applying relevant sensitivity and noise models.', 'dependencies': ['subtask_2'], 'agent_collaboration': 'Debate'}}, 'stage_3': {'subtask_4': {'objective': 'Evaluate which stars meet or exceed the S/N threshold of 10 per binned pixel in a 1-hour exposure, and prioritize/count the detectable stars accordingly.', 'dependencies': ['subtask_3'], 'agent_collaboration': 'Debate'}}}
+============== Concretized MAS ================
+async def forward_186(self, taskInfo):
+    logs = []
+
+    cot_instruction1 = (
+        "Sub-task 1: Extract and summarize all relevant information about the stars, including apparent magnitudes derived from absolute magnitudes and distances, "
+        "and the ESPRESSO instrument parameters relevant to detectability, based on the user query and provided data."
+    )
+    cot_agent_desc1 = {
+        'instruction': cot_instruction1,
+        'input': [taskInfo],
+        'temperature': 0.0,
+        'context': ["user query"]
+    }
+    results1, log1 = await self.debate(
+        subtask_id="subtask_1",
+        debate_desc=cot_agent_desc1,
+        n_repeat=self.max_round
+    )
+    logs.append(log1)
+
+    cot_sc_instruction2 = (
+        "Sub-task 2: Based on the output from Sub-task 1, analyze and classify the stars based on their apparent brightness and positional information "
+        "to assess their potential observability with the ESPRESSO spectrograph on the 8m VLT."
+    )
+    cot_sc_desc2 = {
+        'instruction': cot_sc_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'temperature': 0.5,
+        'context': ["user query", "thinking of subtask 1", "answer of subtask 1"]
+    }
+    results2, log2 = await self.sc_cot(
+        subtask_id="subtask_2",
+        cot_agent_desc=cot_sc_desc2,
+        n_repeat=self.max_sc
+    )
+    logs.append(log2)
+
+    debate_instruction3 = (
+        "Sub-task 3: Transform the apparent magnitudes and star parameters from Sub-task 2 into expected signal-to-noise ratios (S/N) "
+        "for a 1-hour exposure using ESPRESSO on the 8m VLT, applying relevant sensitivity and noise models."
+    )
+    debate_desc3 = {
+        'instruction': debate_instruction3,
+        'context': ["user query", "thinking of subtask 2", "answer of subtask 2"],
+        'input': [taskInfo, results2['thinking'], results2['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results3, log3 = await self.debate(
+        subtask_id="subtask_3",
+        debate_desc=debate_desc3,
+        n_repeat=self.max_round
+    )
+    logs.append(log3)
+
+    debate_instruction4 = (
+        "Sub-task 4: Evaluate which stars meet or exceed the S/N threshold of 10 per binned pixel in a 1-hour exposure, "
+        "and prioritize/count the detectable stars accordingly based on Sub-task 3 outputs."
+    )
+    debate_desc4 = {
+        'instruction': debate_instruction4,
+        'context': ["user query", "thinking of subtask 3", "answer of subtask 3"],
+        'input': [taskInfo, results3['thinking'], results3['answer']],
+        'output': ["thinking", "answer"],
+        'temperature': 0.5
+    }
+    results4, log4 = await self.debate(
+        subtask_id="subtask_4",
+        debate_desc=debate_desc4,
+        n_repeat=self.max_round
+    )
+    logs.append(log4)
+
+    final_answer = await self.make_final_answer(results4['thinking'], results4['answer'])
+    return final_answer, logs

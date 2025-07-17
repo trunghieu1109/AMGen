@@ -1,0 +1,153 @@
+
+============== high level task decomposition ================
+[{'objective': 'Analyze the original decay process and characterize the energy spectrum of the outgoing E particles, including its continuity and endpoint energy'}, {'objective': 'Examine the kinematic and energy conservation implications of replacing two V particles with one massless particle M in the decay'}, {'objective': 'Determine how the change in emitted particles affects the shape and continuity of the E particle energy spectrum'}, {'objective': 'Compare the endpoint energy of the E particle spectrum in the modified decay to that of the original decay'}]
+============== task analysis ================
+1. Extract and Summarize Given Information:
+- The original decay process is 2A -> 2B + 2E + 2V, where A and B are heavy nucleons of different flavors, and E and V are lighter particles.
+- The total energy spectrum of the outgoing E particles in the original decay is continuous with an endpoint value Q.
+- A variant decay replaces the emission of 2V particles with a single exotic, massless particle M, resulting in 2A -> 2B + 2E + M.
+
+2. Analyze Relationships Between Components:
+- The original decay involves two heavy nucleons changing flavor and emitting four lighter particles (2E and 2V), with the energy shared among these products.
+- The continuous energy spectrum of E particles suggests a range of possible energy distributions due to the multi-particle final state.
+- Replacing 2V with a single massless particle M changes the number and nature of emitted particles, potentially altering energy conservation constraints and phase space.
+- The masslessness of M implies it carries energy but no rest mass, which may affect the maximum available energy (endpoint) for E particles and the shape of their energy spectrum.
+- The problem asks how this substitution affects the continuity and endpoint of the E particle energy spectrum.
+
+3. Identify the Field of Study:
+- The problem lies in nuclear and particle physics, specifically nuclear decay processes.
+- It involves concepts from quantum mechanics and particle kinematics, such as energy spectra, conservation laws, and phase space.
+- The mathematical tools include energy and momentum conservation, spectral analysis, and possibly relativistic kinematics.
+- Such problems are common in nuclear physics research and particle physics phenomenology.
+
+4. Highlight Aspects Needing Clarification:
+- The exact nature and properties of particles E, V, and M beyond mass and flavor are not specified (e.g., spin, interaction types).
+- The problem does not specify whether the decay is at rest or in motion, which can affect energy distributions.
+- It is unclear how the energy Q is defined precisely (total available energy, maximum kinetic energy, etc.).
+- The impact of replacing two particles (2V) with one (M) on momentum conservation and phase space volume is not detailed.
+- Potential complexities arise from the multi-particle final state and how the masslessness of M influences the energy sharing among products.
+============== task decomposition 0 ================
+{'stage_0': {'subtask_0_1': {'objective': 'Extract and summarize the defining features of the original and variant decay processes, including particle types, decay products, and known spectral properties.', 'dependencies': [], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_1_1': {'objective': 'Analyze the physical and kinematic implications of replacing two lighter particles (2V) with a single massless particle (M) on energy and momentum conservation and phase space.', 'dependencies': ['subtask_0_1'], 'agent_collaboration': 'Debate'}}, 'stage_2': {'subtask_2_1': {'objective': 'Integrate the extracted features and transformation analysis to determine how the total energy spectrum of the outgoing E particles changes in continuity, shape, and endpoint value.', 'dependencies': ['subtask_0_1', 'subtask_1_1'], 'agent_collaboration': 'Reflexion'}}, 'stage_3': {'subtask_3_1': {'objective': 'Evaluate the given answer choices against the integrated analysis to select the option that best describes the change in the energy spectrum of E particles.', 'dependencies': ['subtask_2_1'], 'agent_collaboration': 'Debate'}}}
+============== code generate 0 ================
+async def forward(self, taskInfo):
+    from collections import Counter
+    print("Task Requirement: ", taskInfo)
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    debate_instr_0 = "Sub-task 0_1: Extract and summarize the defining features of the original and variant decay processes, including particle types, decay products, and known spectral properties." + \
+                    " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_0 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) 
+                      for role in self.debate_role]
+    all_thinking_0 = []
+    all_answer_0 = []
+    subtask_desc_0 = {
+        "subtask_id": "subtask_0_1",
+        "instruction": debate_instr_0,
+        "context": ["user query"],
+        "agent_collaboration": "Debate"
+    }
+    for i, agent in enumerate(debate_agents_0):
+        thinking0, answer0 = await agent([taskInfo], debate_instr_0, 0, is_sub_task=True)
+        agents.append(f"Debate agent {agent.id}, round 0, extracting and summarizing decay features, thinking: {thinking0.content}; answer: {answer0.content}")
+        all_thinking_0.append(thinking0)
+        all_answer_0.append(answer0)
+    final_decision_agent_0 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking0, answer0 = await final_decision_agent_0([taskInfo] + all_thinking_0 + all_answer_0, 
+                                                    "Sub-task 0_1: Extract and summarize decay features." + 
+                                                    " Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                    is_sub_task=True)
+    sub_tasks.append(f"Sub-task 0_1 output: thinking - {thinking0.content}; answer - {answer0.content}")
+    subtask_desc_0['response'] = {"thinking": thinking0, "answer": answer0}
+    logs.append(subtask_desc_0)
+    print("Step 0: ", sub_tasks[-1])
+
+    debate_instr_1 = "Sub-task 1_1: Analyze the physical and kinematic implications of replacing two lighter particles (2V) with a single massless particle (M) on energy and momentum conservation and phase space." + \
+                    " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_1 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) 
+                      for role in self.debate_role]
+    all_thinking_1 = []
+    all_answer_1 = []
+    subtask_desc_1 = {
+        "subtask_id": "subtask_1_1",
+        "instruction": debate_instr_1,
+        "context": ["user query", thinking0, answer0],
+        "agent_collaboration": "Debate"
+    }
+    for i, agent in enumerate(debate_agents_1):
+        thinking1, answer1 = await agent([taskInfo, thinking0, answer0], debate_instr_1, 0, is_sub_task=True)
+        agents.append(f"Debate agent {agent.id}, round 0, analyzing kinematic implications, thinking: {thinking1.content}; answer: {answer1.content}")
+        all_thinking_1.append(thinking1)
+        all_answer_1.append(answer1)
+    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking1, answer1 = await final_decision_agent_1([taskInfo, thinking0, answer0] + all_thinking_1 + all_answer_1, 
+                                                    "Sub-task 1_1: Analyze kinematic implications." + 
+                                                    " Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                    is_sub_task=True)
+    sub_tasks.append(f"Sub-task 1_1 output: thinking - {thinking1.content}; answer - {answer1.content}")
+    subtask_desc_1['response'] = {"thinking": thinking1, "answer": answer1}
+    logs.append(subtask_desc_1)
+    print("Step 1: ", sub_tasks[-1])
+
+    reflect_inst = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
+    cot_reflect_instruction = "Sub-task 2_1: Integrate the extracted features and transformation analysis to determine how the total energy spectrum of the outgoing E particles changes in continuity, shape, and endpoint value." + reflect_inst
+    cot_agent_2 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    critic_agent_2 = LLMAgentBase(["feedback", "correct"], "Critic Agent", model=self.node_model, temperature=0.0)
+    N_max_2 = self.max_round
+    cot_inputs_2 = [taskInfo, thinking0, answer0, thinking1, answer1]
+    subtask_desc_2 = {
+        "subtask_id": "subtask_2_1",
+        "instruction": cot_reflect_instruction,
+        "context": ["user query", thinking0, answer0, thinking1, answer1],
+        "agent_collaboration": "Reflexion"
+    }
+    thinking2, answer2 = await cot_agent_2(cot_inputs_2, cot_reflect_instruction, 0, is_sub_task=True)
+    agents.append(f"Reflexion CoT agent {cot_agent_2.id}, integrating and refining energy spectrum changes, thinking: {thinking2.content}; answer: {answer2.content}")
+    for i in range(N_max_2):
+        feedback, correct = await critic_agent_2([taskInfo, thinking2, answer2], 
+                                                "Please review and provide the limitations of provided solutions. If you are absolutely sure it is correct, output exactly 'True' in 'correct'", 
+                                                i, is_sub_task=True)
+        agents.append(f"Critic agent {critic_agent_2.id}, providing feedback, thinking: {feedback.content}; answer: {correct.content}")
+        if correct.content.strip() == "True":
+            break
+        cot_inputs_2.extend([thinking2, answer2, feedback])
+        thinking2, answer2 = await cot_agent_2(cot_inputs_2, cot_reflect_instruction, i + 1, is_sub_task=True)
+        agents.append(f"Reflexion CoT agent {cot_agent_2.id}, refining energy spectrum changes, thinking: {thinking2.content}; answer: {answer2.content}")
+    sub_tasks.append(f"Sub-task 2_1 output: thinking - {thinking2.content}; answer - {answer2.content}")
+    subtask_desc_2['response'] = {"thinking": thinking2, "answer": answer2}
+    logs.append(subtask_desc_2)
+    print("Step 2: ", sub_tasks[-1])
+
+    debate_instr_3 = "Sub-task 3_1: Evaluate the given answer choices against the integrated analysis to select the option that best describes the change in the energy spectrum of E particles." + \
+                    " Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_agents_3 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) 
+                      for role in self.debate_role]
+    all_thinking_3 = []
+    all_answer_3 = []
+    subtask_desc_3 = {
+        "subtask_id": "subtask_3_1",
+        "instruction": debate_instr_3,
+        "context": ["user query", thinking2, answer2],
+        "agent_collaboration": "Debate"
+    }
+    for i, agent in enumerate(debate_agents_3):
+        thinking3, answer3 = await agent([taskInfo, thinking2, answer2], debate_instr_3, 0, is_sub_task=True)
+        agents.append(f"Debate agent {agent.id}, round 0, evaluating answer choices, thinking: {thinking3.content}; answer: {answer3.content}")
+        all_thinking_3.append(thinking3)
+        all_answer_3.append(answer3)
+    final_decision_agent_3 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking3, answer3 = await final_decision_agent_3([taskInfo, thinking2, answer2] + all_thinking_3 + all_answer_3, 
+                                                    "Sub-task 3_1: Evaluate answer choices." + 
+                                                    " Given all the above thinking and answers, reason over them carefully and provide a final answer.", 
+                                                    is_sub_task=True)
+    sub_tasks.append(f"Sub-task 3_1 output: thinking - {thinking3.content}; answer - {answer3.content}")
+    subtask_desc_3['response'] = {"thinking": thinking3, "answer": answer3}
+    logs.append(subtask_desc_3)
+    print("Step 3: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking3, answer3, sub_tasks, agents)
+    return final_answer, logs
+
+============== high level task decomposition ================
+[{'objective': 'Analyze the energy spectrum characteristics of the original decay 2A -> 2B + 2E + 2V, focusing on the continuity and endpoint energy of the E particles.'}, {'objective': 'Examine the kinematic and energy conservation implications of replacing two V particles with one massless particle M in the decay.'}, {'objective': "Determine how the change in emitted particles affects the shape, continuity, and endpoint energy of the outgoing E particles' energy spectrum."}, {'objective': 'Compare the modified energy spectrum of the E particles to the original spectrum to identify qualitative changes.'}]

@@ -1,0 +1,111 @@
+
+============== high level task decomposition ================
+[{'objective': 'Identify and characterize the retrovirus by sequencing its genetic material'}, {'objective': 'Select a specific molecular target (e.g., viral DNA, RNA, or cDNA) suitable for detection'}, {'objective': 'Develop a molecular detection method such as PCR or real-time PCR based on the selected target'}, {'objective': 'Validate the diagnostic kit for sensitivity, specificity, and rapid detection capability'}]
+============== abstracted high level task decomposition ================
+['Extract defining features: Analyze and characterize an input entity by extracting and evaluating its fundamental components or features.', 'select elements by criteria conformity: Identify and select a specific target element or attribute from the characterized input based on defined suitability criteria.', 'Apply Transformation: Design and develop a detection or transformation process that operates on the selected target to produce a measurable output.', 'Evaluate conformity and validity: Evaluate the developed process or output by assessing its performance against defined measures of accuracy, reliability, and efficiency.']
+============== Abstract MAS choosing ================
+Query-based chain: ['9', '5', '6', '11']
+Similar chain: ['9', '5', '0', '7']
+Levenshtein distance: 2
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- The problem context is an outbreak of a viral infectious disease caused by a retrovirus in a city.
+- The goal is to design a molecular diagnostic kit for quick detection.
+- Four choices describe different diagnostic approaches involving DNA sequencing, antibody detection, symptom-based identification, cDNA sequencing, PCR, nested PCR, ELISA, and real-time PCR.
+- Key entities include the virus (retrovirus), diagnostic methods (PCR, nested PCR, ELISA, real-time PCR), and biological targets (viral DNA, cDNA, IgG antibodies).
+
+2. Analyze Relationships Between Components:
+- The virus identification step varies: sequencing viral DNA or cDNA, detecting antibodies, or symptom-based inference.
+- Diagnostic methods depend on the initial identification: PCR-based methods require nucleic acid sequences; ELISA targets antibodies.
+- Constraints include speed and accuracy of diagnosis.
+- The choice of molecular target (viral genome vs. antibodies) influences the kit design and detection mechanism.
+- The presence of nested PCR and real-time PCR suggests different sensitivities and complexities.
+
+3. Identify the Field of Study:
+- The problem lies in molecular biology and biotechnology.
+- Subfields include virology, molecular diagnostics, immunology, and genetic sequencing.
+- Techniques involved are PCR, ELISA, DNA/cDNA sequencing.
+- Applications include clinical diagnostics, epidemiology, and public health.
+
+4. Highlight Aspects Needing Clarification:
+- The problem does not specify whether the virus genome is RNA or DNA, though retroviruses typically have RNA genomes.
+- The role of cDNA sequencing implies reverse transcription but is not explicitly detailed.
+- The reliability of symptom-based identification is ambiguous.
+- The choice between antibody detection and nucleic acid detection is not contextualized by infection stage or immune response timing.
+- Potential challenges include differentiating between active infection and past exposure (antibody presence) and the technical feasibility of each method in the outbreak context.
+============== Task Decomposition ================
+{'stage_0': {'subtask_1': {'objective': 'Extract and characterize essential features of the retrovirus outbreak, including viral genome type, possible molecular targets (viral nucleic acids or antibodies), and diagnostic constraints such as speed and accuracy.', 'dependencies': [], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_1': {'objective': 'Analyze and classify diagnostic approaches based on extracted features: nucleic acid-based methods (DNA sequencing, cDNA sequencing, PCR variants) versus antibody-based methods (IgG detection via ELISA), and symptom-based inference.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Debate'}}, 'stage_2': {'subtask_1': {'objective': 'Transform classified diagnostic approaches into concrete molecular diagnostic kit designs, generating variants such as PCR, nested PCR, real-time PCR, and ELISA kits, considering technical feasibility and detection targets.', 'dependencies': ['stage_1.subtask_1'], 'agent_collaboration': 'SC_CoT'}}, 'stage_3': {'subtask_1': {'objective': 'Evaluate and prioritize the generated diagnostic kit designs against criteria of speed, accuracy, feasibility, and suitability for retrovirus detection to select the optimal design.', 'dependencies': ['stage_1.subtask_1', 'stage_2.subtask_1'], 'agent_collaboration': 'Debate'}}}
+============== Concretized MAS ================
+async def forward_156(self, taskInfo):
+    logs = []
+
+    cot_instruction_stage0 = (
+        "Sub-task 1: Extract and characterize essential features of the retrovirus outbreak, including viral genome type, "
+        "possible molecular targets (viral nucleic acids or antibodies), and diagnostic constraints such as speed and accuracy, "
+        "based on the provided query."
+    )
+    debate_desc_stage0 = {
+        'instruction': cot_instruction_stage0,
+        'input': [taskInfo],
+        'temperature': 0.5,
+        'context': ["user query", "stage 0: feature extraction"]
+    }
+    results_stage0, log_stage0 = await self.debate(
+        subtask_id="stage0_subtask1",
+        debate_desc=debate_desc_stage0,
+        n_repeat=self.max_round
+    )
+    logs.append(log_stage0)
+
+    cot_instruction_stage1 = (
+        "Sub-task 1: Analyze and classify diagnostic approaches based on extracted features from stage 0 output: nucleic acid-based methods "
+        "(DNA sequencing, cDNA sequencing, PCR variants) versus antibody-based methods (IgG detection via ELISA), and symptom-based inference."
+    )
+    debate_desc_stage1 = {
+        'instruction': cot_instruction_stage1,
+        'input': [taskInfo, results_stage0['thinking'], results_stage0['answer']],
+        'temperature': 0.5,
+        'context': ["user query", "stage 0 thinking", "stage 0 answer", "stage 1: diagnostic approach classification"]
+    }
+    results_stage1, log_stage1 = await self.debate(
+        subtask_id="stage1_subtask1",
+        debate_desc=debate_desc_stage1,
+        n_repeat=self.max_round
+    )
+    logs.append(log_stage1)
+
+    cot_sc_instruction_stage2 = (
+        "Sub-task 1: Transform classified diagnostic approaches from stage 1 into concrete molecular diagnostic kit designs, "
+        "generating variants such as PCR, nested PCR, real-time PCR, and ELISA kits, considering technical feasibility and detection targets."
+    )
+    results_stage2, log_stage2 = await self.sc_cot(
+        subtask_id="stage2_subtask1",
+        cot_agent_desc={
+            'instruction': cot_sc_instruction_stage2,
+            'input': [taskInfo, results_stage1['thinking'], results_stage1['answer']],
+            'temperature': 0.5,
+            'context': ["user query", "stage 1 thinking", "stage 1 answer", "stage 2: diagnostic kit design"]
+        },
+        n_repeat=self.max_sc
+    )
+    logs.append(log_stage2)
+
+    debate_instruction_stage3 = (
+        "Sub-task 1: Evaluate and prioritize the generated diagnostic kit designs from stage 2 against criteria of speed, accuracy, feasibility, "
+        "and suitability for retrovirus detection to select the optimal design."
+    )
+    debate_desc_stage3 = {
+        'instruction': debate_instruction_stage3,
+        'input': [taskInfo, results_stage1['thinking'], results_stage1['answer'], results_stage2['thinking'], results_stage2['answer']],
+        'temperature': 0.5,
+        'context': ["user query", "stage 1 thinking", "stage 1 answer", "stage 2 thinking", "stage 2 answer", "stage 3: evaluation and prioritization"]
+    }
+    results_stage3, log_stage3 = await self.debate(
+        subtask_id="stage3_subtask1",
+        debate_desc=debate_desc_stage3,
+        n_repeat=self.max_round
+    )
+    logs.append(log_stage3)
+
+    final_answer = await self.make_final_answer(results_stage3['thinking'], results_stage3['answer'])
+    return final_answer, logs

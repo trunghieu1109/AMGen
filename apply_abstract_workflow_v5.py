@@ -673,7 +673,7 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None, date_time=""):
-    if not example_id in [157, 165, 175, 176, 180, 190]:
+    if not example_id in [173]:
         return 0, 0, 0, ""
     
     start_time_ = time.time()
@@ -712,8 +712,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1155,7 +1155,7 @@ Do not include any additional fields or explanations outside of the objective ke
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1363,10 +1363,6 @@ Ensure all subtasks are well-structured, grounded, and correctly executed. Outpu
                 f.write(str(content))
             try:
                 next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
-                # if 'gpqa_diamond' in args.dataset:
-                #     analysis_only_task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
-                # else:
-                #     analysis_only_task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
                 acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"], task_queue_tmp)
                 total_execution_time += total_time
             except Exception as e:
@@ -1492,56 +1488,6 @@ Return JSON with:
                     print(f"\n================= {ev['verifier_name']} ==================\n")
                     print(ev["evaluation"])
                     
-                # return 1, 1, 1, ""
-                    
-#                 # print("\n=========== Evaluation ===========\n", evaluation)
-            
-#                 synthesizer_prompt = f"""
-# You are an advanced agent specialized in synthesizing evaluations from multiple verifier models to produce a single, cohesive feedback and suggestion output. Your task is to analyze the feedback and suggestions provided by a set of verifiers, resolve any conflicts, and generate a unified feedback and suggestion that is clear, concise, and actionable. The input evaluations come from a list of verifier models (verifier_hub) and are stored in an evaluation list, where each entry contains feedback and suggestion fields.
-
-# [Input Context]
-# 1. Evaluations: A list of evaluation results, where each evaluation is a dictionary containing:
-# - feedback: A string describing issues or observations about the query or task performance.
-# - suggestion: A string proposing improvements or next steps.
-# These feedback come from many verifiers:
-# {evaluation}
-
-# Query: The original query or task context: {task_queue_tmp[0].content}
-
-# [Instructions]
-# 1. Synthesize Output:
-#     1.1. Combine the failure reason, avoiding redundancy.
-#     1.1. Combine the feedback, avoiding redundancy.
-#     1.2. Combine the suggestions that integrates the best ideas from all verifiers and addresses the query’s goals.    
-#     1.3. Ensure the output is clear, avoids jargon unless necessary, and is structured for easy understanding.
-# The Synthesized output must be detailed (failure in which subtasks?, why it was failed?, does the problem come from reasoning process?, does the problem come from agent collaboration patterns?)
-# Provide a bullet-point formatted list including all the feedbacks and suggestions from experts.
-# About the suggestions, for each of them, describe detailed how to modify.
-# 2. Output Format:
-# Return the result in JSON format with the following structure:
-# {{
-#     "combined_failure_reason": "The reason why previous process was failed"
-#     "combined_feedback": "Issues or observations from all verifiers that are limitations of current workflow.",
-#     "combined_suggestion": "A single, actionable recommendation integrating the best suggestions."
-# }}
-# Ensure the response is well-formed JSON and contains both required fields.
-
-# 3. Incorporate Query Context:
-#     3.1 Ensure the combined feedback and suggestion are grounded in the query’s intent and context, addressing the specific task or problem posed.
-
-# [Your Task]
-# Given the evaluations from the verifier models and the query context, generate a single JSON object containing the combined_feedback and combined_suggestion by synthesizing the inputs. Ensure the output is tailored to the query and leverages all relevant insights from the evaluations.
-#                 """
-                
-#                 msg_list = [
-#                     {"role": "user", "content": synthesizer_prompt},
-#                 ]
-
-#                 synthesized_evaluation ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), verifier_model, ['combined_failure_reason', 'combined_feedback', 'combined_suggestion'], 0.0)
-#                 print(f"================ MAS Refinement Feedback ================\n", synthesized_evaluation['combined_feedback'])
-#                 print(f"================ MAS Refinement Failure Reason ================\n", synthesized_evaluation['combined_failure_reason'])
-#                 print(f"================ MAS Refinement Suggestion ================\n", synthesized_evaluation['combined_suggestion'])
-#                 evaluation = [synthesized_evaluation]
                 with open(log_path, "a+", encoding="utf-8") as f:
         
                     phase = f"evaluation {attempt}"
@@ -1680,8 +1626,8 @@ Return JSON with:
 #     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
 #     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
 #     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-#     result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-#     oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_oracle.results'
+#     result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
+#     oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_oracle.results'
 #     oracle_acc_path = Path(oracle_acc_result_path)
 #     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1730,7 +1676,7 @@ Return JSON with:
 
 #     global_ns = []
     
-#     final_results_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+#     final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
 #     result_path = Path(final_results_path)
 #     result_path.parent.mkdir(parents=True, exist_ok=True)
 #     final_results = []
@@ -1856,8 +1802,8 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1915,7 +1861,7 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/dev19_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     

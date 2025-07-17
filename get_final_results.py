@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "results/workflow_search/gpqa_diamond/dev19_execution_model_test/gpt-4.1-mini_gpt-4o_chatgpt"
+directory = "results/workflow_search/gpqa_diamond/dev19_attemp4/o4-mini_o4-mini"
 total_score = 0
 total_time = 0
 total_execution_time = 0

@@ -1,0 +1,161 @@
+
+============== high level task decomposition ================
+[{'objective': 'Determine the rest masses of the two fragments based on the given mass ratio and total mass loss.'}, {'objective': 'Calculate the velocities of the two fragments using conservation of momentum and energy principles.'}, {'objective': 'Compute the kinetic energy of the more massive fragment using both relativistic and classical formulas.'}, {'objective': 'Find the difference between the relativistic and classical kinetic energy values for the more massive fragment.'}]
+============== task analysis ================
+1. Extract and Summarize Given Information:
+- Initial atomic nucleus mass: M
+- Rest-mass energy of initial nucleus: 300 GeV
+- The nucleus undergoes spontaneous fission into exactly two fragments
+- Mass ratio of fragments: one fragment is twice as massive as the other (rest-mass basis)
+- Sum of rest-masses of fragments is 99% of initial mass M (i.e., total rest mass after fission is 0.99 M)
+- Kinetic energy of the more massive fragment is denoted as T1
+- Electrons are ignored
+
+2. Analyze Relationships Between Components:
+- Conservation of energy and momentum apply; initial nucleus is at rest, so total momentum after fission is zero
+- The mass ratio (2:1) constrains the rest masses of the fragments: if lighter fragment has rest mass m, heavier has 2m, with 3m = 0.99 M
+- The rest-mass deficit (1% mass loss) implies energy release, converted into kinetic energy of fragments
+- The kinetic energies of the fragments depend on their masses and velocities, with relativistic effects potentially significant due to high energies involved
+- The problem contrasts the relativistic kinetic energy T1 with the classical approximation, asking for the difference
+
+3. Identify the Field of Study:
+- Physics: Nuclear physics and relativistic mechanics
+- Mathematics: Relativistic energy and momentum relations
+- Concepts: Conservation laws, relativistic kinetic energy, mass-energy equivalence
+- Applications: Particle physics, nuclear reactions, high-energy physics
+
+4. Highlight Aspects Needing Clarification:
+- Exact numerical values for fragment masses are implied but not explicitly given; must be derived
+- The problem assumes relativistic treatment but does not specify the velocity regime explicitly
+- The method to calculate classical kinetic energy is implied but not detailed
+- Potential complexity in calculating relativistic kinetic energy difference without explicit formulas
+- No mention of angular distribution or directions, but momentum conservation implies opposite directions
+- The problem ignores electrons, simplifying mass and energy accounting
+============== task decomposition 0 ================
+{'stage_0': {'subtask_1': {'objective': 'Determine the rest masses of the two fragments based on the given mass ratio and total rest mass after fission.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Calculate the total kinetic energy released from the mass defect (1% of initial mass energy) and express it in appropriate units.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}}, 'stage_1': {'subtask_3': {'objective': 'Using conservation of momentum and energy, compute the relativistic kinetic energy T1 of the more massive fragment.', 'dependencies': ['subtask_1', 'subtask_2'], 'agent_collaboration': 'SC_CoT'}, 'subtask_4': {'objective': 'Calculate the classical (non-relativistic) kinetic energy T1 of the more massive fragment using the same total kinetic energy and mass ratio assumptions.', 'dependencies': ['subtask_1', 'subtask_2'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_5': {'objective': 'Determine the difference between the relativistic and classical kinetic energy values of the more massive fragment and identify the closest answer choice.', 'dependencies': ['subtask_3', 'subtask_4'], 'agent_collaboration': 'Reflexion'}}}
+============== code generate 0 ================
+async def forward(self, taskInfo):
+    from collections import Counter
+    print("Task Requirement: ", taskInfo)
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    cot_sc_instruction_1 = "Sub-task 1: Determine the rest masses of the two fragments based on the given mass ratio (2:1) and total rest mass after fission (99% of initial mass M). Use the given rest-mass energy of initial nucleus (300 GeV). Provide numerical values for the rest masses of the lighter and heavier fragments in GeV/c^2 units."
+    N = self.max_sc
+    cot_agents_1 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_1 = []
+    possible_thinkings_1 = []
+    subtask_desc1 = {
+        "subtask_id": "subtask_1",
+        "instruction": cot_sc_instruction_1,
+        "context": ["user query"],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking1, answer1 = await cot_agents_1[i]([taskInfo], cot_sc_instruction_1, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_1[i].id}, determine fragment rest masses, thinking: {thinking1.content}; answer: {answer1.content}")
+        possible_answers_1.append(answer1)
+        possible_thinkings_1.append(thinking1)
+    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking1, answer1 = await final_decision_agent_1([taskInfo] + possible_thinkings_1 + possible_answers_1, "Sub-task 1: Synthesize and choose the most consistent and correct rest masses for the two fragments.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking1.content}; answer - {answer1.content}")
+    subtask_desc1['response'] = {"thinking": thinking1, "answer": answer1}
+    logs.append(subtask_desc1)
+    print("Step 1: ", sub_tasks[-1])
+
+    cot_sc_instruction_2 = "Sub-task 2: Calculate the total kinetic energy released from the mass defect (1% of initial mass energy 300 GeV). Express the kinetic energy in MeV."
+    cot_agents_2 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_2 = []
+    possible_thinkings_2 = []
+    subtask_desc2 = {
+        "subtask_id": "subtask_2",
+        "instruction": cot_sc_instruction_2,
+        "context": ["user query"],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking2, answer2 = await cot_agents_2[i]([taskInfo], cot_sc_instruction_2, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_2[i].id}, calculate total kinetic energy from mass defect, thinking: {thinking2.content}; answer: {answer2.content}")
+        possible_answers_2.append(answer2)
+        possible_thinkings_2.append(thinking2)
+    final_decision_agent_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking2, answer2 = await final_decision_agent_2([taskInfo] + possible_thinkings_2 + possible_answers_2, "Sub-task 2: Synthesize and choose the most consistent and correct total kinetic energy value.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking2.content}; answer - {answer2.content}")
+    subtask_desc2['response'] = {"thinking": thinking2, "answer": answer2}
+    logs.append(subtask_desc2)
+    print("Step 2: ", sub_tasks[-1])
+
+    cot_sc_instruction_3 = "Sub-task 3: Using conservation of momentum and energy, compute the relativistic kinetic energy T1 of the more massive fragment. Use the rest masses from Sub-task 1 and total kinetic energy from Sub-task 2. Provide T1 in MeV."
+    cot_agents_3 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_3 = []
+    possible_thinkings_3 = []
+    subtask_desc3 = {
+        "subtask_id": "subtask_3",
+        "instruction": cot_sc_instruction_3,
+        "context": ["user query", thinking1, answer1, thinking2, answer2],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking3, answer3 = await cot_agents_3[i]([taskInfo, thinking1, answer1, thinking2, answer2], cot_sc_instruction_3, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_3[i].id}, compute relativistic kinetic energy T1, thinking: {thinking3.content}; answer: {answer3.content}")
+        possible_answers_3.append(answer3)
+        possible_thinkings_3.append(thinking3)
+    final_decision_agent_3 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking3, answer3 = await final_decision_agent_3([taskInfo, thinking1, answer1, thinking2, answer2] + possible_thinkings_3 + possible_answers_3, "Sub-task 3: Synthesize and choose the most consistent and correct relativistic kinetic energy T1.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking3.content}; answer - {answer3.content}")
+    subtask_desc3['response'] = {"thinking": thinking3, "answer": answer3}
+    logs.append(subtask_desc3)
+    print("Step 3: ", sub_tasks[-1])
+
+    cot_sc_instruction_4 = "Sub-task 4: Calculate the classical (non-relativistic) kinetic energy T1 of the more massive fragment using the same total kinetic energy and mass ratio assumptions. Provide T1 in MeV."
+    cot_agents_4 = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    possible_answers_4 = []
+    possible_thinkings_4 = []
+    subtask_desc4 = {
+        "subtask_id": "subtask_4",
+        "instruction": cot_sc_instruction_4,
+        "context": ["user query", thinking1, answer1, thinking2, answer2],
+        "agent_collaboration": "SC_CoT"
+    }
+    for i in range(N):
+        thinking4, answer4 = await cot_agents_4[i]([taskInfo, thinking1, answer1, thinking2, answer2], cot_sc_instruction_4, is_sub_task=True)
+        agents.append(f"CoT-SC agent {cot_agents_4[i].id}, calculate classical kinetic energy T1, thinking: {thinking4.content}; answer: {answer4.content}")
+        possible_answers_4.append(answer4)
+        possible_thinkings_4.append(thinking4)
+    final_decision_agent_4 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking4, answer4 = await final_decision_agent_4([taskInfo, thinking1, answer1, thinking2, answer2] + possible_thinkings_4 + possible_answers_4, "Sub-task 4: Synthesize and choose the most consistent and correct classical kinetic energy T1.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task 4 output: thinking - {thinking4.content}; answer - {answer4.content}")
+    subtask_desc4['response'] = {"thinking": thinking4, "answer": answer4}
+    logs.append(subtask_desc4)
+    print("Step 4: ", sub_tasks[-1])
+
+    reflect_inst = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
+    cot_reflect_instruction_5 = "Sub-task 5: Determine the difference between the relativistic and classical kinetic energy values of the more massive fragment and identify the closest answer choice among: 10 MeV, 5 MeV, 2 MeV, 20 MeV." + reflect_inst
+    cot_agent_5 = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    critic_agent_5 = LLMAgentBase(["feedback", "correct"], "Critic Agent", model=self.node_model, temperature=0.0)
+    N_max = self.max_round
+    cot_inputs_5 = [taskInfo, thinking3, answer3, thinking4, answer4]
+    subtask_desc5 = {
+        "subtask_id": "subtask_5",
+        "instruction": cot_reflect_instruction_5,
+        "context": ["user query", thinking3, answer3, thinking4, answer4],
+        "agent_collaboration": "Reflexion"
+    }
+    thinking5, answer5 = await cot_agent_5(cot_inputs_5, cot_reflect_instruction_5, 0, is_sub_task=True)
+    agents.append(f"Reflexion CoT agent {cot_agent_5.id}, determine difference and closest answer, thinking: {thinking5.content}; answer: {answer5.content}")
+    for i in range(N_max):
+        feedback, correct = await critic_agent_5([taskInfo, thinking5, answer5], "Please review and provide the limitations of provided solutions. If you are absolutely sure it is correct, output exactly 'True' in 'correct'", i, is_sub_task=True)
+        agents.append(f"Critic agent {critic_agent_5.id}, providing feedback, thinking: {feedback.content}; answer: {correct.content}")
+        if correct.content == "True":
+            break
+        cot_inputs_5.extend([thinking5, answer5, feedback])
+        thinking5, answer5 = await cot_agent_5(cot_inputs_5, cot_reflect_instruction_5, i + 1, is_sub_task=True)
+        agents.append(f"Reflexion CoT agent {cot_agent_5.id}, refining difference and closest answer, thinking: {thinking5.content}; answer: {answer5.content}")
+    sub_tasks.append(f"Sub-task 5 output: thinking - {thinking5.content}; answer - {answer5.content}")
+    subtask_desc5['response'] = {"thinking": thinking5, "answer": answer5}
+    logs.append(subtask_desc5)
+    print("Step 5: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking5, answer5, sub_tasks, agents)
+    return final_answer, logs
