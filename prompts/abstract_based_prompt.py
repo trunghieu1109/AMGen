@@ -3,12 +3,12 @@ Sample agent iteraction pattern:
 Chain-of-Thought: 
 ```python
     # Sub-task 1: Analyze first expression/data component with self-consistency
-    cot_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    cot_instruction1 = "Sub-task 1: Consider/calculate all possible cases of [problem #1], with context ...."
     cot_agent_desc = {{
         'instruction': cot_instruction1, 
         'input': [taskInfo], 
         'temperature': 0.0, 
-        'context': ["user query", ....]
+        'context_desc': ["user query", ....]
     }}
     results1, log1 = await self.cot(
         subtask_id="subtask_1", 
@@ -21,13 +21,15 @@ Chain-of-Thought:
 Self-Consistency Chain-of-Thought:
 ```python
     cot_sc_instruction2 = "Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
+    final_decision_instruction2 = "Sub-task 2: Synthesize and choose the most consistent answer for [problem]." # must contain if use this pattern
     N = self.max_sc
     
     cot_sc_desc2 = {{
         'instruction': cot_sc_instruction2, 
+        'final_decision_instruction': final_decision_instruction2,  # must contain if use this pattern
         'input': [taskInfo, thinking1, answer1], 
         'temperature': 0.5, 
-        'context': ["user query", "thinking of subtask 1", "answer of subtask 1"]
+        'context_desc': ["user query", "thinking of subtask 1", "answer of subtask 1"]
     }}
     
     results2, log2 = await self.sc_cot(
@@ -41,14 +43,17 @@ Self-Consistency Chain-of-Thought:
 
 Reflexion:
 ```python
-    cot_reflect_instruction3 = "Sub-task 3: Based on the outputs from Sub-task 1 and Sub-task 2, filter the valid scenarios that meet the [conditions stated in the queries]."
-    critic_instruction3 = "Please review the [valid scenarios] filtering and provide its limitations."
+    cot_reflect_instruction3 = "Sub-task 3: Your problem is ... [problem]."
+    critic_instruction3 = ""Please review and provide the limitations of provided solutions of ....."  # must contain if use this pattern
     cot_reflect_desc3 = {{
-        'instruction': cot_reflect_instruction3, 'input': [taskInfo, thinking1, answer1, thinking2, answer2], 'output': ["thinking", "answer"], 
-        'temperature': 0.0, 'context': ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"]
+        'instruction': cot_reflect_instruction3, 
+        'critic_instruction': critic_instruction3,  # must contain if use this pattern
+        'input': [taskInfo, thinking1, answer1, thinking2, answer2], 
+        'temperature': 0.0, 
+        'context_desc': ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"]
     }}
     
-    results3, log3 = await  self.reflexion(
+    results3, log3 = await self.reflexion(
         subtask_id="subtask_3", 
         reflect_desc=cot_reflect_desc3, 
         n_repeat=self.max_round
@@ -59,13 +64,14 @@ Reflexion:
 
 Debate:
 ```python
-    debate_instruction_5 = "Sub-task 5: Based on the output of Sub-task 4, convert [intermediate output] into [specific format] and calculate [the final answer]"
+    debate_instruction5 = "Sub-task 5: Your problem is .... [instruction]."
+    final_decision_instruction5 = "Sub-task 5: [problem]" # must contain if use this pattern
 
     debate_desc5 = {{
-        "instruction": debate_instruction_5,
-        "context": ["user query", "thinking of subtask 4", "answer of subtask 4"],
+        "instruction": debate_instruction5,
+        "final_decision_instruction": final_decision_instruction5,  # must contain if use this pattern
         "input": [taskInfo, thinking4, answer4],
-        "output": ["thinking", "answer"],
+        "context_desc": ["user query", "thinking of subtask 4", "answer of subtask 4"],
         "temperature": 0.5
     }}
     
@@ -205,48 +211,52 @@ ReviewAgent
 ABSTRACTED_WORKFLOW_TEMPLATE = '''
 async def forward(self, taskInfo):
     print("Task Requirement: ", taskInfo)
-    # Initialize lists to keep track of sub-tasks and agents
-    logs =  []
-    
+    logs = []
+
     """
     <This section is just to describe content in one stage. Do not include them in generated code>
-    [Stage 1: <Fill the stage 1's stage_name>]
+    [Stage 1: Expression Analysis]
     [Objective] 
-    - <Describe in detail the abstracted objective of stage 1.>
-    - <Describe in detail the abstracted objective of stage 1.>
+    - Analyze the mathematical or logical expression in the given task.
+    - Extract behavior, range, and key characteristics using CoT reasoning.
     """
     # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
+
     # Sub-task 1: Analyze first expression/data component with self-consistency
-    cot_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
-    cot_agent_desc = {{
-        'instruction': cot_instruction1, 
-        'input': [taskInfo], 
-        'temperature': 0.0, 
-        'context': ["user query"]
-    }}
+    cot_instruction1 = (
+        "Sub-task 1: Analyze [expression #1], determining its behavior, range, "
+        "and key characteristics with context from [taskInfo]"
+    )
+    cot_agent_desc1 = {
+        "instruction": cot_instruction1,
+        "input": [taskInfo],
+        "temperature": 0.0,
+        "context": ["user query"],
+    }
     results1, log1 = await self.cot(
-        subtask_id="subtask_1", 
-        cot_agent_desc=cot_agent_desc
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_agent_desc1,
     )
     logs.append(log1)
 
-    <Continue with next stages>
-    
     """
     <This section is just to describe content in one stage. Do not include them in generated code>
-    [Stage n: <Fill the stage n's stage_name>]
+    [Stage 2: Comparative Reasoning]
     [Objective] 
-    - <Describe in detail the abstracted objective of stage n.>
-    - <Describe in detail the abstracted objective of stage n.>
+    - Compare results from multiple expressions or subtasks.
+    - Synthesize insights across components.
     """
-    
     # --------------------------------------------------------------------------------------------------------------
-    
-    <At this section, you implement only one subtask that could appear in this stage, by applying one agent collaboration patterns>
-    
+
+    """
+    <This section is just to describe content in one stage. Do not include them in generated code>
+    [Stage 3: Final Synthesis]
+    [Objective] 
+    - Synthesize all subtasks into a coherent final answer.
+    - Apply reasoning to derive a conclusive insight.
+    """
+    # --------------------------------------------------------------------------------------------------------------
+
     final_answer = await self.make_final_answer(resultsn['thinking'], resultsn['answer'])
     return final_answer, logs
 '''

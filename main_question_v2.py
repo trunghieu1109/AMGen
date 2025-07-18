@@ -3,7 +3,7 @@ from datasets import load_dataset
 import pandas as pd
 from common import HTML_JINJA, SingleEvalResult
 import search
-import apply_abstract_workflow_v5
+import apply_abstract_workflow_v3
 import re
 import os
 import common
@@ -153,7 +153,7 @@ class DataScorer:
         else:
             raise NotImplementedError
 
-    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, response_path, response_dict, instance_id, code_snippet):
+    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, instance_id, code_snippet):
 
         if 'swe_bench' in self.dataset:
             extracted_answer = response_text.split('\n\nAnswer:', 1)[-1].strip()
@@ -514,15 +514,15 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'dev20_generation_model_test_v2/question/meta_agent/'
+        args.expr_name = f'dev_26_refactored/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
-        print('args.expr_name: ', args.expr_name)
+        # print('args.expr_name: ', args.expr_name)
 
         questions = [example['problem']]
         answers = [example['answer']]
 
-        print("Question: ", questions)
-        print("Answer: ", answers)
+        # print("Question: ", questions)
+        # print("Answer: ", answers)
 
         task_queue = [('task', 'User', q, None, None, None, -1) for q in questions]
 
@@ -546,27 +546,27 @@ async def run_main():
         retries = 0
         now = datetime.datetime.now()
         while retries < 2:
-            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v5.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now))
-            # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_3.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now))
+            # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
             if score > -1:
                 break
             retries += 1
-        # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v5.run_single_agent_baselines(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "reflexion")
-        # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v5.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+        # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.run_single_agent_baselines(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, "reflexion")
+        # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
         save_path_ = save_path
         final_results[str(example_id)] = {
             'score': score,
             'total_time': total_time,
             'total_execution_time': total_execution_time
         }
-        # await apply_abstract_workflow_v5.test_mas_zero_workflow(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, converted_mas_zero_workflow)
+        # await apply_abstract_workflow_v3.test_mas_zero_workflow(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, converted_mas_zero_workflow)
     
     start_time = time.time()
     
     semaphore = asyncio.Semaphore(30)  # Giới hạn 3 task chạy song song
 
     async def process_example_with_semaphore(example_id, example, args, meta_model, verifier_model, abstract_workflow):
-        print(f"\n===================== Run task: {example_id}, Abstract workflow length: {len(abstract_workflow)} =====================\n")
+        # print(f"\n===================== Run task: {example_id}, Abstract workflow length: {len(abstract_workflow)} =====================\n")
         async with semaphore:
             await process_example(example_id, example, args, meta_model, verifier_model, abstract_workflow)
         

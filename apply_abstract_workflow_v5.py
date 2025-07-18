@@ -182,7 +182,7 @@ class LLMAgentBase():
         return extracted_question
 
     async def generate_prompt(self, input_infos, instruction, is_sub_task=False) -> str:
-
+        # print("input: ", input_infos)
         global_node_model = get_global("global_node_model")
         global_output_description = get_global("global_output_description")
         global_FORMAT_INST = get_global("global_FORMAT_INST")
@@ -274,6 +274,9 @@ class LLMAgentBase():
 
         else:
             prompt = input_infos_text + instruction
+            
+        # print("System prompt: ", system_prompt)
+        # print("User prompt: ", prompt)
         return system_prompt, prompt
 
     async def query(self, input_infos: list, instruction, iteration_idx=-1, is_sub_task=False) -> dict:
@@ -673,8 +676,8 @@ async def test_mas_zero_workflow(args, expr_name, example_id, task_queue, meta_m
         print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None, date_time=""):
-    if not example_id in [173]:
-        return 0, 0, 0, ""
+    if example_id != 156:
+        return 1, 1, 1, ""
     
     start_time_ = time.time()
     total_execution_time = 0
@@ -712,8 +715,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v3/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v3/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1025,6 +1028,8 @@ Do not include any additional fields or explanations outside of the objective ke
         
         f.write(f"\n============== {phase} ================\n")
         f.write(str(content))
+            
+
     high_level_subtasks = [subtask['objective'] for subtask in final_high_level_decomposition['subtask_list']]
     
     # embeddings, postprocess and clustering the embeddings
@@ -1032,7 +1037,7 @@ Do not include any additional fields or explanations outside of the objective ke
     abstracted_subtasks = await abstractor.abstract_task_decomposition(task_queue[0].content, high_level_subtasks, subtask_names, abstracted_subtask)
     merged_subtasks = [f"{a_subtask['subtask_name']}: {a_subtask['abstracted_objective']}" for a_subtask in abstracted_subtasks]
     print(merged_subtasks)
-    
+    # return 1, 1, 1, ""
     embeddings = await abstractor.embedding_subtask(merged_subtasks)
     
     with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/kmeans.pkl', 'rb') as f:
@@ -1085,12 +1090,16 @@ Do not include any additional fields or explanations outside of the objective ke
     if len(workflow_index) == 0:
         workflow_index = [random.randint(0, len(default_mas_chain) - 1)]
 
+    workflow_index = [10]
+
     print("workflow index: ", workflow_index)
     # return 1, 1, 1, ""
     
     filterd_workflow = [abstract_workflow[idx] for idx in workflow_index]
     
     print("Filtered workflow: ", [fw['name'] for fw in filterd_workflow])
+    # return 1, 1, 1, ""
+    
     with open(filterd_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
         aw_desc = json.load(f)
     task_content = task_queue[0].content
@@ -1147,6 +1156,7 @@ Do not include any additional fields or explanations outside of the objective ke
         f.write(str(content))
     print(f"\n================== Query analysis: {detailed_analysis['analysis']}========================\n")
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, str(task_content) + "\n\nDetailed Analysis: \n" + str(detailed_analysis['analysis']), task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
+    # return 1, 1, 1, ""
     
     global_task_queue = get_global('global_task_queue')
     global_task_queue[str(example_id)] = task_queue_tmp    
@@ -1155,7 +1165,7 @@ Do not include any additional fields or explanations outside of the objective ke
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v3/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1191,6 +1201,9 @@ Do not include any additional fields or explanations outside of the objective ke
             print(dependencies_and_agent_collaboration)
             
             # decompose query into multiple subtasks
+            print(task_queue_tmp[0].content)
+            print(dependencies_and_agent_collaboration)
+            print(aw['flow'])
             if attempt == 0:
                 user_prompt = f"""
 You are an agent specializing in task decomposition. Given a query, your job is to break it into subtasks with clear objectives and dependencies. 
@@ -1301,6 +1314,8 @@ You are an agent specializing in task decomposition. The previous task decomposi
                 content = task_decomposition['task_decomposition']
                 f.write(f"\n============== {phase} ================\n")
                 f.write(str(content))
+            # print("\n==================== planning prompt =================\n", user_prompt)
+            
             # return 0, 0, 0, ""
             acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = [], [], [], '', '', "", [], [], "", "", ""
 
@@ -1592,184 +1607,10 @@ Return JSON with:
         f.write(str(content))
             
     return acc_oracle_verifier_list[0], total_time, total_execution_time, result_path
-        
-# async def run_single_agent_baselines(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
-
-#     # if example_id < 150:
-#     #     return 0, 0, 0, ""
-
-#     questions = get_global("global_questions")
-#     questions = questions[str(example_id)]
-#     global_node_model = get_global("global_node_model")
-    
-#     cost_per_query = get_global("global_COST_TOTAL_per_query")
-#     cost_per_query[str(example_id)] = 0.0
-#     set_global("global_COST_TOTAL_per_query", cost_per_query)
-
-#     print(f"problem length: {len(questions)}")
-#     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
-
-#     if 'gpqa_diamond' in args.dataset:
-#         task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
-#     else:
-#         task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
-
-#     set_global("global_max_workers", max_workers)
-#     result_path = expr_name + f"{args.dataset}/{pattern}"
-#     expr_name = expr_name + f"{args.dataset}/{pattern}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
-
-#     global_task_queue = get_global('global_task_queue')
-#     global_task_queue[str(example_id)] = task_queue    
-#     set_global("global_task_queue", global_task_queue)
-
-#     next_solution_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_next_solution.json")
-#     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
-#     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
-#     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-#     result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-#     oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}_oracle.results'
-#     oracle_acc_path = Path(oracle_acc_result_path)
-#     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
-    
-#     result_acc_path = Path(result_path)
-#     result_acc_path.parent.mkdir(parents=True, exist_ok=True)
-
-#     judge_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_judge")
-#     reponse_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_reponse")
-#     os.makedirs(os.path.dirname(judge_path), exist_ok=True)
-
-#     print('file_path: ',file_path)
-#     print('msg_path: ',msg_path)
-#     print('result_path: ',result_path)
-#     print('next_solution_path: ',next_solution_path)
-#     print('oracle_acc_result_path: ',oracle_acc_result_path)
-#     print('judge_path: ',judge_path)
-#     print('reponse_path: ',reponse_path)
-#     print('mem_path: ',mem_path)
-    
-#     global_judge_path = get_global('global_judge_path')
-#     global_judge_path[str(example_id)] = judge_path
-
-#     set_global("global_judge_path", global_judge_path)
-    
-#     global_reponse_path = get_global('global_reponse_path')
-#     global_reponse_path[str(example_id)] = reponse_path
-
-#     set_global("global_reponse_path", global_reponse_path)
-
-#     if os.path.exists(mem_path):
-#         with open(mem_path, 'r') as json_file:
-#             memory = json.load(json_file)
-#     else:
-#         memory = []
-
-#     if os.path.exists(reponse_path):
-#         with open(reponse_path, 'r') as json_file:
-#             global_response = json.load(json_file)
-            
-#         global_response_dict = get_global('global_response_dict')
-#         global_response_dict[str(example_id)] = global_response
-        
-#         set_global("global_response_dict", global_response_dict)
-
-#     global_use_oracle_verifier = get_global("global_use_oracle_verifier")
-
-#     global_ns = []
-    
-#     final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
-#     result_path = Path(final_results_path)
-#     result_path.parent.mkdir(parents=True, exist_ok=True)
-#     final_results = []
-
-#     judge_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_{args.option}_judge")
-#     reponse_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_{args.option}_reponse")
-#     print(f"================== Test single agent baselines {pattern} ===================")
-#     default_global_n = get_global("global_n")
-#     default_global_n[str(example_id)] = f"Baseline {pattern}"
-#     set_global("global_n", default_global_n)
-
-#     global_n = get_global("global_n")
-#     global_n = global_n[str(example_id)]
-#     global_ns.append(global_n)
-    
-#     blocks = get_init_archive(['cot', 'sc_cot', 'reflexion', 'debate'])
-
-#     workflow = blocks[pattern]
-
-#     try:
-#         workflow["code"] = workflow['code'].replace("forward", f"forward_{example_id}")
-#         acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, _, _, _, total_time = await evaluate_forward_fn(args, example_id, workflow["code"])
-#     except Exception as e:
-#         print("Error: ", str(e))
-    
-#     judge_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_full_response")
-#     with open(judge_path, 'w') as judge_file:
-#         judge_file.write(f'Question: {task_queue[0].content}\Pattern: {pattern}\nFull Response:{raw_results}')
-        
-#     with open(oracle_acc_result_path, "a+") as fh:
-#         fh.write(f'experiemnt {example_id}: 1 (initial Baseline_{pattern}): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
-
-#     #TODO: can we somehow also log acc_oracle_verifier_list so that we can know how accurate acc_model_verifier_list is?
-#     if global_use_oracle_verifier:
-#         acc_list = acc_oracle_verifier_list
-#     else:
-#         acc_list = acc_model_verifier_list
-
-
-#     if args.defer_verifier:
-#         fitness_str = bootstrap_confidence_interval([0.0])
-#         workflow["acc"] = np.mean([0.0])
-
-#     else:
-#         fitness_str = bootstrap_confidence_interval(acc_list)
-#         workflow["acc"] = np.mean(acc_list)
-
-#     workflow["fitness"] = fitness_str
-#     workflow["total_cost"] = get_global("global_COST_TOTAL")
-
-#     print(f"acc_list:", acc_list)
-#     print(f"mean acc_list:", np.mean(acc_list))
-#     print(f"bootstrap_confidence_interval: {fitness_str}")
-
-
-#     if 'swe_bench' in args.dataset:
-#         extracted_answer = final_reponse[0].split('\n\nAnswer:', 1)[-1].strip()
-#         if '<patch>' in extracted_answer:
-#             extracted_answer = extract_xml(extracted_answer, 'patch').strip()   
-#     else:
-#         extracted_answer = re.search(ANSWER_PATTERN, final_reponse[0]).group(1)     
-
-#     if '[TOO_HARD]' in extracted_answer: # we cannot add [TOO_HARD] in memory
-#         extracted_answer = extracted_answer[:extracted_answer.index('[TOO_HARD]')]        
-#     memory.append({extracted_answer:fitness_str})
-#     print(f'save json to {mem_path}')
-#     with open(mem_path, 'w') as json_file:
-#         json.dump(memory, json_file, indent=4)
-#     final_results.append({
-#         "example_id": example_id,
-#         "score": acc_oracle_verifier_list[0],
-#         "total_time": total_time,
-#         "max_cost": get_global("global_COST_TOTAL")
-#     })
-
-#     # save results
-
-#     report_filename = os.path.join(args.save_dir, f'{expr_name}_Baseline_{pattern}_{args.option}_debug.html')
-#     print(f"Writing report to {report_filename}")
-#     with open(report_filename, "w") as fh:
-#         fh.write(common.make_report(results))
-#     metrics = results.metrics | {"score": results.score}
-#     print('metrics: ',metrics)
-#     print(f"COST_TOTAL:", get_global("global_COST_TOTAL"))
-#     with open(final_results_path, "w") as f:
-#         json.dump(final_results, f, indent=4)
-    
-#     return acc_oracle_verifier_list[0], total_time, 0, result_path
-
 
 async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
 
-    if example_id < 25 or example_id > 25:
+    if example_id != 156:
         return 0, 0, 0, ""
 
     start_time_ = time.time()
@@ -1802,8 +1643,8 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
     result_path = f'results/{args.dataset}/abstract_workflow/{meta_model}_{global_node_model}_{verifier_model}.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
-    oracle_acc_result_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/recheck_mas/{meta_model}_{global_node_model}_oracle.results'
+    oracle_acc_result_path = f'results/{args.dataset}/recheck_mas/{meta_model}_{global_node_model}_oracle.results'
     oracle_acc_path = Path(oracle_acc_result_path)
     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1851,9 +1692,41 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     global_use_oracle_verifier = get_global("global_use_oracle_verifier")
 
     global_ns = []
-    
+    detailed_analysis = '''
+1. Extract and Summarize Given Information:
+- The problem context is an outbreak of a viral infectious disease caused by a retrovirus in a city.
+- The goal is to design a molecular diagnostic kit for quick detection.
+- Four choices are provided, each describing a different approach:
+  * Choice 1: Identify virus by DNA sequencing, then develop a PCR kit.
+  * Choice 2: Identify IgG antibodies, then develop an ELISA kit targeting IgG antibodies.
+  * Choice 3: Identify virus using symptom information from patients, then design a nested PCR kit.
+  * Choice 4: Identify virus by cDNA sequencing, then develop a real-time PCR kit.
+- Key entities: virus (retrovirus), DNA sequencing, cDNA sequencing, PCR, nested PCR, real-time PCR, IgG antibodies, ELISA.
+
+2. Analyze Relationships Between Components:
+- Identification methods vary: direct viral genetic material sequencing (DNA or cDNA), antibody detection, or symptom-based inference.
+- Diagnostic methods depend on identification: PCR-based kits (standard, nested, real-time) or ELISA targeting antibodies.
+- Constraints include speed and accuracy of diagnosis.
+- The choice of sequencing (DNA vs cDNA) relates to the retrovirus lifecycle (RNA genome requiring reverse transcription).
+- Antibody detection (IgG) reflects host immune response rather than direct viral detection.
+- Symptom-based identification is indirect and may affect specificity.
+- These components influence the diagnostic kit's design, sensitivity, specificity, and applicability.
+
+3. Identify the Field of Study:
+- Primary domain: Molecular biology and virology.
+- Subfields: Diagnostic assay development, immunology (antibody detection), molecular genetics (sequencing, PCR techniques).
+- Related fields: Biotechnology, clinical diagnostics, epidemiology.
+- Applications: Infectious disease diagnosis, public health response, biomedical research.
+
+4. Highlight Aspects Needing Clarification:
+- The problem does not specify the viral genome type explicitly (though retrovirus implies RNA genome).
+- The rationale for choosing DNA sequencing versus cDNA sequencing is not detailed.
+- The reliability of symptom-based virus identification is ambiguous.
+- The timing and stage of infection affecting antibody presence (IgG) is not mentioned.
+- Potential challenges include differentiating between direct viral detection and immune response detection, and the technical feasibility of each method in the outbreak context.
+    '''
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_queue[0].content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
-    
+    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, str(task_queue[0].content) + "\n\nDetailed Analysis: \n" + str(detailed_analysis), task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
     global_task_queue = get_global('global_task_queue')
     global_task_queue[str(example_id)] = task_queue_tmp    
     set_global("global_task_queue", global_task_queue)
@@ -1861,7 +1734,7 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     max_attempt = 2
     acc_oracle_verifier_list = [0]
     total_time = 0
-    final_results_path = f'results/{args.dataset}/dev20_generation_model_test_v2/{meta_model}_{global_node_model}/final_results_{example_id}.json'
+    final_results_path = f'results/{args.dataset}/recheck_mas/{meta_model}_{global_node_model}/final_results_{example_id}.json'
     result_path = Path(final_results_path)
     result_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -1871,19 +1744,133 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
         'code': ""
     }
     
-    code_path = f"results/abstracted_based_same_model/question/meta_agent/workflow_search/aime24/{example_id}"
-    model = "o4-mini"
-    
-    for filename in os.listdir(code_path):
-        if filename.startswith(model) and filename.endswith(".py"):
-            file_path = os.path.join(code_path, filename)
-            with open("results/dev7/question/meta_agent/workflow_search/aime24/25/gpt-4.1-mini_gpt-4.1-mini_gpt-4.1-mini_abstracted_workflow_desc_2_25_converted.py", "r", encoding="utf-8") as f:
-                next_solution['code'] = f.read()
-                print(f"Nội dung của {filename}:\n")
-                # print(content)
-            break 
-    else:
-        print("Không tìm thấy file Python nào bắt đầu bằng 'o4_mini' và kết thúc bằng '.py'")
+    next_solution = {
+        'code': '''
+async def forward(self, taskInfo):
+    from collections import Counter
+    print("Task Requirement: ", taskInfo)
+    sub_tasks = []
+    agents = []
+    logs = []
+
+    cot_sc_instruction = (
+        "Sub-task 1: Understand the nature of the retrovirus genome and implications for molecular diagnostics, "
+        "including whether the viral genome is RNA or DNA and the need for reverse transcription."
+    )
+    N = self.max_sc
+    print(self.node_model)
+    cot_sc_agents = [LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.5) for _ in range(N)]
+    subtask_desc1 = {
+        "subtask_id": "subtask_1",
+        "instruction": cot_sc_instruction,
+        "context": ["user query"],
+        "agent_collaboration": "SC_CoT"
+    }
+    possible_answers = []
+    possible_thinkings = []
+    for i in range(N):
+        thinking1, answer1 = await cot_sc_agents[i]([taskInfo], cot_sc_instruction, is_sub_task=True)
+        agents.append(f"CoT-SC agent {{cot_sc_agents[i].id}}, identify viral genetic material sequencing method, thinking: {{thinking1.content}}; answer: {{answer1.content}}")
+        possible_answers.append(answer1)
+        possible_thinkings.append(thinking1)
+    final_decision_agent_1 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking1, answer1 = await final_decision_agent_1([taskInfo] + possible_thinkings + possible_answers, "Sub-task 1: Synthesize and choose the most consistent understanding of the retrovirus genome type and its implications.", is_sub_task=True)
+    sub_tasks.append(f"Sub-task 1 output: thinking - {thinking1.content}; answer - {answer1.content}")
+    subtask_desc1['response'] = {"thinking": thinking1, "answer": answer1}
+    logs.append(subtask_desc1)
+    print("Step 1: ", sub_tasks[-1])
+    # print(possible_answers)
+
+    debate_instr_2 = "Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_instruction_2 = "Sub-task 2: Integrate information about the viral genome type, sequencing results, and diagnostic technologies (PCR variants, ELISA) to design a molecular diagnostic approach suitable for quick and accurate detection." + debate_instr_2
+    debate_agents_2 = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_2 = self.max_round
+    all_thinking2 = [[] for _ in range(N_max_2)]
+    all_answer2 = [[] for _ in range(N_max_2)]
+    subtask_desc2 = {
+        "subtask_id": "subtask_2",
+        "instruction": debate_instruction_2,
+        "context": ["user query", "thinking of subtask 1", "answer of subtask 1"],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_2):
+        for i, agent in enumerate(debate_agents_2):
+            if r == 0:
+                thinking2, answer2 = await agent([taskInfo, thinking1, answer1], debate_instruction_2, r, is_sub_task=True)
+            else:
+                input_infos_2 = [taskInfo, thinking1, answer1] + all_thinking2[r-1] + all_answer2[r-1]
+                thinking2, answer2 = await agent(input_infos_2, debate_instruction_2, r, is_sub_task=True)
+            agents.append(f"Debate agent {{agent.id}}, round {{r}}, designing molecular diagnostic approach, thinking: {{thinking2.content}}; answer: {{answer2.content}}")
+            all_thinking2[r].append(thinking2)
+            all_answer2[r].append(answer2)
+    final_decision_agent_2 = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking2, answer2 = await final_decision_agent_2([taskInfo, thinking1, answer1] + all_thinking2[-1] + all_answer2[-1], "Sub-task 2: Synthesize and choose the best molecular diagnostic approach." , is_sub_task=True)
+    sub_tasks.append(f"Sub-task 2 output: thinking - {thinking2.content}; answer - {answer2.content}")
+    subtask_desc2['response'] = {"thinking": thinking2, "answer": answer2}
+    logs.append(subtask_desc2)
+    print("Step 2: ", sub_tasks[-1])
+
+    debate_instr_3a = "Given solutions to the problem from other agents, consider their opinions as additional advice. Please think carefully and provide an updated answer."
+    debate_instruction_3a = "Sub-task 3: Evaluate and select the optimal diagnostic kit design based on criteria such as specificity to retrovirus RNA, speed, accuracy, and feasibility during an outbreak." + debate_instr_3a
+    debate_agents_3a = [LLMAgentBase(["thinking", "answer"], "Debate Agent", model=self.node_model, role=role, temperature=0.5) for role in self.debate_role]
+    N_max_3a = self.max_round
+    all_thinking3a = [[] for _ in range(N_max_3a)]
+    all_answer3a = [[] for _ in range(N_max_3a)]
+    subtask_desc3a = {
+        "subtask_id": "subtask_3",
+        "instruction": debate_instruction_3a,
+        "context": ["user query", "thinking of subtask 2", "answer of subtask 2"],
+        "agent_collaboration": "Debate"
+    }
+    for r in range(N_max_3a):
+        for i, agent in enumerate(debate_agents_3a):
+            if r == 0:
+                thinking3a, answer3a = await agent([taskInfo, thinking2, answer2], debate_instruction_3a, r, is_sub_task=True)
+            else:
+                input_infos_3a = [taskInfo, thinking2, answer2] + all_thinking3a[r-1] + all_answer3a[r-1]
+                thinking3a, answer3a = await agent(input_infos_3a, debate_instruction_3a, r, is_sub_task=True)
+            agents.append(f"Debate agent {{agent.id}}, round {{r}}, evaluating diagnostic kit design, thinking: {{thinking3a.content}}; answer: {{answer3a.content}}")
+            all_thinking3a[r].append(thinking3a)
+            all_answer3a[r].append(answer3a)
+    final_decision_agent_3a = LLMAgentBase(["thinking", "answer"], "Final Decision Agent", model=self.node_model, temperature=0.0)
+    thinking3a, answer3a = await final_decision_agent_3a([taskInfo, thinking2, answer2] + all_thinking3a[-1] + all_answer3a[-1], "Sub-task 3: Select the optimal diagnostic kit design." , is_sub_task=True)
+    sub_tasks.append(f"Sub-task 3 output: thinking - {thinking3a.content}; answer - {answer3a.content}")
+    subtask_desc3a['response'] = {"thinking": thinking3a, "answer": answer3a}
+    logs.append(subtask_desc3a)
+    print("Step 3a: ", sub_tasks[-1])
+
+    reflect_inst_3b = "Given previous attempts and feedback, carefully consider where you could go wrong in your latest attempt. Using insights from previous attempts, try to solve the task better."
+    cot_reflect_instruction_3b = "Sub-task 4: Justify the choice of diagnostic kit design by comparing the advantages and limitations of PCR-based methods (standard, nested, real-time) versus antibody-based ELISA in the context of retroviral detection." + reflect_inst_3b
+    cot_agent_3b = LLMAgentBase(["thinking", "answer"], "Chain-of-Thought Agent", model=self.node_model, temperature=0.0)
+    critic_agent_3b = LLMAgentBase(["feedback", "correct"], "Critic Agent", model=self.node_model, temperature=0.0)
+    N_max_3b = self.max_round
+    cot_inputs_3b = [taskInfo, thinking2, answer2, thinking3a, answer3a]
+    subtask_desc3b = {
+        "subtask_id": "subtask_4",
+        "instruction": cot_reflect_instruction_3b,
+        "context": ["user query", "thinking of subtask 2", "answer of subtask 2", "thinking of subtask 3", "answer of subtask 3"],
+        "agent_collaboration": "Reflexion"
+    }
+    thinking3b, answer3b = await cot_agent_3b(cot_inputs_3b, cot_reflect_instruction_3b, 0, is_sub_task=True)
+    agents.append(f"Reflexion CoT agent {{cot_agent_3b.id}}, justifying diagnostic kit choice, thinking: {{thinking3b.content}}; answer: {{answer3b.content}}")
+    for i in range(N_max_3b):
+        critic_inst_3b = "Please review the answer above and criticize on where might be wrong. If you are absolutely sure it is correct, output exactly 'True' in 'correct'"
+        feedback, correct = await critic_agent_3b([taskInfo, thinking3b, answer3b], "Please review and provide the limitations of provided solutions." + critic_inst_3b, i, is_sub_task=True)
+        agents.append(f"Critic agent {{critic_agent_3b.id}}, providing feedback, thinking: {{feedback.content}}; answer: {{correct.content}}")
+        if correct.content == "True":
+            break
+        cot_inputs_3b.extend([thinking3b, answer3b, feedback])
+        thinking3b, answer3b = await cot_agent_3b(cot_inputs_3b, cot_reflect_instruction_3b, i + 1, is_sub_task=True)
+        agents.append(f"Reflexion CoT agent {{cot_agent_3b.id}}, refining justification, thinking: {{thinking3b.content}}; answer: {{answer3b.content}}")
+    sub_tasks.append(f"Sub-task 4 output: thinking - {thinking3b.content}; answer - {answer3b.content}")
+    subtask_desc3b['response'] = {"thinking": thinking3b, "answer": answer3b}
+    logs.append(subtask_desc3b)
+    print("Step 3b: ", sub_tasks[-1])
+
+    final_answer = await self.make_final_answer(thinking3b, answer3b, sub_tasks, agents)
+    return final_answer, logs
+        '''
+    }
     
     print(f'============Initial Example: {example_id}=================')
     default_global_n = get_global("global_n")
@@ -1898,7 +1885,7 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
 
     try:
         next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
-        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"], task_queue_tmp)
         total_execution_time += total_time
     except Exception as e:
         print("Error: ", str(e))

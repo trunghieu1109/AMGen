@@ -1,0 +1,252 @@
+
+============== high level task decomposition ================
+[{'objective': 'Analyze the energy spectrum characteristics of the original decay 2A -> 2B + 2E + 2V, focusing on why the E particle spectrum is continuous with endpoint Q'}, {'objective': 'Examine the kinematic and energy conservation implications of replacing two V particles with one massless particle M in the decay'}, {'objective': 'Determine how the change in emitted particles affects the phase space and energy distribution of the outgoing E particles'}, {'objective': 'Compare the resulting energy spectrum of E particles in the variant decay to the original, focusing on continuity and endpoint energy changes'}]
+============== abstracted high level task decomposition ================
+['extract defining features: Analyze the defining characteristics and boundary conditions of an initial quantitative distribution or dataset.', 'assess modification impact: Evaluate the impact of a specified modification on the constraints and governing relationships of a system or process.', 'Assess modification impact and derive target output: Determine how a change in input elements or parameters affects the distribution and range of output values.', 'Evaluate, select, and derive candidate outputs: Compare two quantitative distributions to identify differences in continuity, shape, and boundary values resulting from a modification.']
+============== Abstract MAS choosing ================
+Query-based chain: ['9', '2', '5']
+Similar chain: ['9', ['2', '6', '11'], '5']
+Levenshtein distance: 0
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- Initial decay: 2A -> 2B + 2E + 2V, where A and B are heavy nucleons of different flavors.
+- Emitted particles: 2E (lighter particles) and 2V (lighter particles).
+- The total energy spectrum of the outgoing E particles is continuous with an endpoint value Q.
+- Variant decay: replaces 2V with one exotic, massless particle M, i.e., 2A -> 2B + 2E + M.
+
+2. Analyze Relationships Between Components:
+- The original decay emits two V particles, while the variant emits a single massless M particle instead.
+- The energy distribution of E particles depends on the kinematics and number/type of emitted particles.
+- The continuous spectrum with endpoint Q suggests a range of possible energies for E due to energy sharing among multiple particles.
+- Changing from two V particles to one massless M particle alters the energy and momentum conservation constraints, potentially affecting the shape and endpoint of the E energy spectrum.
+- The masslessness of M may allow more energy to be available to E particles or change the distribution shape.
+
+3. Identify the Field of Study:
+- Nuclear physics and particle physics, specifically nuclear decay processes.
+- Concepts from quantum mechanics and relativistic kinematics.
+- Related mathematical domains include energy and momentum conservation, spectral analysis, and particle decay kinematics.
+- Applications include nuclear decay modeling, particle detection, and experimental physics.
+
+4. Highlight Aspects Needing Clarification:
+- The exact masses and energies of particles A, B, E, V, and M are not specified.
+- The nature of particles E, V, and M (e.g., whether E and V are identical or different types) is not detailed.
+- The mechanism or interaction causing the decay is not described.
+- The problem does not specify whether the endpoint Q refers to maximum kinetic energy or total energy.
+- Potential complexities in how the masslessness of M affects the energy distribution are not elaborated.
+- It is unclear if the variant decay conserves all quantum numbers identically or if other constraints apply.
+============== Task Decomposition ================
+{'stage_0': {'subtask_1': {'objective': 'Extract and summarize the defining features of the original decay process 2A -> 2B + 2E + 2V, including particle types, energy spectrum characteristics, and endpoint Q.', 'dependencies': [], 'agent_collaboration': 'Debate'}, 'subtask_2': {'objective': 'Extract and summarize the defining features of the variant decay 2A -> 2B + 2E + M, focusing on the replacement of 2V by a single massless particle M and its implications.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_3': {'objective': 'Assess and analyze how replacing two V particles with one massless M particle affects the energy and momentum conservation constraints and the kinematics of the emitted E particles.', 'dependencies': ['stage_0.subtask_1', 'stage_0.subtask_2'], 'agent_collaboration': 'SC_CoT'}, 'subtask_4': {'objective': 'Transform and validate the expected changes in the total energy spectrum of the outgoing E particles, focusing on continuity, shape, and endpoint energy, based on the kinematic analysis.', 'dependencies': ['subtask_3'], 'agent_collaboration': 'Reflexion'}}, 'stage_2': {'subtask_5': {'objective': 'Analyze and classify the resulting energy spectrum of the E particles in the variant decay, comparing it to the original spectrum, and determine which provided choice best describes the changes.', 'dependencies': ['stage_0.subtask_1', 'stage_0.subtask_2', 'stage_1.subtask_4'], 'agent_collaboration': 'Debate'}}}
+============== Concretized MAS ================
+async def forward_168(self, taskInfo):
+    logs = []
+
+    debate_instruction_0_1 = "Sub-task 1: Extract and summarize the defining features of the original decay process 2A -> 2B + 2E + 2V, including particle types, energy spectrum characteristics, and endpoint Q."
+    debate_desc_0_1 = {
+        "instruction": debate_instruction_0_1,
+        "final_decision_instruction": "Sub-task 1: Summarize the original decay features.",
+        "input": [taskInfo],
+        "context_desc": ["user query"],
+        "temperature": 0.5
+    }
+    results_0_1, log_0_1 = await self.debate(
+        subtask_id="stage_0.subtask_1",
+        debate_desc=debate_desc_0_1,
+        n_repeat=self.max_round
+    )
+    logs.append(log_0_1)
+
+    debate_instruction_0_2 = "Sub-task 2: Extract and summarize the defining features of the variant decay 2A -> 2B + 2E + M, focusing on the replacement of 2V by a single massless particle M and its implications."
+    debate_desc_0_2 = {
+        "instruction": debate_instruction_0_2,
+        "final_decision_instruction": "Sub-task 2: Summarize the variant decay features and implications.",
+        "input": [taskInfo, results_0_1['thinking'], results_0_1['answer']],
+        "context_desc": ["user query", "thinking of subtask 1", "answer of subtask 1"],
+        "temperature": 0.5
+    }
+    results_0_2, log_0_2 = await self.debate(
+        subtask_id="stage_0.subtask_2",
+        debate_desc=debate_desc_0_2,
+        n_repeat=self.max_round
+    )
+    logs.append(log_0_2)
+
+    cot_sc_instruction_1_3 = "Sub-task 3: Assess and analyze how replacing two V particles with one massless M particle affects the energy and momentum conservation constraints and the kinematics of the emitted E particles."
+    final_decision_instruction_1_3 = "Sub-task 3: Synthesize and choose the most consistent analysis of the kinematic effects of the particle replacement."
+    results_1_3, log_1_3 = await self.sc_cot(
+        subtask_id="stage_1.subtask_3",
+        cot_agent_desc={
+            "instruction": cot_sc_instruction_1_3,
+            "final_decision_instruction": final_decision_instruction_1_3,
+            "input": [taskInfo, results_0_1['thinking'], results_0_1['answer'], results_0_2['thinking'], results_0_2['answer']],
+            "temperature": 0.5,
+            "context_desc": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"]
+        },
+        n_repeat=self.max_sc
+    )
+    logs.append(log_1_3)
+
+    cot_reflect_instruction_1_4 = "Sub-task 4: Transform and validate the expected changes in the total energy spectrum of the outgoing E particles, focusing on continuity, shape, and endpoint energy, based on the kinematic analysis from Sub-task 3."
+    critic_instruction_1_4 = "Please review and provide the limitations of the provided solutions regarding the expected changes in the energy spectrum of E particles."
+    results_1_4, log_1_4 = await self.reflexion(
+        subtask_id="stage_1.subtask_4",
+        reflect_desc={
+            "instruction": cot_reflect_instruction_1_4,
+            "critic_instruction": critic_instruction_1_4,
+            "input": [taskInfo, results_0_1['thinking'], results_0_1['answer'], results_0_2['thinking'], results_0_2['answer'], results_1_3['thinking'], results_1_3['answer']],
+            "temperature": 0.0,
+            "context_desc": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2", "thinking of subtask 3", "answer of subtask 3"]
+        },
+        n_repeat=self.max_round
+    )
+    logs.append(log_1_4)
+
+    debate_instruction_2_5 = "Sub-task 5: Analyze and classify the resulting energy spectrum of the E particles in the variant decay, comparing it to the original spectrum, and determine which provided choice best describes the changes."
+    debate_desc_2_5 = {
+        "instruction": debate_instruction_2_5,
+        "final_decision_instruction": "Sub-task 5: Select the best choice describing the changes in the energy spectrum of E particles.",
+        "input": [taskInfo, results_0_1['thinking'], results_0_1['answer'], results_0_2['thinking'], results_0_2['answer'], results_1_4['thinking'], results_1_4['answer']],
+        "context_desc": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2", "thinking of subtask 4", "answer of subtask 4"],
+        "temperature": 0.5
+    }
+    results_2_5, log_2_5 = await self.debate(
+        subtask_id="stage_2.subtask_5",
+        debate_desc=debate_desc_2_5,
+        n_repeat=self.max_round
+    )
+    logs.append(log_2_5)
+
+    final_answer = await self.make_final_answer(results_2_5['thinking'], results_2_5['answer'])
+    return final_answer, logs
+
+============== Evaluation from verifiers ================
+[{'verifier_name': 'o4-mini', 'evaluation': {'failure_reason': 'All agents assumed incorrectly that the endpoint Q of the summed‐electron spectrum remains the same when you replace two neutrinos by a single exotic massless particle.  That led them to pick the choice that they thought said “continuous spectrum, shape changes, endpoint unchanged,” even though none of the four lettered options actually says that.  In fact the mass‐difference (the Q‐value) for the variant decay is different, so the true endpoint shifts.', 'feedback': '1.  Wrong assumption about the endpoint (Sub-task 2 and carried through):  Every agent simply reused the original Q for the variant decay without checking how the mass replacement (2V→M) changes the nuclear mass‐difference and thus the maximum electron energy.  2.  Mis-mapping of described features to answer letters:  The teams described “continuous with changed shape, same endpoint” yet repeatedly picked D, which reads “discrete & endpoint decreases.”  They never paused to match their narrative to the literal text of the answer choices. 3.  Context gap:  The definition of Q for the variant decay was never re-derived or even restated.  Agents needed a dedicated step to compute how Q changes when the particle content changes.', 'suggestion': 'Introduce a new sub-task immediately after summarizing the variant decay (Sub-task 2): explicitly derive or state the new Q-value for 2A→2B+2E+M.  Use a strict SC-CoT agent to symbolically compare final‐state masses (2B+M vs. 2B+2V) and recompute the endpoint.  Only then evaluate continuity, shape, and endpoint against the literal wordings of the answer choices.  That single change—inserting a Q-recalculation step and forcing a match of narrative to the exact wording of the multiple‐choice options—will prevent the root error from recurring.'}}, {'verifier_name': 'gpt-4.1-mini', 'evaluation': {'failure_reason': 'The previous reasoning process incorrectly concluded that the endpoint energy Q of the electron energy spectrum remains unchanged when replacing two neutrinos (2V) with a single massless particle M, and that the spectrum remains continuous with only a modified shape. This contradicts the known physics of neutrinoless double beta decay variants, where the reduction in invisible particles changes the energy sharing and can produce a discrete or sharply peaked electron energy spectrum with a shifted endpoint. The key error was misunderstanding how the number and nature of emitted invisible particles affect the electron energy spectrum endpoint and continuity.', 'feedback': 'The main flaw in the reasoning lies in the assumption that the endpoint energy Q remains the same and that the electron energy spectrum remains continuous after replacing two neutrinos with a single massless particle M. In standard two-neutrino double beta decay (2νββ), the two neutrinos carry away variable energy, resulting in a continuous electron energy spectrum with an endpoint at Q. However, in the variant decay emitting a single massless particle (often interpreted as a Majoron), the kinematics and energy sharing differ fundamentally. The single massless particle carries away energy and momentum, but with fewer degrees of freedom, which can lead to a discrete or more sharply peaked electron energy spectrum, and the endpoint energy can shift (usually increase) because fewer invisible particles share the energy. The previous agents failed to fully incorporate this physical insight, instead focusing only on phase space reduction and shape modification while keeping the endpoint fixed and spectrum continuous. This is a critical oversight because the endpoint energy is directly tied to the number and mass of invisible particles emitted. The error originated in Sub-task 2 and propagated through Sub-tasks 3, 4, and 5, where the kinematic implications of replacing two neutrinos with one massless particle were not correctly interpreted. The context provided was sufficient but the physical interpretation and assumptions about the spectrum endpoint and continuity were flawed. The collaboration pattern (Debate and SC_CoT) was effective in gathering consistent reasoning but failed to challenge the core physical assumption about the endpoint and spectrum nature. The agents converged prematurely on an incorrect consensus without revisiting fundamental nuclear decay physics principles. To fix this, the reasoning must explicitly consider how the number of invisible particles affects the maximum electron energy and whether the spectrum remains continuous or becomes discrete/peaked, reflecting known results from neutrinoless double beta decay and Majoron emission literature.', 'suggestion': '1) Refine Sub-task 2 and Sub-task 3 instructions to explicitly require agents to analyze how the number and mass of invisible particles affect both the shape and endpoint of the electron energy spectrum, emphasizing known physics of double beta decay variants. 2) Introduce a stronger Reflexion or Verification subtask after Sub-task 3 to critically evaluate physical assumptions about spectrum continuity and endpoint energy, possibly involving an expert agent or external physics knowledge base to prevent premature consensus on incorrect assumptions. This would help catch fundamental physics errors before final answer selection.'}}]
+============== Refined Task Decomposition ================
+{'stage_1': {'subtask_1': {'objective': 'Extract and summarize the defining features of the original decay process 2A -> 2B + 2E + 2V, including particle types, energy spectrum characteristics, and the meaning of the endpoint Q. Explicitly clarify what Q represents (maximum total energy of E particles) to avoid ambiguity.', 'dependencies': [], 'agent_collaboration': 'Debate'}, 'subtask_2': {'objective': 'Extract and summarize the defining features of the variant decay 2A -> 2B + 2E + M, focusing on the replacement of 2V by a single massless particle M. Emphasize the need to explicitly re-derive or state the new endpoint energy Q for this variant decay, considering changes in nuclear mass differences and final-state particle masses, to avoid the previous error of assuming Q remains unchanged.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'Debate'}, 'subtask_3': {'objective': 'Explicitly derive or symbolically compute the new endpoint energy Q for the variant decay 2A -> 2B + 2E + M by comparing the total final-state masses and applying energy and momentum conservation. This step must correct the previous failure of reusing the original Q without verification. The derivation should clarify how the masslessness of M and the reduction in invisible particles affect the maximum available energy for the E particles.', 'dependencies': ['subtask_2'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_4': {'objective': 'Analyze how replacing two V particles with one massless M particle affects the kinematics and energy distribution of the emitted E particles, focusing on the shape and continuity of the energy spectrum. This analysis must incorporate the newly derived Q-value from subtask_3 and explicitly evaluate whether the spectrum remains continuous or becomes discrete/sharply peaked, correcting the previous incorrect assumption of unchanged continuity.', 'dependencies': ['subtask_1', 'subtask_3'], 'agent_collaboration': 'SC_CoT'}, 'subtask_5': {'objective': "Perform a reflexion and verification step to critically evaluate the physical assumptions and conclusions about the spectrum's endpoint and continuity. This subtask should challenge any premature consensus, ensure alignment with known physics of double beta decay variants (including neutrinoless decay and Majoron emission), and confirm that the reasoning matches the literal wording of the multiple-choice options.", 'dependencies': ['subtask_4'], 'agent_collaboration': 'Reflexion'}}, 'stage_3': {'subtask_6': {'objective': 'Based on the verified analysis, classify the resulting energy spectrum of the E particles in the variant decay compared to the original decay. Determine which of the provided multiple-choice options best describes the changes in spectrum continuity, shape, and endpoint energy, ensuring the choice matches the exact wording and avoids previous mis-mapping errors.', 'dependencies': ['subtask_1', 'subtask_2', 'subtask_3', 'subtask_4', 'subtask_5'], 'agent_collaboration': 'Debate'}}}
+============== Refined MAS ================
+async def forward_168(self, taskInfo):
+    logs = []
+
+    cot_instruction1 = (
+        "Sub-task 1: Extract and summarize the defining features of the original decay process 2A -> 2B + 2E + 2V, "
+        "including particle types, energy spectrum characteristics, and the meaning of the endpoint Q. Explicitly clarify what Q represents (maximum total energy of E particles) to avoid ambiguity."
+    )
+    cot_agent_desc1 = {
+        'instruction': cot_instruction1,
+        'input': [taskInfo],
+        'temperature': 0.0,
+        'context_desc': ["user query"]
+    }
+    results1, log1 = await self.debate(
+        subtask_id="subtask_1",
+        debate_desc=cot_agent_desc1,
+        n_repeat=self.max_round
+    )
+    logs.append(log1)
+
+    cot_instruction2 = (
+        "Sub-task 2: Extract and summarize the defining features of the variant decay 2A -> 2B + 2E + M, "
+        "focusing on the replacement of 2V by a single massless particle M. Emphasize the need to explicitly re-derive or state the new endpoint energy Q for this variant decay, "
+        "considering changes in nuclear mass differences and final-state particle masses, to avoid the previous error of assuming Q remains unchanged."
+    )
+    cot_agent_desc2 = {
+        'instruction': cot_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'temperature': 0.5,
+        'context_desc': ["user query", "thinking of subtask 1", "answer of subtask 1"]
+    }
+    results2, log2 = await self.debate(
+        subtask_id="subtask_2",
+        debate_desc=cot_agent_desc2,
+        n_repeat=self.max_round
+    )
+    logs.append(log2)
+
+    cot_sc_instruction3 = (
+        "Sub-task 3: Explicitly derive or symbolically compute the new endpoint energy Q for the variant decay 2A -> 2B + 2E + M by comparing the total final-state masses and applying energy and momentum conservation. "
+        "Clarify how the masslessness of M and the reduction in invisible particles affect the maximum available energy for the E particles."
+    )
+    final_decision_instruction3 = (
+        "Sub-task 3: Synthesize and choose the most consistent derivation for the new endpoint energy Q considering the variant decay kinematics."
+    )
+    cot_sc_desc3 = {
+        'instruction': cot_sc_instruction3,
+        'final_decision_instruction': final_decision_instruction3,
+        'input': [taskInfo, results2['thinking'], results2['answer']],
+        'temperature': 0.5,
+        'context_desc': ["user query", "thinking of subtask 2", "answer of subtask 2"]
+    }
+    results3, log3 = await self.sc_cot(
+        subtask_id="subtask_3",
+        cot_agent_desc=cot_sc_desc3,
+        n_repeat=self.max_sc
+    )
+    logs.append(log3)
+
+    cot_sc_instruction4 = (
+        "Sub-task 4: Analyze how replacing two V particles with one massless M particle affects the kinematics and energy distribution of the emitted E particles, "
+        "focusing on the shape and continuity of the energy spectrum. Incorporate the newly derived Q-value from subtask 3 and explicitly evaluate whether the spectrum remains continuous or becomes discrete/sharply peaked, "
+        "correcting the previous incorrect assumption of unchanged continuity."
+    )
+    final_decision_instruction4 = (
+        "Sub-task 4: Synthesize and choose the most consistent analysis of the energy spectrum shape and continuity changes due to the variant decay."
+    )
+    cot_sc_desc4 = {
+        'instruction': cot_sc_instruction4,
+        'final_decision_instruction': final_decision_instruction4,
+        'input': [taskInfo, results1['thinking'], results3['thinking'], results3['answer']],
+        'temperature': 0.5,
+        'context_desc': ["user query", "thinking of subtask 1", "thinking of subtask 3", "answer of subtask 3"]
+    }
+    results4, log4 = await self.sc_cot(
+        subtask_id="subtask_4",
+        cot_agent_desc=cot_sc_desc4,
+        n_repeat=self.max_sc
+    )
+    logs.append(log4)
+
+    cot_reflect_instruction5 = (
+        "Sub-task 5: Perform a reflexion and verification step to critically evaluate the physical assumptions and conclusions about the spectrum's endpoint and continuity. "
+        "Challenge any premature consensus, ensure alignment with known physics of double beta decay variants (including neutrinoless decay and Majoron emission), "
+        "and confirm that the reasoning matches the literal wording of the multiple-choice options."
+    )
+    critic_instruction5 = (
+        "Please review and provide the limitations of provided solutions regarding the spectrum endpoint and continuity changes in the variant decay scenario."
+    )
+    cot_reflect_desc5 = {
+        'instruction': cot_reflect_instruction5,
+        'critic_instruction': critic_instruction5,
+        'input': [taskInfo, results4['thinking'], results4['answer']],
+        'temperature': 0.0,
+        'context_desc': ["user query", "thinking of subtask 4", "answer of subtask 4"]
+    }
+    results5, log5 = await self.reflexion(
+        subtask_id="subtask_5",
+        reflect_desc=cot_reflect_desc5,
+        n_repeat=self.max_round
+    )
+    logs.append(log5)
+
+    debate_instruction6 = (
+        "Sub-task 6: Based on the verified analysis, classify the resulting energy spectrum of the E particles in the variant decay compared to the original decay. "
+        "Determine which of the provided multiple-choice options best describes the changes in spectrum continuity, shape, and endpoint energy, "
+        "ensuring the choice matches the exact wording and avoids previous mis-mapping errors."
+    )
+    final_decision_instruction6 = (
+        "Sub-task 6: Select the best multiple-choice answer describing the variant decay energy spectrum changes."
+    )
+    debate_desc6 = {
+        'instruction': debate_instruction6,
+        'final_decision_instruction': final_decision_instruction6,
+        'input': [taskInfo, results1['thinking'], results2['thinking'], results3['thinking'], results4['thinking'], results5['thinking']],
+        'context_desc': ["user query", "thinking of subtask 1", "thinking of subtask 2", "thinking of subtask 3", "thinking of subtask 4", "thinking of subtask 5"],
+        'temperature': 0.5
+    }
+    results6, log6 = await self.debate(
+        subtask_id="subtask_6",
+        debate_desc=debate_desc6,
+        n_repeat=self.max_round
+    )
+    logs.append(log6)
+
+    final_answer = await self.make_final_answer(results6['thinking'], results6['answer'])
+    return final_answer, logs

@@ -1,0 +1,127 @@
+
+============== high level task decomposition ================
+[{'objective': 'Find the eigenvalues and eigenvectors of the operator matrix P.'}, {'objective': 'Identify the eigenvector(s) corresponding to the eigenvalue 0.'}, {'objective': 'Project the given system state vector onto the eigenspace associated with eigenvalue 0.'}, {'objective': 'Calculate the probability as the squared norm of the projection normalized by the norm of the system state.'}]
+============== abstracted high level task decomposition ================
+['Analyze and Classify Elements: Decompose a given input structure into characteristic components and associated values that define its fundamental properties.', 'Select by Multiple Criteria and Derive Target Output: Identify components from a set that satisfy a specified selection criterion based on their associated values.', 'Derive Target Output: Compute the projection of an input vector onto the subspace defined by a selected subset of components.', 'Compute Quantitative or Conditional Measure: Calculate a normalized quantitative measure by applying a defined operation to the projected input and the original input.']
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- The system's state at time t is given by the column matrix \( \begin{pmatrix} -1 \\ 2 \\ 1 \end{pmatrix} \).
+- The observable is represented by a 3x3 matrix operator \( P \) with elements:
+  \[ P = \begin{pmatrix} 0 & \frac{1}{\sqrt{2}} & 0 \\ \frac{1}{\sqrt{2}} & 0 & \frac{1}{\sqrt{2}} \\ 0 & \frac{1}{\sqrt{2}} & 0 \end{pmatrix} \]
+- The problem involves calculating the probability that a measurement of the observable yields the eigenvalue 0 at time t.
+
+2. Analyze Relationships Between Components:
+- The state vector represents the system's state in a 3-dimensional Hilbert space.
+- The observable \( P \) is a Hermitian operator (implied by the symmetric matrix), whose eigenvalues correspond to possible measurement outcomes.
+- The probability of measuring a particular eigenvalue (here, 0) is given by the squared magnitude of the projection of the state vector onto the eigenspace associated with that eigenvalue.
+- The problem implicitly requires finding the eigenspace of \( P \) corresponding to eigenvalue 0 and projecting the state vector onto it.
+- The normalization of the state vector and the orthogonality of eigenvectors are relevant constraints.
+
+3. Identify the Field of Study:
+- The problem lies in the domain of linear algebra and quantum mechanics.
+- Subfields involved include matrix theory, eigenvalue problems, and quantum measurement theory.
+- Such problems commonly arise in quantum physics, quantum computing, and mathematical physics, as well as in advanced mathematical competitions.
+
+4. Highlight Aspects Needing Clarification:
+- The state vector is given but not explicitly normalized; it is unclear if normalization is assumed or required.
+- The observable matrix is given explicitly, but the problem does not specify if it is Hermitian, though it appears symmetric.
+- The problem assumes familiarity with the quantum measurement postulate and the method to compute measurement probabilities.
+- Potential challenges include computing eigenvalues and eigenvectors of \( P \), normalizing vectors, and performing projections without explicit instructions.
+============== Task Decomposition ================
+{'stage_0': {'subtask_1': {'objective': 'Normalize the given state vector to ensure it has unit length, preparing it for probability calculations.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Compute the eigenvalues and eigenvectors of the observable matrix P to identify its spectral decomposition.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}}, 'stage_1': {'subtask_3': {'objective': 'Identify the eigenspace corresponding to the eigenvalue 0 by selecting the eigenvectors associated with eigenvalue 0.', 'dependencies': ['subtask_2'], 'agent_collaboration': 'SC_CoT'}, 'subtask_4': {'objective': 'Project the normalized state vector onto the eigenspace of eigenvalue 0 to find the component of the state corresponding to that measurement outcome.', 'dependencies': ['subtask_1', 'subtask_3'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_5': {'objective': 'Calculate the probability of measuring the eigenvalue 0 by computing the squared magnitude of the projection obtained in subtask_4.', 'dependencies': ['subtask_4'], 'agent_collaboration': 'Debate'}}}
+============== Concretized MAS ================
+async def forward_150(self, taskInfo):
+    logs = []
+
+    cot_instruction1 = (
+        "Sub-task 1: Normalize the given state vector to ensure it has unit length, preparing it for probability calculations. "
+        "Use the state vector from the query and perform step-by-step reasoning."
+    )
+    cot_agent_desc1 = {
+        "instruction": cot_instruction1,
+        "input": [taskInfo],
+        "temperature": 0.0,
+        "context": ["user query"]
+    }
+    results1, log1 = await self.sc_cot(
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_agent_desc1,
+        n_repeat=self.max_sc
+    )
+    logs.append(log1)
+
+    cot_instruction2 = (
+        "Sub-task 2: Compute the eigenvalues and eigenvectors of the observable matrix P to identify its spectral decomposition. "
+        "Use the matrix P from the query and perform step-by-step reasoning with self-consistency."
+    )
+    cot_agent_desc2 = {
+        "instruction": cot_instruction2,
+        "final_decision_instruction": "Sub-task 2: Synthesize and choose the most consistent eigenvalues and eigenvectors for the observable matrix P.",
+        "input": [taskInfo],
+        "temperature": 0.5,
+        "context": ["user query"]
+    }
+    results2, log2 = await self.sc_cot(
+        subtask_id="subtask_2",
+        cot_agent_desc=cot_agent_desc2,
+        n_repeat=self.max_sc
+    )
+    logs.append(log2)
+
+    cot_instruction3 = (
+        "Sub-task 3: Identify the eigenspace corresponding to the eigenvalue 0 by selecting the eigenvectors associated with eigenvalue 0. "
+        "Use the eigenvalues and eigenvectors computed in Sub-task 2."
+    )
+    cot_agent_desc3 = {
+        "instruction": cot_instruction3,
+        "final_decision_instruction": "Sub-task 3: Synthesize and select the eigenvectors corresponding to eigenvalue 0.",
+        "input": [taskInfo, results2['thinking'], results2['answer']],
+        "temperature": 0.5,
+        "context": ["user query", "thinking of subtask 2", "answer of subtask 2"]
+    }
+    results3, log3 = await self.sc_cot(
+        subtask_id="subtask_3",
+        cot_agent_desc=cot_agent_desc3,
+        n_repeat=self.max_sc
+    )
+    logs.append(log3)
+
+    cot_instruction4 = (
+        "Sub-task 4: Project the normalized state vector onto the eigenspace of eigenvalue 0 to find the component of the state corresponding to that measurement outcome. "
+        "Use the normalized state vector from Sub-task 1 and the eigenvectors from Sub-task 3."
+    )
+    cot_agent_desc4 = {
+        "instruction": cot_instruction4,
+        "final_decision_instruction": "Sub-task 4: Synthesize and compute the projection of the normalized state vector onto the eigenspace of eigenvalue 0.",
+        "input": [taskInfo, results1['thinking'], results1['answer'], results3['thinking'], results3['answer']],
+        "temperature": 0.5,
+        "context": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 3", "answer of subtask 3"]
+    }
+    results4, log4 = await self.sc_cot(
+        subtask_id="subtask_4",
+        cot_agent_desc=cot_agent_desc4,
+        n_repeat=self.max_sc
+    )
+    logs.append(log4)
+
+    debate_instruction5 = (
+        "Sub-task 5: Calculate the probability of measuring the eigenvalue 0 by computing the squared magnitude of the projection obtained in Sub-task 4. "
+        "Use the projection vector from Sub-task 4 and perform a debate to ensure correctness."
+    )
+    final_decision_instruction5 = "Sub-task 5: Provide the final probability of measuring eigenvalue 0 as a concise answer."
+    debate_desc5 = {
+        "instruction": debate_instruction5,
+        "final_decision_instruction": final_decision_instruction5,
+        "input": [taskInfo, results4['thinking'], results4['answer']],
+        "context": ["user query", "thinking of subtask 4", "answer of subtask 4"],
+        "temperature": 0.5
+    }
+    results5, log5 = await self.debate(
+        subtask_id="subtask_5",
+        debate_desc=debate_desc5,
+        n_repeat=self.max_round
+    )
+    logs.append(log5)
+
+    final_answer = await self.make_final_answer(results5['thinking'], results5['answer'])
+    return final_answer, logs

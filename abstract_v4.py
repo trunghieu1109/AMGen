@@ -307,7 +307,7 @@ class MASAbstraction():
 You are an expert LLM assistant specializing in analyzing multi-agent system (MAS) workflows. Given a natural language query and an abstract workflow, your task is to produce a structured JSON analysis that abstracts the provided workflow and describes its implementation flow. The JSON output must include:
 
 - thought: A concise explanation of your analysis, summarizing how you interpreted the workflow and derived the subtasks and flow.
-- subtasks: An array of subtasks, each containing:
+- subtasks: An array of subtasks, each containing. Do not consider `return as a subtask`:
     + subtask_id: A unique identifier (e.g., "subtask_1").
     + objective: The full, standalone purpose of the subtask, stated clearly without phrases like "Based on subtask...".
     + supporting_info: Assumptions, context, or inputs required to achieve the subtask's objective.
@@ -1251,13 +1251,13 @@ Return your result in valid JSON format with the following structure:
         
         # subtasks = [{'subtask_id': 'subtask_1', 'objective': "Calculate Aya's walking speed s based on the information that when she walks at s km/h, the walk takes 4 hours including t minutes spent in the coffee shop.", 'supporting_info': 'Aya walks 9 kilometers at speed s, taking a total of 4 hours, which includes t minutes spent in the coffee shop.', 'agent_collaboration': 'CoT', 'dependencies': []}, {'subtask_id': 'subtask_2', 'objective': 'Determine the time spent in the coffee shop t using the information that when she walks at s+2 km/h, the walk takes 2 hours and 24 minutes including t minutes in the coffee shop.', 'supporting_info': 'The output from Sub-task 1 provides the value of s, which is necessary to calculate t. The total time for the walk at s+2 km/h is 2 hours and 24 minutes.', 'agent_collaboration': 'SC_CoT', 'dependencies': ['subtask_1']}, {'subtask_id': 'subtask_3', 'objective': 'Calculate the time it takes for Aya to walk 9 km at s+1/2 km/h, including the t minutes spent in the coffee shop.', 'supporting_info': 'The outputs from Sub-task 1 and Sub-task 2 provide the values of s and t, which are necessary to calculate the total time for the walk at the adjusted speed.', 'agent_collaboration': 'Reflexion', 'dependencies': ['subtask_1', 'subtask_2']}]
         
-        abstracted_subtasks = await self.abstract_task_decomposition(query, subtasks)
+        # abstracted_subtasks = await self.abstract_task_decomposition(query, subtasks)
         
-        for idx, subtask in enumerate(subtasks):
-            abstracted_subtask = abstracted_subtasks[idx]
-            if subtask['subtask_id'] == abstracted_subtask['subtask_id']:
-                subtasks[idx]['abstracted_objective'] = abstracted_subtask['abstracted_objective']
-                subtasks[idx]['subtask_name'] = abstracted_subtask['subtask_name']
+        # for idx, subtask in enumerate(subtasks):
+        #     abstracted_subtask = abstracted_subtasks[idx]
+        #     if subtask['subtask_id'] == abstracted_subtask['subtask_id']:
+        #         subtasks[idx]['abstracted_objective'] = abstracted_subtask['abstracted_objective']
+        #         subtasks[idx]['subtask_name'] = abstracted_subtask['subtask_name']
         
         return subtasks, flow
         
@@ -1266,54 +1266,60 @@ async def main():
     abstractor = MASAbstraction()    
     # print("Init Abstractor successfully")
     
-    # available_workflow = []
+    available_workflow = []
     
-    # with open("mas_zero_gpqa_diamond.json", "r", encoding="utf-8") as f:
-    #     mas_zero_workflow = json.load(f)
-    # mas_zero_workflow = mas_zero_workflow[:750]
-    # print(len(mas_zero_workflow))
+    source_list = {
+        'aime24': 'mas_zero_aime24.json',
+        'gpqa-diamond': 'mas_zero_gpqa_diamond.json',
+        'gsm8k': 'aflow_GSM8K.json',
+        'drop': 'aflow_DROP.json',
+        'hotpotqa': 'aflow_HotpotQA.json'
+    }
     
-    # with open("aflow_HotpotQA.json", "r", encoding="utf-8") as f:
-    #     available_workflow = json.load(f)
-
-    # print("============= Read data successfully ==============")
-    # print("Total workflow: ", len(available_workflow))
-    
-    # for idx, mas in enumerate(available_workflow):
-    #     # mas_idx = int(idx / 5)
-    #     # iteration = int(mas['iteration'])
-        
-    #     if os.path.isfile(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3/mas/mas_{idx}.json"):
-    #         continue 
-        
-    #     print(f"Workflow {idx}")
-    #     # if idx != 20:
-    #     #     continue
-    #     mas['code'] = remove_comments(mas['code'])
-    #     print("================= Sample code =================\n", mas['code'])
-        
-    #     subtask_list, flow = await abstractor(mas['problem'], mas['code'])
-    
-    #     with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3/mas/mas_{idx}.json", "w", encoding="utf-8") as f:
-    #         json.dump(subtask_list, f, ensure_ascii=False, indent=4)
+    for source_name, source_path in source_list.items():
+        with open(source_path, "r", encoding="utf-8") as f:
+            mas_zero_workflow = json.load(f)
             
-    #     with open(f"workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3/flow/flow_{idx}.json", "w", encoding="utf-8") as f:
-    #         json.dump(flow, f, ensure_ascii=False, indent=4)
-    
-    workflow_path = [
-        'workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v3_test',
-        'workflow_analysis-gpt-4o-mini-o4-mini_v8-drop_v3_test',
-        'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3_test',
-        'workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3_test',
-        'workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3_test'
-    ]
+        if source_name == 'gpqa-diamond':
+            mas_zero_workflow = mas_zero_workflow[:750]
             
-    cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list(workflow_path, "merged_workflow_analysis_v3_test")
-    # await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3")
-    cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
-    cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
-    cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
-    await abstractor.clustering_workflow("merged_workflow_analysis_v3_test", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
+        if source_name in ['gpqa-diamond', 'aime24']: 
+            mas_zero_workflow = [mas for mas in mas_zero_workflow if mas['iteration'] == 0]
+        
+        print(f"============= Read data from [{source_name}] benchmark successfully ==============")
+        print("Total MAS: ", len(mas_zero_workflow))
+    
+        for idx, mas in enumerate(mas_zero_workflow):
+            
+            if os.path.isfile(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/mas/mas_{idx}.json"):
+                continue 
+            print(f"Workflow {idx}")
+            
+            if idx != 14:
+                continue
+            
+            subtask_list, flow = await abstractor(mas['problem'], mas['code'])
+    
+            with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/mas/mas_{idx}.json", "w", encoding="utf-8") as f:
+                json.dump(subtask_list, f, ensure_ascii=False, indent=4)
+                
+            with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/flow/flow_{idx}.json", "w", encoding="utf-8") as f:
+                json.dump(flow, f, ensure_ascii=False, indent=4)
+    
+    # workflow_path = [
+    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v3_test',
+    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-drop_v3_test',
+    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3_test',
+    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3_test',
+    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3_test'
+    # ]
+            
+    # cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list(workflow_path, "merged_workflow_analysis_v3_test")
+    # # await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3")
+    # cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
+    # cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
+    # cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
+    # await abstractor.clustering_workflow("merged_workflow_analysis_v3_test", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
     
 if __name__ == "__main__":
     model_sampler_map = {

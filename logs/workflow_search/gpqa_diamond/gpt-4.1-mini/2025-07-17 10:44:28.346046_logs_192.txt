@@ -1,0 +1,116 @@
+
+============== high level task decomposition ================
+[{'objective': 'Express the given star count variation in terms of parallax mathematically'}, {'objective': 'Establish the relationship between parallax and distance'}, {'objective': 'Substitute the parallax-distance relation into the star count expression to rewrite it as a function of distance'}, {'objective': 'Analyze the resulting expression to determine how the number of stars changes with distance per unit distance range'}]
+============== abstracted high level task decomposition ================
+['Apply Transformation: Represent a given variation or dependency as a mathematical expression involving specified input variables.', 'Analyze and Classify Elements: Define the functional relationship between two variables or parameters based on given conditions or definitions.', 'Transform and Integrate Inputs: Replace one variable in an expression with its equivalent representation in terms of another variable to reformulate the expression accordingly.', 'Derive Target Output: Examine the reformulated expression to determine how the output value changes with respect to variations in an input parameter over a specified range.']
+============== Abstract MAS choosing ================
+Query-based chain: ['6', '5', '8']
+Similar chain: ['6', ['4', '3', '5', '7']]
+Levenshtein distance: 1
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- The number of stars in a specific sky region varies with parallax (plx) as 1/plx^5.
+- Parallax (plx) is a measure inversely related to distance (r), typically plx ∝ 1/r.
+- The problem involves determining how the number of stars changes with distance r, per unit range of r.
+
+2. Analyze Relationships Between Components:
+- Since plx ∝ 1/r, the given relation 1/plx^5 translates to a dependence on r^5.
+- The number of stars per unit parallax interval is given, but the problem asks for the number per unit distance interval, requiring a change of variables from plx to r.
+- The relationship between the number density in terms of parallax and in terms of distance involves the Jacobian of the transformation between variables.
+- The constraints imply a functional dependence that must be carefully transformed, considering the inverse relationship between parallax and distance.
+
+3. Identify the Field of Study:
+- The problem lies primarily in astrophysics and mathematical physics, involving concepts from astronomy.
+- Mathematically, it involves calculus (change of variables, differentiation), and algebraic manipulation.
+- It also touches on observational astronomy concepts such as parallax and stellar distribution.
+
+4. Highlight Aspects Needing Clarification:
+- The exact definition of "number of stars" is not specified—whether it is a density function per unit parallax or a cumulative count.
+- The problem assumes a direct proportionality between parallax and inverse distance without specifying constants or units.
+- It is not explicitly stated whether the distribution is uniform in space or affected by observational biases.
+- Potential challenges include correctly transforming the distribution from parallax space to distance space and interpreting the meaning of "per unit range of distance."
+============== Task Decomposition ================
+{'stage_0': {'subtask_1': {'objective': 'Establish the mathematical relationship between parallax (plx) and distance (r), confirming that plx ∝ 1/r and expressing plx as a function of r.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Rewrite the given star count dependence N(plx) ∝ 1/plx^5 in terms of distance r using the relationship from subtask_1.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'SC_CoT'}, 'subtask_3': {'objective': 'Apply the change of variables formula to convert the number of stars per unit parallax interval to the number of stars per unit distance interval, including calculation of the Jacobian |d(plx)/d(r)|.', 'dependencies': ['subtask_2'], 'agent_collaboration': 'Debate'}}, 'stage_1': {'subtask_4': {'objective': 'Analyze the transformed expression for the number of stars per unit distance interval, simplify it, and determine its dependence on r.', 'dependencies': ['subtask_3'], 'agent_collaboration': 'Debate'}, 'subtask_5': {'objective': 'Compare the derived dependence with the given choices (~ r^2, ~ r^3, ~ r^4, ~ r^5) and select the correct option.', 'dependencies': ['subtask_4'], 'agent_collaboration': 'Debate'}}}
+============== Concretized MAS ================
+async def forward_192(self, taskInfo):
+    logs = []
+
+    cot_instruction1 = "Sub-task 1: Establish the mathematical relationship between parallax (plx) and distance (r), confirming that plx ∝ 1/r and expressing plx as a function of r." 
+    cot_agent_desc = {
+        'instruction': cot_instruction1,
+        'input': [taskInfo],
+        'temperature': 0.0,
+        'context': ["user query"]
+    }
+    results1, log1 = await self.cot(
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_agent_desc
+    )
+    logs.append(log1)
+
+    cot_sc_instruction2 = "Sub-task 2: Based on the output from Sub-task 1, rewrite the given star count dependence N(plx) ∝ 1/plx^5 in terms of distance r using the relationship from subtask_1." 
+    final_decision_instruction2 = "Sub-task 2: Synthesize and choose the most consistent answer for rewriting N(plx) in terms of r. Given all the above thinking and answers, find the most consistent and correct solution for the problem."
+    cot_sc_desc2 = {
+        'instruction': cot_sc_instruction2,
+        'final_decision_instruction': final_decision_instruction2,
+        'input': [taskInfo, results1['thinking'], results1['answer']],
+        'temperature': 0.5,
+        'context_desc': ["user query", "thinking of subtask 1", "answer of subtask 1"]
+    }
+    results2, log2 = await self.sc_cot(
+        subtask_id="subtask_2",
+        cot_agent_desc=cot_sc_desc2,
+        n_repeat=self.max_sc
+    )
+    logs.append(log2)
+
+    debate_instruction3 = "Sub-task 3: Apply the change of variables formula to convert the number of stars per unit parallax interval to the number of stars per unit distance interval, including calculation of the Jacobian |d(plx)/d(r)|." 
+    final_decision_instruction3 = "Sub-task 3: Provide the transformed expression for the number of stars per unit distance interval with detailed reasoning and final formula."
+    debate_desc3 = {
+        'instruction': debate_instruction3,
+        'final_decision_instruction': final_decision_instruction3,
+        'input': [taskInfo, results2['thinking'], results2['answer']],
+        'context_desc': ["user query", "thinking of subtask 2", "answer of subtask 2"],
+        'temperature': 0.5
+    }
+    results3, log3 = await self.debate(
+        subtask_id="subtask_3",
+        debate_desc=debate_desc3,
+        n_repeat=self.max_round
+    )
+    logs.append(log3)
+
+    debate_instruction4 = "Sub-task 4: Analyze the transformed expression for the number of stars per unit distance interval, simplify it, and determine its dependence on r." 
+    final_decision_instruction4 = "Sub-task 4: Provide the simplified dependence of the number of stars per unit distance interval on r with clear explanation." 
+    debate_desc4 = {
+        'instruction': debate_instruction4,
+        'final_decision_instruction': final_decision_instruction4,
+        'input': [taskInfo, results3['thinking'], results3['answer']],
+        'context_desc': ["user query", "thinking of subtask 3", "answer of subtask 3"],
+        'temperature': 0.5
+    }
+    results4, log4 = await self.debate(
+        subtask_id="subtask_4",
+        debate_desc=debate_desc4,
+        n_repeat=self.max_round
+    )
+    logs.append(log4)
+
+    debate_instruction5 = "Sub-task 5: Compare the derived dependence with the given choices (~ r^2, ~ r^3, ~ r^4, ~ r^5) and select the correct option." 
+    final_decision_instruction5 = "Sub-task 5: Select the correct choice that matches the derived dependence of the number of stars per unit distance interval on r." 
+    debate_desc5 = {
+        'instruction': debate_instruction5,
+        'final_decision_instruction': final_decision_instruction5,
+        'input': [taskInfo, results4['thinking'], results4['answer']],
+        'context_desc': ["user query", "thinking of subtask 4", "answer of subtask 4"],
+        'temperature': 0.5
+    }
+    results5, log5 = await self.debate(
+        subtask_id="subtask_5",
+        debate_desc=debate_desc5,
+        n_repeat=self.max_round
+    )
+    logs.append(log5)
+
+    final_answer = await self.make_final_answer(results5['thinking'], results5['answer'])
+    return final_answer, logs

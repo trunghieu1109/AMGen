@@ -1,0 +1,101 @@
+
+============== high level task decomposition ================
+[{'objective': 'Identify and characterize the retrovirus by sequencing its genetic material.'}, {'objective': 'Select a specific molecular target (e.g., viral DNA, RNA, or cDNA) suitable for detection.'}, {'objective': 'Develop a molecular detection method such as PCR or real-time PCR based on the selected target.'}, {'objective': 'Validate the diagnostic kit for sensitivity, specificity, and rapid detection capability.'}]
+============== abstracted high level task decomposition ================
+['Analyze and Classify Elements: Analyze an input entity or dataset to identify, isolate, and characterize its essential components, attributes, and relationships that define its fundamental structure or nature.', 'select elements by criteria conformity: Identify or select element(s) from a set that simultaneously satisfy multiple defined criteria or conditions.', 'Apply Transformation: Apply one or more defined operations to one or multiple inputs to generate one or more outputs, which may be sequentially ordered or combined into a composite result.', 'Evaluate and Prioritize Elements: Evaluate a collection of elements against defined criteria to identify, select, and prioritize those that satisfy or best meet the specified conditions.']
+============== Task detailed analysis ================
+1. Extract and Summarize Given Information:
+- The problem context is an outbreak of a viral infectious disease caused by a retrovirus in a city.
+- The goal involves designing a molecular diagnostic kit for quick detection.
+- Four choices describe different diagnostic approaches:
+  * Choice 1: Identify virus via DNA sequencing, then develop a PCR kit.
+  * Choice 2: Identify IgG antibodies, then develop an ELISA kit targeting IgG.
+  * Choice 3: Identify virus based on patient symptoms, then design a nested PCR kit.
+  * Choice 4: Identify virus via cDNA sequencing, then develop a real-time PCR kit.
+- Key entities include the virus (retrovirus), diagnostic methods (DNA sequencing, cDNA sequencing, PCR, nested PCR, real-time PCR, ELISA), and biological markers (viral genome, IgG antibodies).
+
+2. Analyze Relationships Between Components:
+- The identification step precedes the development of the diagnostic kit, indicating a dependency on accurate virus characterization.
+- DNA sequencing and cDNA sequencing relate to detecting viral genetic material; PCR methods amplify this material for detection.
+- ELISA targets host immune response (IgG antibodies), implying indirect detection.
+- Nested PCR and real-time PCR are specialized PCR techniques enhancing sensitivity or quantification.
+- Symptom-based identification (Choice 3) relies on clinical data rather than molecular characterization.
+- Constraints include the need for quick and accurate diagnosis, influencing the choice of detection method.
+- The approaches reflect different diagnostic strategies: direct viral genome detection vs. antibody detection vs. symptom-based inference.
+
+3. Identify the Field of Study:
+- Primary domain: Molecular biology and virology.
+- Subfields: Diagnostic assay development, molecular diagnostics, immunology.
+- Techniques involved: DNA/cDNA sequencing, PCR variants, ELISA.
+- Applications: Public health response, infectious disease diagnostics, biomedical research.
+
+4. Highlight Aspects Needing Clarification:
+- The problem does not specify the stage of infection or viral load, which affects antibody presence and detection method suitability.
+- The term "identify the virus" is ambiguous—does it mean full genome sequencing, partial sequencing, or clinical identification?
+- The choice of sequencing method (DNA vs. cDNA) may need clarification given retroviruses have RNA genomes.
+- The reliability and availability of patient symptom data for virus identification are uncertain.
+- Potential challenges include differentiating between direct viral detection and immune response detection, and the sensitivity/specificity trade-offs among methods.
+============== Task Decomposition ================
+{'stage_1': {'subtask_1': {'objective': 'Characterize the retrovirus by identifying its genetic material type and appropriate sequencing method (DNA vs. cDNA sequencing) to enable accurate molecular identification.', 'dependencies': [], 'agent_collaboration': 'SC_CoT'}, 'subtask_2': {'objective': 'Evaluate and integrate molecular diagnostic techniques (PCR variants including nested and real-time PCR) and immunological methods (ELISA targeting IgG antibodies) based on the viral characterization and diagnostic goals.', 'dependencies': ['subtask_1'], 'agent_collaboration': 'SC_CoT'}}, 'stage_2': {'subtask_3': {'objective': 'Select the optimal diagnostic approach for quick and accurate detection of the retrovirus, considering direct viral genome detection versus antibody detection, and the suitability of PCR methods versus ELISA.', 'dependencies': ['subtask_1', 'subtask_2'], 'agent_collaboration': 'Debate'}}}
+============== Concretized MAS ================
+async def forward_156(self, taskInfo):
+    print("Task Requirement: ", taskInfo)
+    logs = []
+
+    cot_instruction1 = (
+        "Sub-task 1: Characterize the retrovirus by identifying its genetic material type and appropriate sequencing method (DNA vs. cDNA sequencing) to enable accurate molecular identification, with context from the query."
+    )
+    cot_agent_desc1 = {
+        "instruction": cot_instruction1,
+        "input": [taskInfo],
+        "temperature": 0.0,
+        "context_desc": ["user query"]
+    }
+    results1, log1 = await self.cot(
+        subtask_id="subtask_1",
+        cot_agent_desc=cot_agent_desc1
+    )
+    logs.append(log1)
+
+    cot_sc_instruction2 = (
+        "Sub-task 2: Based on the output from Sub-task 1, evaluate and integrate molecular diagnostic techniques (PCR variants including nested and real-time PCR) and immunological methods (ELISA targeting IgG antibodies) considering viral characterization and diagnostic goals."
+    )
+    final_decision_instruction2 = (
+        "Sub-task 2: Synthesize and choose the most consistent diagnostic techniques for retrovirus detection based on Sub-task 1 output."
+    )
+    cot_sc_desc2 = {
+        "instruction": cot_sc_instruction2,
+        "final_decision_instruction": final_decision_instruction2,
+        "input": [taskInfo, results1["thinking"], results1["answer"]],
+        "temperature": 0.5,
+        "context_desc": ["user query", "thinking of subtask 1", "answer of subtask 1"]
+    }
+    results2, log2 = await self.sc_cot(
+        subtask_id="subtask_2",
+        cot_agent_desc=cot_sc_desc2,
+        n_repeat=self.max_sc
+    )
+    logs.append(log2)
+
+    debate_instruction3 = (
+        "Sub-task 3: Select the optimal diagnostic approach for quick and accurate detection of the retrovirus, considering direct viral genome detection versus antibody detection, and the suitability of PCR methods versus ELISA, based on outputs from Sub-tasks 1 and 2."
+    )
+    final_decision_instruction3 = (
+        "Sub-task 3: Final selection of the best diagnostic approach for retrovirus detection."
+    )
+    debate_desc3 = {
+        "instruction": debate_instruction3,
+        "final_decision_instruction": final_decision_instruction3,
+        "input": [taskInfo, results1["thinking"], results1["answer"], results2["thinking"], results2["answer"]],
+        "context_desc": ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"],
+        "temperature": 0.5
+    }
+    results3, log3 = await self.debate(
+        subtask_id="subtask_3",
+        debate_desc=debate_desc3,
+        n_repeat=self.max_round
+    )
+    logs.append(log3)
+
+    final_answer = await self.make_final_answer(results3["thinking"], results3["answer"])
+    return final_answer, logs
