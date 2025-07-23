@@ -1,81 +1,99 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate an initial answer to the problem through step-by-step reasoning, producing both a thought process and an answer.",
-    "supporting_info": "Input problem statement requiring an answer; no prior solutions needed.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple candidate answers generated from the problem to produce the most consistent or best solution.",
-    "supporting_info": "A set of initial answers generated independently for the same problem.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Extract a name or specific entity from the best aggregated answer to support further disambiguation.",
-    "supporting_info": "The original problem and the best aggregated answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Disambiguate the extracted entity to clarify its identity in the context of the problem.",
-    "supporting_info": "The original problem and the name-extracted answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_3"
-    ]
-  },
-  {
-    "subtask_id": "subtask_5",
-    "objective": "Check the identity correctness of the disambiguated answer to ensure it matches the intended entity.",
-    "supporting_info": "The original problem and the disambiguated answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_4"
-    ]
-  },
-  {
-    "subtask_id": "subtask_6",
-    "objective": "Fact-check the identity-checked answer to verify its accuracy against known information.",
-    "supporting_info": "The original problem and the identity-checked answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_5"
-    ]
-  },
-  {
-    "subtask_id": "subtask_7",
-    "objective": "Perform a style check on the fact-checked answer to ensure clarity, coherence, and appropriate presentation.",
-    "supporting_info": "The original problem and the fact-checked answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_6"
-    ]
-  },
-  {
-    "subtask_id": "subtask_8",
-    "objective": "Conduct an additional verification step on the style-checked answer to further ensure answer quality and reliability.",
-    "supporting_info": "The original problem and the style-checked answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_7"
-    ]
-  },
-  {
-    "subtask_id": "subtask_9",
-    "objective": "Format the double-verified answer into the final desired output format for presentation.",
-    "supporting_info": "The original problem and the double-verified answer.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_8"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate an initial answer to the problem through step-by-step reasoning, producing both a thought process and an answer.",
+        "supporting_info": "Input problem statement requiring an answer; no prior solutions needed.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of logical operations on provided inputs to generate an initial provisional result and accompanying rationale.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple candidate answers generated from the problem to produce the most consistent or best solution.",
+        "supporting_info": "A set of initial answers generated independently for the same problem.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Combine multiple provisional results into a consolidated output by evaluating their consistency and selecting the most coherent solution.",
+        "subtask_name": "aggregate_inputs"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Extract a name or specific entity from the best aggregated answer to support further disambiguation.",
+        "supporting_info": "The original problem and the best aggregated answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Extract a targeted component from a consolidated input based on defined extraction criteria.",
+        "subtask_name": "filter_elements"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Disambiguate the extracted entity to clarify its identity in the context of the problem.",
+        "supporting_info": "The original problem and the name-extracted answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Transform an extracted component into a clarified representation by applying contextual disambiguation rules.",
+        "subtask_name": "apply_transformation"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Check the identity correctness of the disambiguated answer to ensure it matches the intended entity.",
+        "supporting_info": "The original problem and the disambiguated answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_4"
+        ],
+        "abstracted_objective": "Assess a selected component against predefined correctness and consistency criteria to confirm its validity.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Fact-check the identity-checked answer to verify its accuracy against known information.",
+        "supporting_info": "The original problem and the identity-checked answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "abstracted_objective": "Verify the accuracy of a validated component against authoritative references to ensure factual integrity.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_7",
+        "objective": "Perform a style check on the fact-checked answer to ensure clarity, coherence, and appropriate presentation.",
+        "supporting_info": "The original problem and the fact-checked answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_6"
+        ],
+        "abstracted_objective": "Apply clarity and presentation guidelines to enhance coherence and readability of a validated result.",
+        "subtask_name": "refine_output"
+    },
+    {
+        "subtask_id": "subtask_8",
+        "objective": "Conduct an additional verification step on the style-checked answer to further ensure answer quality and reliability.",
+        "supporting_info": "The original problem and the style-checked answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_7"
+        ],
+        "abstracted_objective": "Perform an additional evaluation of a refined result against quality benchmarks to ensure reliability.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_9",
+        "objective": "Format the double-verified answer into the final desired output format for presentation.",
+        "supporting_info": "The original problem and the double-verified answer.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_8"
+        ],
+        "abstracted_objective": "Apply formatting rules to structure a reliable result into the specified final presentation format.",
+        "subtask_name": "format_output"
+    }
 ]

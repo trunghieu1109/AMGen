@@ -176,17 +176,15 @@ async def evaluate_forward_fn(args, example_id, forward_str):
 
     return acc_oracle_verifier_list, acc_model_verifier_list, results, sub_tasks, agents, response_texts, raw_results, logs, response_texts[0], global_answers[0], total_time
             
-async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None, date_time=""):
+async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None, date_time="", save_file="", abstract_mas_path="", specific_op_desc={}):
 
-    if example_id < 150:
-        return 0, 0, 0, ""
+    # if example_id != 160:
+    #     return 0, 0, 0, ""
 
     start_time_ = time.time()
     total_execution_time = 0
     
     global_node_model = get_global("global_node_model")
-    save_file = "dev_26_refactored"
-    abstract_mas_path = "workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2"
     
     # declare results path
     result_path = expr_name + f"{args.dataset}"
@@ -221,8 +219,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     
     verifier_hub = [
         'o4-mini',
-        'gpt-4.1-mini',
     ]
+    
+    operator_list = {pattern: {'description': specific_op_desc[pattern]['description'], 'characteristics': specific_op_desc[pattern]['unique_characteristics']} for pattern in specific_op_desc}
 
     max_workers = 1
     set_global("global_max_workers", max_workers)
@@ -240,8 +239,17 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     # load subtask name from offline mas abstraction
     subtask_names = set()
     for aw in abstract_workflow:
+        # print(aw['flow'])
         for stage_id, stage in aw['flow'].items():
-            subtask_names.add(stage['Title'])
+            if 'Title' in stage:
+                if isinstance(stage['Title'], list):
+                    for sub_title in stage['Title']:
+                        subtask_names.add(sub_title)
+                else:
+                    subtask_names.add(stage['Title'])
+                    
+    for name in subtask_names:
+        print(name)
         
     # config task_queue with specific datasets
     if 'gpqa_diamond' in args.dataset:
@@ -261,7 +269,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     '''
     
     # decompose task to high-level subtasks
-    high_level_decomposition = await operator_templates.high_level_task_decomposition(meta_model, task_queue[0].content, 5)
+    high_level_decomposition = await operator_templates.high_level_task_decomposition(meta_model, task_queue[0].content, 3)
+    # high_level_decomposition = [{'objective': 'Understand the Michael addition mechanism and the role of nucleophiles and electrophiles in forming products'}, {'objective': "Analyze each reaction's reactants and conditions to predict the major product formed via Michael addition"}, {'objective': 'Determine the structures of intermediates and resonance-stabilized species involved in each reaction'}, {'objective': 'Compare predicted products with provided answer choices to select the correct products for reactions A, B, and C'}]
     print("\n========================= high_level_decomposition ==========================\n ", high_level_decomposition)
     with open(log_path, "a+", encoding="utf-8") as f:
         
@@ -307,140 +316,122 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         if str(idx) not in mas_chain or num_id == len(cluster_id) - 1:
             mas_chain.append(str(idx))
 
-    # # remove start and end step of control flow from mas
+    # filter sequential only mas
+    sequential_only_mas = []
+    loop_contain_mas = []
+    conditional_contain_mas = []
     
-    # # filter sequential only mas
-    # sequential_only_mas = []
-    # loop_contain_mas = []
-    # conditional_contain_mas = []
-    
-    # for idx, mas in enumerate(default_mas_chain):
-    #     contain_loop = False
-    #     contain_conditional = False
-    #     # if 'start_conditional' in mas:
-    #     #     conditional_contain_mas.append({
-    #     #         'id': idx,
-    #     #         'mas': mas
-    #     #     })
-    #     #     contain_conditional = True
+    for idx, mas in enumerate(default_mas_chain):
+        contain_loop = False
+        contain_conditional = False
+        if 'start_conditional' in mas:
+            conditional_contain_mas.append({
+                'id': idx,
+                'mas': mas
+            })
+            contain_conditional = True
         
-    #     # if 'start_loop' in mas:
-    #     #     loop_contain_mas.append({
-    #     #         'id': idx,
-    #     #         'mas': mas
-    #     #     })
-    #     #     contain_loop = True
+        if 'start_loop' in mas:
+            loop_contain_mas.append({
+                'id': idx,
+                'mas': mas
+            })
+            contain_loop = True
         
-    #     if not contain_conditional and not contain_loop:
-    #         sequential_only_mas.append({
-    #             'id': idx,
-    #             'mas': mas
-    #         })
+        if not contain_conditional and not contain_loop:
+            sequential_only_mas.append({
+                'id': idx,
+                'mas': mas
+            })            
+
+    async def get_no_flow_mas(mas):
+        mas_chain_no_flow = []
+        for stage in mas:
+            if isinstance(stage, str) and not stage.isdigit():
+                continue
             
-    # async def choose_the_most_similar_mas(mas_chain, mas_chain_list, abstract_workflow_):
-    #     if len(mas_chain_list) == 0:
-    #         return None
-        
-    #     mas_chain_no_flow = []
-    #     for mas in mas_chain_list:
-    #         mas_no_flow = []
-    #         for step in mas['mas']:
-    #             if isinstance(step, str) and (step.startswith("start") or step.startswith("end")):
-    #                 continue
-    #             mas_no_flow.append(step)
-                
-    #         mas_chain_no_flow.append({
-    #             'id': mas['id'],
-    #             'mas': mas_no_flow
-    #         })
-        
-    #     # choose the most similar abtracted workflow, based on levenshtein distance  
-    #     sorted_chains = sorted(mas_chain_no_flow, key=lambda mas: levenshtein_array_to_array(mas_chain, mas['mas']))
-    #     # print(sorted_chains)
-    #     closest_1 = sorted_chains[:1]
-
-    #     workflow_index = 0
-    #     max_levenshtein_distance = 0
-    #     for idx, awd in enumerate(abstract_workflow_):
-    #         if levenshtein_array_to_array(awd['chain'], closest_1[0]['mas']) > max_levenshtein_distance:
-    #             max_levenshtein_distance = levenshtein_array_to_array(awd['chain'], closest_1[0]['mas'])
-    #             workflow_index = closest_1[0]['id']
-                
-    #     workflow_index = [workflow_index]
-        
-    #     print("workflow index: ", workflow_index)
-    #     filterd_workflow = [abstract_workflow_[idx] for idx in workflow_index]
-    #     print("Filtered workflow: ", [fw['name'] for fw in filterd_workflow])
-        
-    #     return filterd_workflow
-
-    # # choose the most similar sequential only mas
-    # filtered_sequential_only_workflow = await choose_the_most_similar_mas(mas_chain, sequential_only_mas, abstract_workflow)
-    # print("Query-based chain: ", mas_chain)
-    # print("Similar chain: ", filtered_sequential_only_workflow[0]['chain'])
-    # print("Levenshtein distance: ", levenshtein_array_to_array(mas_chain, filtered_sequential_only_workflow[0]['chain']))
-    # with open(log_path, "a+", encoding="utf-8") as f:
-        
-    #     phase = "Abstract MAS choosing"
-    #     content = f"Query-based chain: {mas_chain}\nSimilar chain: {filtered_sequential_only_workflow[0]['chain']}\nLevenshtein distance: {levenshtein_array_to_array(mas_chain, filtered_sequential_only_workflow[0]['chain'])}"
-        
-    #     f.write(f"\n============== {phase} ================\n")
-    #     f.write(str(content))
-    # return 1, 1, 1, ""
-    
-    # alternatives
-    # compare to available abstracted workflow via levenshtein distance
-    distance_mas_pairs = [
-        (levenshtein_array_to_array(mas_chain, mas), mas)
-        for mas in default_mas_chain
-    ]
-
-    min_distance = min(distance_mas_pairs, key=lambda x: x[0])[0]
-
-    min_distance_candidates = [
-        mas for dist, mas in distance_mas_pairs if dist == min_distance
-    ]
-
-    sorted_chains = sorted(min_distance_candidates, key=lambda mas: -len(mas))
-
-    # Lấy 2 chuỗi giống nhất
-    closest_2 = sorted_chains[:2]
-    print("MAS Chain: ", closest_2)
-    print("Origin mas chain: ", mas_chain)
-    for idx, cls_ in enumerate(closest_2):
-        
-        print(f"Levenshtein distance {idx}: ", levenshtein_array_to_array(mas_chain, cls_))
-    
-    # get 2 the most similar workflow
-    workflow_index = []
-    for idx, awd in enumerate(abstract_workflow):
-        if str(awd['chain']) == str(closest_2[0]):
-            workflow_index.append(idx)
+            mas_chain_no_flow.append(stage)
+        return mas_chain_no_flow
             
-        # if str(awd['chain']) == str(closest_2[1]):
-        #     workflow_index.append(idx)
+    async def choose_the_most_similar_mas(mas_chain, mas_chain_list, abstract_workflow_, distance_threshold=2):
+        if len(mas_chain_list) == 0:
+            return None
+        
+        mas_chain_no_flow_list = []
+        for mas in mas_chain_list:
+            mas_chain_no_flow = await get_no_flow_mas(mas['mas'])
+                
+            mas_chain_no_flow_list.append({
+                "id": mas['id'],
+                "mas": mas_chain_no_flow
+            })
+        
+        distance_mas_pairs = [
+            (levenshtein_array_to_array(mas_chain, mas['mas']), mas)
+            for mas in mas_chain_no_flow_list if len(mas['mas']) > 0
+        ]
 
-    if len(workflow_index) == 0:
-        workflow_index = [random.randint(0, len(default_mas_chain) - 1)]
-    
-    workflow_index = [10]
+        min_distance = min(distance_mas_pairs, key=lambda x: x[0])[0]
 
-    print("workflow index: ", workflow_index)
-    # return 1, 1, 1, ""
-    
-    filterd_workflow = [abstract_workflow[idx] for idx in workflow_index]
-    
-    print("Filtered workflow: ", [fw['name'] for fw in filterd_workflow])
-    # return 1, 1, 1, ""
-    
-    # # choose the most similar sequential only mas
-    # filtered_loop_contain_workflow = await choose_the_most_similar_mas(mas_chain, loop_contain_mas, abstract_workflow)
-    
-    # # choose the most similar sequential only mas
-    # filtered_conditional_contain_workflow = await choose_the_most_similar_mas(mas_chain, conditional_contain_mas, abstract_workflow)
-    
-    # print("\n========= Filtered Sequential Workflow =========\n", filtered_sequential_only_workflow[0]['flow'])
-    # print("\n========= Filtered Loop Workflow =========\n", filtered_loop_contain_workflow[0]['flow'])
+        min_distance_candidates = [
+            mas for dist, mas in distance_mas_pairs if dist == min_distance
+        ]
+
+        if min_distance > distance_threshold:
+            print("Cannot find the suitable MAS")
+            return None
+
+        sorted_chains = sorted(min_distance_candidates, key=lambda mas: -len(mas['mas']))
+
+        # Lấy 2 chuỗi giống nhất
+        closest_2 = sorted_chains[:1]
+        print("MAS Chain: ", closest_2[0]['mas'], " Id: ", closest_2[0]['id'])
+        print("Origin mas chain: ", mas_chain)
+        for idx, cls_ in enumerate(closest_2):
+            print(f"Abstract mas {cls_['id']}")
+            print(f"Levenshtein distance {idx}: ", levenshtein_array_to_array(mas_chain, cls_['mas']))
+        
+        # get 2 the most similar workflow
+        workflow_index = []
+        for idx, awd in enumerate(abstract_workflow):
+            awd_chain = await get_no_flow_mas(awd['chain'])
+            if str(awd_chain) == str(closest_2[0]['mas']):
+                workflow_index.append(closest_2[0]['id'])
+
+        if len(workflow_index) == 0:
+            workflow_index = [mas_chain_no_flow_list[random.randint(0, len(mas_chain_no_flow_list) - 1)]['id']]
+
+        print("workflow index: ", workflow_index)
+        # return 1, 1, 1, ""
+        
+        filtered_workflow = [abstract_workflow[idx] for idx in workflow_index]
+        
+        print("Filtered workflow: ", [fw['name'] for fw in filtered_workflow])
+        
+        return filtered_workflow
+
+    # choose the most similar sequential only mas
+    filtered_sequential_workflow = await choose_the_most_similar_mas(mas_chain, sequential_only_mas, abstract_workflow)
+    if filtered_sequential_workflow:
+        with open(log_path, "a+", encoding="utf-8") as f:
+            
+            phase = "Sequential Abstract MAS choosing"
+            content = f"Query-based chain: {mas_chain}\nSimilar chain: {filtered_sequential_workflow[0]['chain']}\nLevenshtein distance: {levenshtein_array_to_array(mas_chain, filtered_sequential_workflow[0]['chain'])}"
+            
+            f.write(f"\n============== {phase} ================\n")
+            f.write(str(content))
+    filtered_loop_workflow = await choose_the_most_similar_mas(mas_chain, loop_contain_mas, abstract_workflow)
+    if filtered_loop_workflow:
+        with open(log_path, "a+", encoding="utf-8") as f:
+        
+            phase = "Loop Abstract MAS choosing"
+            content = f"Query-based chain: {mas_chain}\nSimilar chain: {filtered_loop_workflow[0]['chain']}\nLevenshtein distance: {levenshtein_array_to_array(mas_chain, filtered_loop_workflow[0]['chain'])}"
+            
+            f.write(f"\n============== {phase} ================\n")
+            f.write(str(content))
+        
+    # print("Filtered loop chain", filtered_loop_workflow[0]['chain'])
+    # print("Filtered sequential chain", filtered_sequential_workflow[0]['chain'])
     
     task_content = task_queue[0].content
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
@@ -479,56 +470,47 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     
     # load chosen abstracted workflow for each type
     sequential_only_aw = None
-    if filterd_workflow:
-        with open(filterd_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
+    if filtered_sequential_workflow:
+        with open(filtered_sequential_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
             sequential_only_aw_ = json.load(f)
         sequential_only_aw = {
-            'flow': filterd_workflow[0]['flow'],
+            'flow': filtered_sequential_workflow[0]['flow'],
             'specific_workflow': sequential_only_aw_
         }
             
-    # loop_contain_aw = None
-    # if filtered_loop_contain_workflow:
-    #     with open(filtered_loop_contain_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
-    #         loop_contain_aw_ = json.load(f)
+    loop_contain_aw = None
+    if filtered_loop_workflow:
+        with open(filtered_loop_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
+            loop_contain_aw_ = json.load(f)
         
-    #     loop_contain_aw = {
-    #        'flow': filtered_loop_contain_workflow[0]['flow'],
-    #        'specific_workflow': loop_contain_aw_
-    #     }
-        
-    # conditional_contain_aw = None
-    # if filtered_conditional_contain_workflow:
-    #     with open(filtered_conditional_contain_workflow[0]['code_path'], 'r', encoding='utf-8') as f:
-    #         conditional_contain_aw_ = json.load(f)
-
-    #     conditional_contain_aw = {
-    #         'flow': filtered_conditional_contain_workflow[0]['flow'],
-    #         'specific_workflow': conditional_contain_aw_
-    #     }
-            
-    print(sequential_only_aw)
-    # print(loop_contain_aw)
-    # print(conditional_contain_aw)
+        loop_contain_aw = {
+           'flow': filtered_loop_workflow[0]['flow'],
+           'specific_workflow': loop_contain_aw_
+        }
     
-    # merge_filtered_aw = await merge_filtered_workflow(meta_model, sequential_only_aw, loop_contain_aw, conditional_contain_aw)
-    dependencies_and_agent_collaboration = []
-    for idx, st in enumerate(sequential_only_aw['specific_workflow']):
-        dependencies_and_agent_collaboration.append({
-            'stage_id': f'stage_{idx}',
-            'agent_collaboration': st['agent_collaboration'],
-            'dependencies': [f"From stage_{idx} to {dep.replace("subtask", "stage")}" for dep in st['dependencies']]
-        })
+    merge_filtered_aw = await operator_templates.merge_filtered_workflow(meta_model, sequential_only_aw, loop_contain_aw)
+    # merge_filtered_aw = {'Control Flow 0': {'flow_type': 'start sequential', 'flow_desc': 'Start a sequential code flow, with multiple stages performed in turn'}, 'Stage 0': {'stage_id': 'stage_0', 'stage_name': 'extract_and_categorize_information', 'abstracted_objective': 'Analyze an input to identify, extract, and categorize its relevant elements, attributes, criteria, constraints, and relationships to support subsequent processing or reasoning.', 'agent_collaboration': ['CoT', 'SC_CoT'], 'dependencies': []}, 'Stage 1': {'stage_id': 'stage_1', 'stage_name': 'analyze_relationships', 'abstracted_objective': 'Analyze and characterize the relationships, interactions, or transformations among given inputs to determine their functional associations, dependencies, or resulting outcomes according to specified criteria.', 'agent_collaboration': ['CoT', 'SC_CoT'], 'dependencies': ['stage_0']}, 'Control Flow 1': {'flow_type': 'start loop', 'flow_desc': 'Start a loop code flow, with multiple stages performed iteratively'}, 'Stage 2': {'stage_id': 'stage_2', 'stage_name': ['construct_intermediate_steps', 'refine_output', 'derive_transformed_output', 'validate_entity'], 'abstracted_objective': 'Generate a structured sequence of intermediate steps by applying a systematic procedure to given inputs, progressively transforming them to produce an initial or provisional output along with any necessary reasoning or documentation, then transform these preliminary outputs by simplifying, consolidating, and enhancing them to produce a refined final result that satisfies defined criteria or constraints, and evaluate an entity against predefined criteria to determine its compliance, correctness, consistency, and validity, producing an assessment outcome or feedback.', 'agent_collaboration': ['CoT', 'SC_CoT'], 'dependencies': ['stage_0', 'stage_1']}, 'Control Flow 2': {'flow_type': 'end loop', 'flow_desc': 'End of current loop code flow'}, 'Stage 3': {'stage_id': 'stage_3', 'stage_name': 'select_best_candidate', 'abstracted_objective': 'Evaluate a collection of candidate elements against defined criteria or conditions and select the element or subset that best satisfies the specified requirements.', 'agent_collaboration': ['CoT', 'SC_CoT', 'Review', 'Debate', 'Aggregate', 'AnswerGenerate', 'Reflexion'], 'dependencies': ['stage_0', 'stage_1', 'stage_2']}, 'Control Flow 3': {'flow_type': 'end sequential', 'flow_desc': 'End of current sequential code flow'}}
+    # return 1, 1, 1, ""
+    # dependencies_and_agent_collaboration = []
+    # for idx, st in enumerate(sequential_only_aw['specific_workflow']):
+    #     if 'dependencies' in st:
+    #         dependencies_and_agent_collaboration.append({
+    #             'stage_id': st['subtask_id'].replace('subtask', 'stage'),
+    #             'agent_collaboration': st['agent_collaboration'],
+    #             'dependencies': [f"From {st['subtask_id'].replace('subtask', 'stage')} to stage_{dep.replace("subtask", "stage")}" for dep in st['dependencies']]
+    #         })
     
-    print(dependencies_and_agent_collaboration)
+    # print(dependencies_and_agent_collaboration)
     
-    print(task_queue_tmp[0].content)
-    print(dependencies_and_agent_collaboration)
-    print(sequential_only_aw['flow'])
+    # print(task_queue_tmp[0].content)
+    # print(dependencies_and_agent_collaboration)
+    # print(sequential_only_aw['flow'])
     
     # decompose query into multiple subtasks
-    task_decomposition = await operator_templates.specific_task_decomposition(meta_model, task_queue_tmp[0].content, dependencies_and_agent_collaboration, aw_flow=sequential_only_aw['flow'])
-    print("\n============= Task Decomposition: =============\n", task_decomposition)
+    # task_decomposition = await operator_templates.specific_task_decomposition(meta_model, task_queue_tmp[0].content, dependencies_and_agent_collaboration, aw_flow=sequential_only_aw['flow'], potential_op=operator_list)
+    task_decomposition = await operator_templates.specific_task_decomposition(meta_model, task_queue_tmp[0].content, aw_flow=merge_filtered_aw, potential_op=operator_list)
+    print("\n============= Task Decomposition: =============\n")
+    print(json.dumps(task_decomposition, indent=4, ensure_ascii=False))
     with open(log_path, "a+", encoding="utf-8") as f:
         
         phase = "Task Decomposition"
@@ -536,12 +518,12 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         f.write(f"\n============== {phase} ================\n")
         f.write(str(content))
     # return 1, 1, 1, ""
-    stage_desc = str(sequential_only_aw['flow']).replace("subtask", "stage")
+    stage_desc = str(merge_filtered_aw).replace("subtask", "stage")
     
     # generate new workflow that concretized for this query
-    next_solution = await operator_templates.generate_concretized_workflow(meta_model, task_decomposition, interaction_pattern, task_queue_tmp[0].content)
+    next_solution = await operator_templates.generate_concretized_workflow(meta_model, task_decomposition, interaction_pattern, task_queue_tmp[0].content, potential_op=specific_op_desc)
     print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
-    
+    # return 1, 1, 1, ""
     # evaluate multi agent system
     try:
         next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
@@ -561,11 +543,8 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         f.write(f"\n============== {phase} ================\n")
         f.write(str(content))
     # return 1, 1, 1, ""
+    
     # save results
-    # judge_path = os.path.join(args.save_dir, f"{expr_name}_Test New Architecture_{example_id}_full_response")
-    # with open(judge_path, 'w') as judge_file:
-    #     judge_file.write(f'Question: {task_queue[0].content}\nIteration: Test New Architecture\nFull Response:{raw_results}')
-
     if global_use_oracle_verifier:
         acc_list = acc_oracle_verifier_list
     else:
@@ -589,12 +568,12 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         fh.write(f'experiemnt {example_id}: 1 (initial Test New Architecture): acc_oracle_verifier_list: {acc_oracle_verifier_list} acc_model_verifier_list: {acc_model_verifier_list}\n')
     
     max_score = max(max_score, acc_oracle_verifier_list[0])
-    # final_results.append({
-    #     "example_id": example_id,
-    #     "score": max_score,
-    #     "max_cost": get_global("global_COST_TOTAL")
-    # })
-    
+    final_results.append({
+        "example_id": example_id,
+        "score": max_score,
+        "max_cost": get_global("global_COST_TOTAL")
+    })
+    # return 1, 1, 1, ""
     '''
     ================================================== REFINE WORKFLOW ======================================================
     '''
@@ -605,16 +584,19 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
             
         # get evaluation from many llm experts
         evaluation = await operator_templates.evaluate_workflow(task_queue_tmp[0].content, subtask_desc, current_ans, output_description, verifier_hub)
+        # evaluation = [{'failure_reason': "The previous reasoning process consistently selected choice 2 based on mechanistic and nomenclature analysis, but the professor's feedback indicates this final answer is incorrect. The failure stems from a subtle but critical misinterpretation of the product structures, specifically the identity and tautomeric form of compound C and the oxidation state of substituents in product B. The agents incorrectly assumed the hydroxy form for product B and cyclohexane-1,3-dione (not its hydroxy derivative) for compound C without fully considering alternative tautomeric or structural possibilities that align better with the given product names and reaction conditions. This led to a systematic but flawed conclusion favoring choice 2.", 'feedback': 'The detailed reasoning by previous agents correctly identified the general Michael addition mechanisms and the nucleophilic attack at the β-carbon. However, the critical error lies in the assumptions about the tautomeric forms and oxidation states of the products, especially for reactions (B) and (C). The agents assumed that acidic workup in reaction (B) necessarily leads to a hydroxy-substituted product, neglecting that the product name in some choices indicates an oxo substituent, which might be more consistent with the reaction conditions or product stability. Similarly, for reaction (C), the agents favored cyclohexane-1,3-dione as compound C, dismissing the hydroxy derivative, but the product name and reaction conditions might better support the hydroxycyclohexane-1,3-dione form. This misinterpretation caused the agents to select choice 2, which mismatches the actual product identities. The error originated in the subtask analyses where tautomeric equilibria and oxidation states were not rigorously evaluated or alternative plausible structures were insufficiently considered. The context provided was adequate for general mechanism analysis but lacked explicit structural clarifications or spectral/experimental data that could help distinguish between hydroxy and oxo forms. The collaboration pattern (SC_CoT and Debate) was effective for consensus but did not enforce critical evaluation of tautomeric possibilities or alternative product forms, leading to confirmation bias towards choice 2.', 'suggestion': '1. Refine subtasks to explicitly include evaluation of tautomeric forms and oxidation states of products, especially when acidic or basic workup is involved. This can be done by adding a dedicated subtask focusing on tautomerism and oxidation state analysis, supported by chemical logic and nomenclature conventions.\n\n2. Enhance context passing between subtasks by including detailed structural information, possible tautomeric forms, and their expected stability under given reaction conditions. This can help subsequent agents critically assess product identities rather than relying on assumptions.\n\n3. Upgrade collaboration patterns for critical subtasks (e.g., product identification and validation) from SC_CoT to Reflexion or Debate with explicit prompts to challenge assumptions and consider alternative structures. This will reduce confirmation bias and improve robustness of conclusions.\n\nImplementing these steps will address the root cause of the failure by ensuring that tautomeric and oxidation state considerations are systematically analyzed and that agents critically evaluate all plausible product forms before finalizing answers.'}]
         with open(log_path, "a+", encoding="utf-8") as f:
         
             phase = "Evaluation from verifiers"
             content = evaluation
             f.write(f"\n============== {phase} ================\n")
             f.write(str(content))
-
-        refined_task_decomposition = await operator_templates.specific_task_decomposition(meta_model, task_queue_tmp[0].content, dependencies_and_agent_collaboration, evaluation=evaluation, prev_task_decomposition=task_decomposition, is_refinement=True)
+        print("Total cost in the loop: ", get_global("global_COST_TOTAL"))
+        # refined_task_decomposition = await operator_templates.specific_task_decomposition(meta_model, task_queue_tmp[0].content, dependencies_and_agent_collaboration, aw_flow=sequential_only_aw['flow'], evaluation=evaluation, prev_task_decomposition=task_decomposition, is_refinement=True, potential_op=specific_op_desc)
+        refined_task_decomposition = await operator_templates.specific_task_decomposition(meta_model, task_queue_tmp[0].content, aw_flow=merge_filtered_aw, evaluation=evaluation, prev_task_decomposition=task_decomposition, is_refinement=True, potential_op=specific_op_desc)
         
         print("\n============= Refined Task Decomposition: =============\n", refined_task_decomposition)
+        # return 1, 1, 1, ""
         with open(log_path, "a+", encoding="utf-8") as f:
             
             phase = "Refined Task Decomposition"
@@ -691,145 +673,10 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
         json.dump(final_results, f, indent=4)
             
     return acc_oracle_verifier_list[0], total_time, total_execution_time, ""
-        
-# async def test_operator(args, expr_name, example_id, task_queue, meta_model, verifier_model, pattern = None):
-
-#     questions = get_global("global_questions")
-#     questions = questions[str(example_id)]
-#     global_node_model = get_global("global_node_model")
-    
-#     cost_per_query = get_global("global_COST_TOTAL_per_query")
-#     cost_per_query[str(example_id)] = 0.0
-#     set_global("global_COST_TOTAL_per_query", cost_per_query)
-
-#     print(f"problem length: {len(questions)}")
-#     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
-
-#     if args.dataset == 'gpqa_diamond':
-#         task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
-#     else:
-#         task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
-
-#     set_global("global_max_workers", max_workers)
-#     result_path = expr_name + f"{args.dataset}/{pattern}"
-#     expr_name = expr_name + f"{args.dataset}/{pattern}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
-
-#     global_task_queue = get_global('global_task_queue')
-#     global_task_queue[str(example_id)] = task_queue    
-#     set_global("global_task_queue", global_task_queue)
-
-#     next_solution_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_next_solution.json")
-#     msg_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_msg.json")
-#     mem_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_mem.json")
-#     file_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_archive.json")
-#     result_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}_{verifier_model}.results'
-#     oracle_acc_result_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}_oracle.results'
-#     oracle_acc_path = Path(oracle_acc_result_path)
-#     oracle_acc_path.parent.mkdir(parents=True, exist_ok=True)
-    
-#     result_acc_path = Path(result_path)
-#     result_acc_path.parent.mkdir(parents=True, exist_ok=True)
-
-#     judge_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_judge")
-#     reponse_path = os.path.join(args.save_dir, f"{expr_name}_{args.option}_reponse")
-#     os.makedirs(os.path.dirname(judge_path), exist_ok=True)
-
-#     print('file_path: ',file_path)
-#     print('msg_path: ',msg_path)
-#     print('result_path: ',result_path)
-#     print('next_solution_path: ',next_solution_path)
-#     print('oracle_acc_result_path: ',oracle_acc_result_path)
-#     print('judge_path: ',judge_path)
-#     print('reponse_path: ',reponse_path)
-#     print('mem_path: ',mem_path)
-    
-#     global_judge_path = get_global('global_judge_path')
-#     global_judge_path[str(example_id)] = judge_path
-
-#     set_global("global_judge_path", global_judge_path)
-    
-#     global_reponse_path = get_global('global_reponse_path')
-#     global_reponse_path[str(example_id)] = reponse_path
-
-#     set_global("global_reponse_path", global_reponse_path)
-
-#     if os.path.exists(mem_path):
-#         with open(mem_path, 'r') as json_file:
-#             memory = json.load(json_file)
-#     else:
-#         memory = []
-
-#     if os.path.exists(reponse_path):
-#         with open(reponse_path, 'r') as json_file:
-#             global_response = json.load(json_file)
-            
-#         global_response_dict = get_global('global_response_dict')
-#         global_response_dict[str(example_id)] = global_response
-        
-#         set_global("global_response_dict", global_response_dict)
-
-#     global_use_oracle_verifier = get_global("global_use_oracle_verifier")
-
-#     global_ns = []
-    
-#     final_results_path = f'results/{args.dataset}/single_agent_baselines_v3/{pattern}/{meta_model}_{global_node_model}/final_results_{example_id}.json'
-#     result_path = Path(final_results_path)
-#     result_path.parent.mkdir(parents=True, exist_ok=True)
-#     final_results = []
-
-#     judge_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_{args.option}_judge")
-#     reponse_path = os.path.join(args.save_dir, f"{expr_name}_{pattern}_{args.option}_reponse")
-#     print(f"================== Test single agent baselines {pattern} ===================")
-#     default_global_n = get_global("global_n")
-#     default_global_n[str(example_id)] = f"Baseline {pattern}"
-#     set_global("global_n", default_global_n)
-
-#     global_n = get_global("global_n")
-#     global_n = global_n[str(example_id)]
-#     global_ns.append(global_n)
-    
-#     blocks = get_init_archive(['cot', 'sc_cot', 'reflexion', 'debate'])
-#     workflow = blocks[pattern]
-#     try:
-#         workflow["code"] = '''
-# async def forward(self, taskInfo):
-#     print("Task Requirement: ", taskInfo)
-#     # Initialize lists to keep track of sub-tasks and agents
-#     sub_tasks = []
-#     agents = []
-#     logs =  []
-    
-#     programmer_instruction1 = "Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
-#     programmer_desc1 = {
-#         'instruction': programmer_instruction1, 
-#         'input': [taskInfo], 
-#         'temperature': 0.0, 
-#         'context': ["user query"],
-#         'entry_point': "solve"
-#     }
-#     results1 = await self.programmer(
-#         subtask_id="subtask_1", 
-#         programmer_desc=programmer_desc1
-#     )
-    
-#     agents.append(f"Programmer Agent {results1['programmer_agent'].id}, generate code for problem [problem #1], thinking: {results1['thinking'].content}; answer: {results1['answer'].content}, executing reults: {results1['exec_result']}")
-#     sub_tasks.append(f"Sub-task 1 output: thinking - {results1['thinking'].content}; answer - {results1['answer'].content}; output - {results1['exec_result']}")
-#     logs.append(results1['subtask_desc'])
-    
-#     final_answer = await self.make_final_answer(results1['thinking'], results1['answer'], sub_tasks, agents)
-#     return final_answer, logs
-# '''
-#         acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, _, _, _, total_time = await evaluate_forward_fn(args, example_id, workflow["code"])
-#     except Exception as e:
-#         print("Error: ", str(e))
-#         error_trace = traceback.format_exc()
-#         print("Full error trace:\n", error_trace)
-    
-#     return 0, 0, ""
 
 async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
 
-    if example_id != 156:
+    if example_id != 166:
         return 0, 0, 0, ""
 
     start_time_ = time.time()
@@ -913,38 +760,33 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     global_ns = []
     detailed_analysis = '''
 1. Extract and Summarize Given Information:
-- The problem context is an outbreak of a viral infectious disease caused by a retrovirus in a city.
-- The goal is to design a molecular diagnostic kit for quick detection.
-- Four choices are provided, each describing a different approach:
-  * Choice 1: Identify virus by DNA sequencing, then develop a PCR kit.
-  * Choice 2: Identify IgG antibodies, then develop an ELISA kit targeting IgG antibodies.
-  * Choice 3: Identify virus using symptom information from patients, then design a nested PCR kit.
-  * Choice 4: Identify virus by cDNA sequencing, then develop a real-time PCR kit.
-- Key entities: virus (retrovirus), DNA sequencing, cDNA sequencing, PCR, nested PCR, real-time PCR, IgG antibodies, ELISA.
+- The quantum state |psi> is defined as a superposition: |psi> = (cos(phi)|alpha> + sin(phi)|-alpha>)/N.
+- Parameters: alpha (amplitude), phi (phase), and N (normalization constant).
+- Normalization constant: N = sqrt(1 + sin(2*phi)*exp(-2*alpha^2)).
+- The measure of non-Gaussianity (nG) is given by the relative entropy difference: del_b = trace(rho ln rho) - trace(tau ln tau), where rho is the density matrix of the non-Gaussian state |psi><psi|, and tau is the density matrix of a reference Gaussian state.
+- Specific values for calculation: phi = -π/4, alpha = 0.5.
 
 2. Analyze Relationships Between Components:
-- Identification methods vary: direct viral genetic material sequencing (DNA or cDNA), antibody detection, or symptom-based inference.
-- Diagnostic methods depend on identification: PCR-based kits (standard, nested, real-time) or ELISA targeting antibodies.
-- Constraints include speed and accuracy of diagnosis.
-- The choice of sequencing (DNA vs cDNA) relates to the retrovirus lifecycle (RNA genome requiring reverse transcription).
-- Antibody detection (IgG) reflects host immune response rather than direct viral detection.
-- Symptom-based identification is indirect and may affect specificity.
-- These components influence the diagnostic kit's design, sensitivity, specificity, and applicability.
+- The state |psi> is a linear combination of coherent states |alpha> and |-alpha>, weighted by trigonometric functions of phi and normalized by N.
+- The normalization constant N depends on both phi and alpha, ensuring |psi> is a valid quantum state.
+- The relative entropy measure compares the entropy of the non-Gaussian state rho to that of the Gaussian reference tau, quantifying the deviation from Gaussianity.
+- The choice of phi and alpha fixes the specific form of the state and thus the density matrix rho.
+- The problem implicitly requires constructing rho and tau, computing their logarithms and traces, which are linked through quantum information theory.
 
 3. Identify the Field of Study:
-- Primary domain: Molecular biology and virology.
-- Subfields: Diagnostic assay development, immunology (antibody detection), molecular genetics (sequencing, PCR techniques).
-- Related fields: Biotechnology, clinical diagnostics, epidemiology.
-- Applications: Infectious disease diagnosis, public health response, biomedical research.
+- The problem lies in quantum physics, specifically quantum information theory.
+- Subfields include quantum optics (coherent states, Schrödinger cat states), quantum state characterization, and quantum entropy measures.
+- Mathematical tools involve linear algebra (density matrices), functional analysis (trace and logarithm of operators), and probability theory (entropy).
+- Applications include quantum computing, quantum communication, and studies of quantum non-classicality.
 
 4. Highlight Aspects Needing Clarification:
-- The problem does not specify the viral genome type explicitly (though retrovirus implies RNA genome).
-- The rationale for choosing DNA sequencing versus cDNA sequencing is not detailed.
-- The reliability of symptom-based virus identification is ambiguous.
-- The timing and stage of infection affecting antibody presence (IgG) is not mentioned.
-- Potential challenges include differentiating between direct viral detection and immune response detection, and the technical feasibility of each method in the outbreak context.
-    '''
-    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_queue[0].content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
+- The explicit form or construction of the reference Gaussian state tau is not provided; assumptions about tau may be necessary.
+- The method to compute the logarithm of density matrices and their traces is not detailed, which can be computationally challenging.
+- The problem does not specify whether the coherent states |alpha> are normalized or any basis representation.
+- Potential ambiguity in the phase phi's domain and its effect on normalization and state properties.
+- The problem assumes familiarity with quantum states, density matrices, and relative entropy without elaboration on computational techniques
+'''
+    # task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, "Problem: Write a function to find the minimum cost path to reach (m, n) from (0, 0) for the given cost matrix cost[][] and a position (m, n) in cost[][]. Entry_point: min_cost", task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
     task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, str(task_queue[0].content) + "\n\nDetailed Analysis: \n" + str(detailed_analysis), task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
     global_task_queue = get_global('global_task_queue')
     global_task_queue[str(example_id)] = task_queue_tmp    
@@ -966,122 +808,97 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     
     next_solution = {
         'code': '''
-async def forward(self, taskInfo):
-    print("Task Requirement: ", taskInfo)
+async def forward_166(self, taskInfo):
     logs = []
+    loop_results = {"stage_0": {"subtask_0": [], "subtask_1": [], "subtask_2": [], "subtask_3": []}}
 
-    cot_sc_instruction1 = (
-        "Sub-task 1: Understand the nature of the retrovirus genome and implications for molecular diagnostics, "
-        "including whether the viral genome is RNA or DNA and the need for reverse transcription."
+    for iteration in range(3):
+        cot_instruction_0_0 = (
+            "Sub-task 0: Construct the density matrix rho of the Schrödinger cat state |psi> for given phi and alpha, "
+            "including calculation of normalization constant N. Use phi = -pi/4 and alpha = 0.5 from taskInfo. "
+            "Provide detailed step-by-step reasoning and final expression for rho."
+        )
+        cot_agent_desc_0_0 = {
+            "instruction": cot_instruction_0_0,
+            "input": [taskInfo],
+            "temperature": 0.5,
+            "context": ["user query"]
+        }
+        results_0_0, log_0_0 = await self.cot(
+            subtask_id="stage_0.subtask_0.iter_{}".format(iteration),
+            cot_agent_desc=cot_agent_desc_0_0
+        )
+        logs.append(log_0_0)
+        loop_results["stage_0"]["subtask_0"].append(results_0_0)
+
+        cot_instruction_0_1 = (
+            "Sub-task 1: Construct the reference Gaussian state density matrix tau corresponding to the Schrödinger cat state parameters. "
+            "Use the output from Sub-task 0 and taskInfo to guide the construction. Provide detailed reasoning and final form of tau."
+        )
+        cot_agent_desc_0_1 = {
+            "instruction": cot_instruction_0_1,
+            "input": [taskInfo, results_0_0["thinking"], results_0_0["answer"]],
+            "temperature": 0.5,
+            "context": ["user query", "thinking of stage_0.subtask_0", "answer of stage_0.subtask_0"]
+        }
+        results_0_1, log_0_1 = await self.cot(
+            subtask_id="stage_0.subtask_1.iter_{}".format(iteration),
+            cot_agent_desc=cot_agent_desc_0_1
+        )
+        logs.append(log_0_1)
+        loop_results["stage_0"]["subtask_1"].append(results_0_1)
+
+        cot_instruction_0_2 = (
+            "Sub-task 2: Compute the relative entropy measure del_b = trace(rho ln rho) - trace(tau ln tau) "
+            "using the constructed density matrices rho and tau from previous subtasks. Provide detailed calculation steps and numerical result."
+        )
+        cot_agent_desc_0_2 = {
+            "instruction": cot_instruction_0_2,
+            "input": [taskInfo, results_0_0["thinking"], results_0_0["answer"], results_0_1["thinking"], results_0_1["answer"]],
+            "temperature": 0.5,
+            "context": ["user query", "thinking of stage_0.subtask_0", "answer of stage_0.subtask_0", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1"]
+        }
+        results_0_2, log_0_2 = await self.cot(
+            subtask_id="stage_0.subtask_2.iter_{}".format(iteration),
+            cot_agent_desc=cot_agent_desc_0_2
+        )
+        logs.append(log_0_2)
+        loop_results["stage_0"]["subtask_2"].append(results_0_2)
+
+        cot_instruction_0_3 = (
+            "Sub-task 3: Refine and simplify the computed relative entropy result from Sub-task 2 to produce a clear intermediate numerical value for non-Gaussianity (nG). "
+            "Provide concise final numerical value with reasoning."
+        )
+        cot_agent_desc_0_3 = {
+            "instruction": cot_instruction_0_3,
+            "input": [taskInfo, results_0_2["thinking"], results_0_2["answer"]],
+            "temperature": 0.5,
+            "context": ["user query", "thinking of stage_0.subtask_2", "answer of stage_0.subtask_2"]
+        }
+        results_0_3, log_0_3 = await self.cot(
+            subtask_id="stage_0.subtask_3.iter_{}".format(iteration),
+            cot_agent_desc=cot_agent_desc_0_3
+        )
+        logs.append(log_0_3)
+        loop_results["stage_0"]["subtask_3"].append(results_0_3)
+
+    aggregate_instruction_1_0 = (
+        "Sub-task 0: Evaluate the collection of candidate nG values from stage_0 subtasks and select the best candidate that satisfies accuracy and consistency criteria. "
+        "Use all refined numerical values from stage_0.subtask_3 iterations."
     )
-    final_decision_instruction1 = (
-        "Sub-task 1: Synthesize and choose the most consistent understanding of the retrovirus genome type and its implications."
-    )
-    cot_sc_desc1 = {
-        'instruction': cot_sc_instruction1,
-        'final_decision_instruction': final_decision_instruction1,
-        'input': [taskInfo],
-        'temperature': 0.5,
-        'context_desc': ["user query"]
+    aggregate_desc_1_0 = {
+        "instruction": aggregate_instruction_1_0,
+        "input": [taskInfo] + [res["thinking"] for res in loop_results["stage_0"]["subtask_3"]],
+        "temperature": 0.0,
+        "context": ["user query", "solutions generated from stage_0.subtask_3"]
     }
-    results1, log1 = await self.sc_cot(
-        subtask_id="subtask_1",
-        cot_agent_desc=cot_sc_desc1,
-        n_repeat=self.max_sc
+    results_1_0, log_1_0 = await self.aggregate(
+        subtask_id="stage_1.subtask_0",
+        aggregate_desc=aggregate_desc_1_0
     )
-    logs.append(log1)
-    
-    final_answer = await self.make_final_answer(results1['thinking'], results1['answer'])
-    return final_answer, logs
+    logs.append(log_1_0)
 
-    cot_sc_instruction2 = (
-        "Sub-task 2: Review and summarize the principles and requirements of different diagnostic methods "
-        "(DNA sequencing, cDNA sequencing, PCR variants, ELISA) in the context of retroviral detection, "
-        "based on the viral genome nature from Sub-task 1."
-    )
-    final_decision_instruction2 = (
-        "Sub-task 2: Synthesize and choose the most consistent summary of diagnostic methods suitable for retroviral detection."
-    )
-    cot_sc_desc2 = {
-        'instruction': cot_sc_instruction2,
-        'final_decision_instruction': final_decision_instruction2,
-        'input': [taskInfo, results1['thinking'], results1['answer']],
-        'temperature': 0.5,
-        'context_desc': ["user query", "thinking of subtask 1", "answer of subtask 1"]
-    }
-    results2, log2 = await self.sc_cot(
-        subtask_id="subtask_2",
-        cot_agent_desc=cot_sc_desc2,
-        n_repeat=self.max_sc
-    )
-    logs.append(log2)
-
-    cot_reflect_instruction3 = (
-        "Sub-task 3: Integrate knowledge of viral genome type and diagnostic methods to design a molecular diagnostic workflow, "
-        "including sample preparation, target identification, and assay development options."
-    )
-    critic_instruction3 = (
-        "Please review and provide the limitations of the proposed molecular diagnostic workflow design, "
-        "considering the viral genome and diagnostic methods."
-    )
-    cot_reflect_desc3 = {
-        'instruction': cot_reflect_instruction3,
-        'critic_instruction': critic_instruction3,
-        'input': [taskInfo, results1['thinking'], results1['answer'], results2['thinking'], results2['answer']],
-        'temperature': 0.0,
-        'context_desc': ["user query", "thinking of subtask 1", "answer of subtask 1", "thinking of subtask 2", "answer of subtask 2"]
-    }
-    results3, log3 = await self.reflexion(
-        subtask_id="subtask_3",
-        reflect_desc=cot_reflect_desc3,
-        n_repeat=self.max_round
-    )
-    logs.append(log3)
-
-    debate_instruction4 = (
-        "Sub-task 4: Evaluate and select the most appropriate diagnostic approach for quick and accurate detection of the retrovirus, "
-        "considering assay sensitivity, specificity, speed, and feasibility based on the designed workflow from Sub-task 3."
-    )
-    final_decision_instruction4 = (
-        "Sub-task 4: Select the best diagnostic approach for the retrovirus outbreak scenario."
-    )
-    debate_desc4 = {
-        'instruction': debate_instruction4,
-        'final_decision_instruction': final_decision_instruction4,
-        'input': [taskInfo, results3['thinking'], results3['answer']],
-        'context_desc': ["user query", "thinking of subtask 3", "answer of subtask 3"],
-        'temperature': 0.5
-    }
-    results4, log4 = await self.debate(
-        subtask_id="subtask_4",
-        debate_desc=debate_desc4,
-        n_repeat=self.max_round
-    )
-    logs.append(log4)
-
-    cot_sc_instruction5 = (
-        "Sub-task 5: Formulate a final design recommendation for the molecular diagnostic kit, "
-        "specifying the identification method and diagnostic assay type best suited for the retrovirus outbreak scenario, "
-        "based on the evaluation from Sub-task 4."
-    )
-    final_decision_instruction5 = (
-        "Sub-task 5: Provide the final recommended molecular diagnostic kit design."
-    )
-    cot_sc_desc5 = {
-        'instruction': cot_sc_instruction5,
-        'final_decision_instruction': final_decision_instruction5,
-        'input': [taskInfo, results4['thinking'], results4['answer']],
-        'temperature': 0.5,
-        'context_desc': ["user query", "thinking of subtask 4", "answer of subtask 4"]
-    }
-    results5, log5 = await self.sc_cot(
-        subtask_id="subtask_5",
-        cot_agent_desc=cot_sc_desc5,
-        n_repeat=self.max_sc
-    )
-    logs.append(log5)
-
-    final_answer = await self.make_final_answer(results5['thinking'], results5['answer'])
+    final_answer = await self.make_final_answer(results_1_0["thinking"], results_1_0["answer"])
     return final_answer, logs
         '''
     }

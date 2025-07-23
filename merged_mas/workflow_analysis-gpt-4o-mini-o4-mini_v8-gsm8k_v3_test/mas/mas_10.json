@@ -1,27 +1,33 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a single candidate solution to the math problem using step-by-step reasoning.",
-    "supporting_info": "Input math problem as a natural language string; uses a custom agent with a Chain-of-Thought reasoning prompt.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple candidate solutions to the math problem to produce the most consistent or best final solution.",
-    "supporting_info": "Input is the list of candidate solutions generated from multiple iterations of subtask_1 and the original problem statement.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Verify the correctness of the aggregated solution by writing and executing Python code that solves the math problem.",
-    "supporting_info": "Input is the original math problem and the aggregated solution's analysis; uses a Programmer agent to generate and run code.",
-    "agent_collaboration": "Programmer",
-    "dependencies": [
-      "subtask_2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a single candidate solution to the math problem using step-by-step reasoning.",
+        "supporting_info": "Input math problem as a natural language string; uses a custom agent with a Chain-of-Thought reasoning prompt.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of logical operations on provided input to generate a provisional output.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple candidate solutions to the math problem to produce the most consistent or best final solution.",
+        "supporting_info": "Input is the list of candidate solutions generated from multiple iterations of subtask_1 and the original problem statement.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Evaluate a collection of provisional outputs against specified criteria and select the most suitable candidate.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Verify the correctness of the aggregated solution by writing and executing Python code that solves the math problem.",
+        "supporting_info": "Input is the original math problem and the aggregated solution's analysis; uses a Programmer agent to generate and run code.",
+        "agent_collaboration": "Programmer",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Apply a verification procedure to assess a provided result against defined correctness conditions and produce a validation indicator.",
+        "subtask_name": "validate_result"
+    }
 ]

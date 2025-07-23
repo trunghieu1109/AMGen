@@ -1,37 +1,45 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a single diverse solution to the math problem using step-by-step reasoning.",
-    "supporting_info": "Input math problem and a Chain-of-Thought style prompt for solving math problems.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Aggregate multiple generated solutions to select the most consistent or best solution for the math problem.",
-    "supporting_info": "A list of multiple solutions generated independently from the problem.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Verify the aggregated solution by writing and executing Python code to solve the math problem and confirm correctness.",
-    "supporting_info": "The original math problem and the aggregated solution to analyze and verify.",
-    "agent_collaboration": "Programmer",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Perform a double-check by re-evaluating the problem and initial solution along with the verification result to refine or confirm the final answer.",
-    "supporting_info": "The original problem, the aggregated solution, and the verification output from the Programmer agent.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_2",
-      "subtask_3"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a single diverse solution to the math problem using step-by-step reasoning.",
+        "supporting_info": "Input math problem and a Chain-of-Thought style prompt for solving math problems.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of logical operations on input data to produce a provisional output.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Aggregate multiple generated solutions to select the most consistent or best solution for the math problem.",
+        "supporting_info": "A list of multiple solutions generated independently from the problem.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Evaluate a collection of provisional outputs against defined criteria and select the most suitable candidate.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Verify the aggregated solution by writing and executing Python code to solve the math problem and confirm correctness.",
+        "supporting_info": "The original math problem and the aggregated solution to analyze and verify.",
+        "agent_collaboration": "Programmer",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Apply a verification procedure to assess a provided result against specified correctness conditions and produce a validation outcome.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Perform a double-check by re-evaluating the problem and initial solution along with the verification result to refine or confirm the final answer.",
+        "supporting_info": "The original problem, the aggregated solution, and the verification output from the Programmer agent.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_2",
+            "subtask_3"
+        ],
+        "abstracted_objective": "Integrate multiple provisional inputs and evaluation outcomes to generate a finalized output that meets defined criteria.",
+        "subtask_name": "refine_output"
+    }
 ]

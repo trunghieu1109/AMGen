@@ -1,76 +1,67 @@
 async def forward_153(self, taskInfo):
-    print("Task Requirement: ", taskInfo)
     logs = []
 
-    cot_instruction_stage0_sub1 = (
-        "Sub-task 1: Extract and summarize the key spectral features from the mass spectrum, IR spectrum, and 1H NMR data "
-        "to characterize the unknown compound, based on the provided spectral data and candidate structures."
-    )
-    cot_agent_desc_stage0_sub1 = {
-        'instruction': cot_instruction_stage0_sub1,
+    cot_agent_desc_0_1 = {
+        'instruction': 'Sub-task stage_0.subtask_1: Extract and summarize molecular ion peaks and isotope pattern from mass spectrometry data. Input: taskInfo containing question and spectral data.',
         'input': [taskInfo],
         'temperature': 0.0,
-        'context': ["user query"]
+        'context_desc': ['user query']
     }
-    results_stage0_sub1, log_stage0_sub1 = await self.debate(
-        subtask_id="stage0_subtask1",
-        debate_desc=cot_agent_desc_stage0_sub1,
-        n_repeat=self.max_round
-    )
-    logs.append(log_stage0_sub1)
+    results_0_1, log_0_1 = await self.cot(subtask_id='stage_0.subtask_1', cot_agent_desc=cot_agent_desc_0_1)
+    logs.append(log_0_1)
 
-    cot_sc_instruction_stage1_sub1 = (
-        "Sub-task 1: Analyze the extracted spectral features from Stage 0 to identify functional groups, isotopic patterns, "
-        "and aromatic substitution patterns, and classify the compound's structural characteristics."
-    )
-    cot_sc_desc_stage1_sub1 = {
-        'instruction': cot_sc_instruction_stage1_sub1,
-        'input': [taskInfo, results_stage0_sub1['thinking'], results_stage0_sub1['answer']],
-        'temperature': 0.5,
-        'context': ["user query", "thinking of stage0_subtask1", "answer of stage0_subtask1"]
-    }
-    results_stage1_sub1, log_stage1_sub1 = await self.sc_cot(
-        subtask_id="stage1_subtask1",
-        cot_agent_desc=cot_sc_desc_stage1_sub1,
-        n_repeat=self.max_sc
-    )
-    logs.append(log_stage1_sub1)
-
-    cot_reflect_instruction_stage1_sub2 = (
-        "Sub-task 2: Assess the impact of the identified spectral features on possible structural isomers and evaluate the consistency "
-        "of each candidate structure with the spectral data, based on outputs from Stage 0 and Stage 1 Subtask 1."
-    )
-    cot_reflect_desc_stage1_sub2 = {
-        'instruction': cot_reflect_instruction_stage1_sub2,
-        'input': [taskInfo, results_stage0_sub1['thinking'], results_stage0_sub1['answer'], results_stage1_sub1['thinking'], results_stage1_sub1['answer']],
-        'output': ["thinking", "answer"],
+    cot_agent_desc_0_2 = {
+        'instruction': 'Sub-task stage_0.subtask_2: Extract and interpret IR spectral peaks to identify functional groups. Input: taskInfo containing question and spectral data.',
+        'input': [taskInfo],
         'temperature': 0.0,
-        'context': ["user query", "thinking of stage0_subtask1", "answer of stage0_subtask1", "thinking of stage1_subtask1", "answer of stage1_subtask1"]
+        'context_desc': ['user query']
     }
-    results_stage1_sub2, log_stage1_sub2 = await self.reflexion(
-        subtask_id="stage1_subtask2",
-        reflect_desc=cot_reflect_desc_stage1_sub2,
-        n_repeat=self.max_round
-    )
-    logs.append(log_stage1_sub2)
+    results_0_2, log_0_2 = await self.cot(subtask_id='stage_0.subtask_2', cot_agent_desc=cot_agent_desc_0_2)
+    logs.append(log_0_2)
 
-    debate_instruction_stage2_sub1 = (
-        "Sub-task 1: Select the most reasonable structural suggestion for the unidentified compound by comparing the candidate structures "
-        "against the analyzed spectral data and criteria derived from previous stages."
-    )
-    debate_desc_stage2_sub1 = {
-        'instruction': debate_instruction_stage2_sub1,
-        'context': ["user query", results_stage1_sub1['thinking'], results_stage1_sub1['answer'], results_stage1_sub2['thinking'], results_stage1_sub2['answer']],
-        'input': [taskInfo, results_stage1_sub1['thinking'], results_stage1_sub1['answer'], results_stage1_sub2['thinking'], results_stage1_sub2['answer']],
-        'output': ["thinking", "answer"],
-        'temperature': 0.5
+    cot_agent_desc_0_3 = {
+        'instruction': 'Sub-task stage_0.subtask_3: Extract and analyze 1H NMR signals to infer proton environments and substitution pattern. Input: taskInfo containing question and spectral data.',
+        'input': [taskInfo],
+        'temperature': 0.0,
+        'context_desc': ['user query']
     }
-    results_stage2_sub1, log_stage2_sub1 = await self.debate(
-        subtask_id="stage2_subtask1",
-        debate_desc=debate_desc_stage2_sub1,
-        n_repeat=self.max_round
-    )
-    logs.append(log_stage2_sub1)
+    results_0_3, log_0_3 = await self.cot(subtask_id='stage_0.subtask_3', cot_agent_desc=cot_agent_desc_0_3)
+    logs.append(log_0_3)
 
-    final_answer = await self.make_final_answer(results_stage2_sub1['thinking'], results_stage2_sub1['answer'])
+    cot_agent_desc_1_1 = {
+        'instruction': 'Sub-task stage_1.subtask_1: Integrate mass spec, IR, and NMR data to propose possible structural features and relationships. Input: results (thinking and answer) from stage_0.subtask_1, stage_0.subtask_2, and stage_0.subtask_3.',
+        'input': [taskInfo, results_0_1['thinking'], results_0_1['answer'], results_0_2['thinking'], results_0_2['answer'], results_0_3['thinking'], results_0_3['answer']],
+        'temperature': 0.0,
+        'context_desc': ['user query', 'thinking of stage_0.subtask_1', 'answer of stage_0.subtask_1', 'thinking of stage_0.subtask_2', 'answer of stage_0.subtask_2', 'thinking of stage_0.subtask_3', 'answer of stage_0.subtask_3']
+    }
+    results_1_1, log_1_1 = await self.cot(subtask_id='stage_1.subtask_1', cot_agent_desc=cot_agent_desc_1_1)
+    logs.append(log_1_1)
+
+    cot_agent_desc_2_1 = {
+        'instruction': 'Sub-task stage_2.subtask_1: Combine all spectral interpretations to produce a consolidated structural suggestion. Input: results (thinking and answer) from stage_1.subtask_1.',
+        'input': [taskInfo, results_1_1['thinking'], results_1_1['answer']],
+        'temperature': 0.0,
+        'context_desc': ['user query', 'thinking of stage_1.subtask_1', 'answer of stage_1.subtask_1']
+    }
+    results_2_1, log_2_1 = await self.cot(subtask_id='stage_2.subtask_1', cot_agent_desc=cot_agent_desc_2_1)
+    logs.append(log_2_1)
+
+    cot_agent_desc_3_1 = {
+        'instruction': 'Sub-task stage_3.subtask_1: Evaluate candidate structures against spectral data and select the best matching compound. Input: results (thinking and answer) from stage_2.subtask_1.',
+        'input': [taskInfo, results_2_1['thinking'], results_2_1['answer']],
+        'temperature': 0.0,
+        'context_desc': ['user query', 'thinking of stage_2.subtask_1', 'answer of stage_2.subtask_1']
+    }
+    results_3_1, log_3_1 = await self.cot(subtask_id='stage_3.subtask_1', cot_agent_desc=cot_agent_desc_3_1)
+    logs.append(log_3_1)
+
+    cot_agent_desc_4_1 = {
+        'instruction': 'Sub-task stage_4.subtask_1: Produce a clear, concise final answer naming the most reasonable structural candidate. Input: results (thinking and answer) from stage_3.subtask_1.',
+        'input': [taskInfo, results_3_1['thinking'], results_3_1['answer']],
+        'temperature': 0.0,
+        'context_desc': ['user query', 'thinking of stage_3.subtask_1', 'answer of stage_3.subtask_1']
+    }
+    final_answer, log_4_1 = await self.answer_generate(subtask_id='stage_4.subtask_1', cot_agent_desc=cot_agent_desc_4_1)
+    logs.append(log_4_1)
+
     return final_answer, logs

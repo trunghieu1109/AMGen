@@ -1,56 +1,68 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
-    "supporting_info": "The set S contains 10 distinct numbers, and Jen must choose 4 of them.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
-    "supporting_info": "The output from subtask 1 is required to understand the total combinations available.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Calculate the probability of winning a prize (at least 2 matches) based on the outputs from subtasks 1 and 2.",
-    "supporting_info": "Requires the results from subtasks 1 and 2 to compute the probability of winning a prize.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_1",
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
-    "supporting_info": "The total number of combinations from subtask 1 is needed to determine the ways to achieve all matches.",
-    "agent_collaboration": "Debate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_5",
-    "objective": "Calculate the probability of winning the grand prize (all 4 matches) based on the outputs from subtasks 3 and 4.",
-    "supporting_info": "Requires the results from subtasks 3 and 4 to compute the probability of winning the grand prize.",
-    "agent_collaboration": "CoT",
-    "dependencies": [
-      "subtask_3",
-      "subtask_4"
-    ]
-  },
-  {
-    "subtask_id": "subtask_6",
-    "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
-    "supporting_info": "The output from subtask 5 is necessary to identify m and n for the final calculation.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_5"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the total number of ways Jen can pick 4 distinct numbers from the set S = {1, 2, 3, ..., 10}.",
+        "supporting_info": "The set S contains 10 distinct numbers, and Jen must choose 4 of them.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Determine the total number of distinct groupings of a specified size that can be formed from an input collection.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Determine the number of ways to pick 4 numbers from S such that at least 2 of them match with Jen's chosen numbers.",
+        "supporting_info": "The output from subtask 1 is required to understand the total combinations available.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Compute the count of groupings that share at least a threshold number of components with a reference grouping.",
+        "subtask_name": "filter_and_count"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Calculate the probability of winning a prize (at least 2 matches) based on the outputs from subtasks 1 and 2.",
+        "supporting_info": "Requires the results from subtasks 1 and 2 to compute the probability of winning a prize.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Compute the ratio between a subset count and the overall count of groupings.",
+        "subtask_name": "format_output"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Calculate the number of ways to pick 4 numbers from S such that all 4 of them match with Jen's chosen numbers.",
+        "supporting_info": "The total number of combinations from subtask 1 is needed to determine the ways to achieve all matches.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Compute the count of groupings that fully coincide with a reference grouping.",
+        "subtask_name": "filter_and_count"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Calculate the probability of winning the grand prize (all 4 matches) based on the outputs from subtasks 3 and 4.",
+        "supporting_info": "Requires the results from subtasks 3 and 4 to compute the probability of winning the grand prize.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_3",
+            "subtask_4"
+        ],
+        "abstracted_objective": "Compute the ratio between two previously obtained summary values.",
+        "subtask_name": "format_output"
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Find m and n such that the probability of winning the grand prize given a prize is m/n, and compute m+n.",
+        "supporting_info": "The output from subtask 5 is necessary to identify m and n for the final calculation.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "abstracted_objective": "Simplify a ratio to its most reduced form and calculate the sum of its numerator and denominator.",
+        "subtask_name": "refine_output"
+    }
 ]

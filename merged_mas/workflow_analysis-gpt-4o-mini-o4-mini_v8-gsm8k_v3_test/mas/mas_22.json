@@ -1,27 +1,33 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a candidate solution to the math problem using a custom prompt designed for step-by-step mathematical reasoning.",
-    "supporting_info": "Input math problem as a string; uses a custom prompt for math problem solving with randomness to produce diverse solutions.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Aggregate multiple candidate solutions to the math problem to produce the most consistent and best final solution.",
-    "supporting_info": "Multiple candidate solutions generated independently for the same problem; aggregation logic to select the best solution.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Verify the aggregated solution by focusing on unit conversions and complex calculations, producing a correct numerical answer as a single value without units.",
-    "supporting_info": "Aggregated solution to the math problem; verification prompt emphasizing correctness and unit handling; specialized verification agent.",
-    "agent_collaboration": "Programmer",
-    "dependencies": [
-      "subtask_2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a candidate solution to the math problem using a custom prompt designed for step-by-step mathematical reasoning.",
+        "supporting_info": "Input math problem as a string; uses a custom prompt for math problem solving with randomness to produce diverse solutions.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [],
+        "abstracted_objective": "Apply a defined procedure to input data to produce one or more provisional outputs.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Aggregate multiple candidate solutions to the math problem to produce the most consistent and best final solution.",
+        "supporting_info": "Multiple candidate solutions generated independently for the same problem; aggregation logic to select the best solution.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Evaluate a collection of provisional outputs against defined criteria and select the most suitable candidate.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Verify the aggregated solution by focusing on unit conversions and complex calculations, producing a correct numerical answer as a single value without units.",
+        "supporting_info": "Aggregated solution to the math problem; verification prompt emphasizing correctness and unit handling; specialized verification agent.",
+        "agent_collaboration": "Programmer",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Assess a provided output against predefined correctness conditions and produce a validation outcome.",
+        "subtask_name": "validate_result"
+    }
 ]

@@ -1,0 +1,268 @@
+{
+    "CoT": {
+        "description": "A single agent performs step-by-step reasoning to solve a problem, producing a detailed thought process and final answer. Suitable for straightforward tasks requiring clear, logical reasoning.",
+        "unique_characteristics": "Emphasizes structured, sequential reasoning without collaboration or iteration, prioritizing transparency in the thought process.",
+        "input": {
+            "subtask_id": "string (e.g., 'stage_0.subtask_1')",
+            "cot_agent_desc": {
+                "instruction": "string (e.g., 'Solve the problem step-by-step')",
+                "input": "list of inputs (e.g., problem description, JSON strings)",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings (default ['user query'])"
+            }
+        },
+        "output": {
+            "result": {
+                "cot_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "final answer",
+                "subtask_desc": "metadata including subtask_id, instruction, context, agent_collaboration ('CoT'), and response"
+            },
+            "subtask_desc": "dictionary with response containing thinking and answer"
+        },
+        "interface": "results, logs = await self.cot(subtask_id, cot_agent_desc)"
+    },
+    "SC_CoT": {
+        "description": "Multiple CoT agents (default n_repeat=3) independently solve the problem with varied randomness, and a final decision agent selects the most consistent answer.",
+        "unique_characteristics": "Uses stochastic reasoning (temperature=0.5) across multiple agents, with a deterministic final decision (temperature=0.0) for robustness.",
+        "input": {
+            "subtask_id": "string",
+            "cot_agent_desc": {
+                "instruction": "string",
+                "final_decision_instruction": "string for synthesizing answers",
+                "input": "list of inputs",
+                "temperature": "float (default 0.5 for agents, 0.0 for final decision)",
+                "context_desc": "list of context strings"
+            },
+            "n_repeat": "integer (default 3)"
+        },
+        "output": {
+            "result": {
+                "cot_agent": "list of LLMAgentBase instances",
+                "thinking": "final decision thought process",
+                "answer": "consistent answer",
+                "subtask_desc": "metadata with subtask_id, instruction, final_decision_instruction, context, agent_collaboration ('SC_CoT'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.sc_cot(subtask_id, cot_agent_desc, n_repeat=3)"
+    },
+    "Reflexion": {
+        "description": "A CoT agent generates a solution, a critic agent provides feedback, and the CoT agent revises the solution iteratively (up to n_repeat times or until correct).",
+        "unique_characteristics": "Combines generative reasoning with critical feedback for self-correction, effective for complex tasks with potential initial errors.",
+        "input": {
+            "subtask_id": "string",
+            "reflect_desc": {
+                "instruction": "string with reflection instructions",
+                "critic_instruction": "string for critique",
+                "input": "list of inputs (e.g., problem, previous thinking/answers)",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            },
+            "n_repeat": "integer (default 1)"
+        },
+        "output": {
+            "result": {
+                "cot_agent": "LLMAgentBase instance",
+                "critic_agent": "LLMAgentBase instance",
+                "thinking": "final thought process",
+                "answer": "final answer",
+                "subtask_desc": "metadata with subtask_id, instruction, critic_instruction, context, agent_collaboration ('Reflexion'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.reflexion(subtask_id, reflect_desc, n_repeat=2)"
+    },
+    "Debate": {
+        "description": "Multiple agents propose solutions over n_repeat rounds, considering each other’s outputs, with a final decision agent synthesizing the best answer.",
+        "unique_characteristics": "Encourages collaborative reasoning through debate, leveraging diverse perspectives for a robust final answer.",
+        "input": {
+            "subtask_id": "string",
+            "debate_desc": {
+                "instruction": "string with debate instructions",
+                "final_decision_instruction": "string for final synthesis",
+                "input": "list of inputs (e.g., problem, previous rounds’ outputs)",
+                "temperature": "float (default 0.5 for agents, 0.0 for final decision)",
+                "context_desc": "list of context strings"
+            },
+            "n_repeat": "integer (default 1)"
+        },
+        "output": {
+            "result": {
+                "debate_agent": "list of LLMAgentBase instances",
+                "thinking": "final decision thought process",
+                "answer": "final answer",
+                "subtask_desc": "metadata with subtask_id, instruction, final_decision_instruction, context, agent_collaboration ('Debate'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.debate(subtask_id, debate_desc, n_repeat=2)"
+    },
+    "AnswerGenerate": {
+        "description": "Generates a concise, direct answer without explanations, suitable for final answer extraction in multi-step tasks.",
+        "unique_characteristics": "Prioritizes brevity and directness, ideal for tasks requiring only the final result.",
+        "input": {
+            "subtask_id": "string",
+            "cot_agent_desc": {
+                "instruction": "string for reasoning with concise answer instruction",
+                "input": "list of inputs",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            }
+        },
+        "output": {
+            "result": {
+                "cot_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "concise final answer",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('AnswerGenerate'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.answer_generate(subtask_id, cot_agent_desc)"
+    },
+    "SpecificFormat": {
+        "description": "Extracts and formats the correct answer into a predefined format, ensuring compliance with specific output requirements.",
+        "unique_characteristics": "Focuses on strict formatting for tasks like automated grading systems.",
+        "input": {
+            "subtask_id": "string",
+            "formatter_desc": {
+                "instruction": "string with formatting instructions",
+                "format": "string specifying output format",
+                "input": "list of inputs (e.g., previous answers)",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            }
+        },
+        "output": {
+            "result": {
+                "formatter_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "formatted answer",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('SpecificFormat'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.specific_format(subtask_id, formatter_desc)"
+    },
+    "AggregateAgent": {
+        "description": "Evaluates multiple solutions and selects the most frequent answer for reliability through consistency.",
+        "unique_characteristics": "Synthesizes solutions by consensus, ideal for validating outputs from multiple agents.",
+        "input": {
+            "subtask_id": "string",
+            "aggregate_desc": {
+                "instruction": "string for evaluating solutions",
+                "input": "list of inputs (e.g., multiple solutions (answers / thinkings))",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            }
+        },
+        "output": {
+            "result": {
+                "aggregate_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "most frequent answer",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('AggregateAgent'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.aggregate(subtask_id, aggregate_desc)"
+    },
+    "CodeGenerate": {
+        "description": "Generates complete, executable Python code for a problem, including imports and adhering to the specified entry point.",
+        "unique_characteristics": "Produces self-contained code for programming tasks, ensuring efficiency and compliance with Python best practices.",
+        "input": {
+            "subtask_id": "string",
+            "code_generate_desc": {
+                "instruction": "string for code generation",
+                "input": "list of inputs (e.g., problem description, JSON strings)",
+                "entry_point": "string (e.g., 'min_cost')",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            }
+        },
+        "output": {
+            "result": {
+                "code_generate_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "generated code",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('CodeGenerate'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.code_generate(subtask_id, code_generate_desc)"
+    },
+    "Review": {
+        "description": "Evaluates a solution for errors and provides feedback without revising it, used for critiquing intermediate outputs.",
+        "unique_characteristics": "Focuses on analysis and feedback, suitable for validating partial results.",
+        "input": {
+            "subtask_id": "string",
+            "review_desc": {
+                "instruction": "string for reviewing",
+                "input": "list of inputs (e.g., solution to review)",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            }
+        },
+        "output": {
+            "result": {
+                "review_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "feedback",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('Review'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.review(subtask_id, review_desc)"
+    },
+    "Revise": {
+        "description": "Revises an incorrect solution based on feedback or context, producing a corrected version in a single step.",
+        "unique_characteristics": "Focuses on direct correction of flawed solutions, distinct from Reflexion’s iterative critique loop.",
+        "input": {
+            "subtask_id": "string",
+            "revise_desc": {
+                "instruction": "string for revising",
+                "input": "list of inputs (e.g., incorrect solution, feedback)",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings"
+            }
+        },
+        "output": {
+            "result": {
+                "revise_agent": "LLMAgentBase instance",
+                "thinking": "thought process",
+                "answer": "revised solution",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('Revise'), and response"
+            },
+            "subtask_desc": "dictionary with response"
+        },
+        "interface": "results, logs = await self.revise(subtask_id, revise_desc)"
+    },
+    "Programmer": {
+        "description": "Orchestrates the generation and execution of Python code for a programming task, retrying up to two times with feedback if execution fails.",
+        "unique_characteristics": "Combines code generation with execution and iterative refinement, ensuring executable, self-contained code with a specific entry point.",
+        "input": {
+            "subtask_id": "string (e.g., 'stage_0.subtask_1')",
+            "programmer_desc": {
+                "instruction": "string (e.g., 'Generate Python runnable code for the problem')",
+                "input": "list of inputs (e.g., JSON-serialized problem description)",
+                "entry_point": "string (e.g., 'min_cost')",
+                "temperature": "float (default 0.0)",
+                "context_desc": "list of context strings (default ['user query'])"
+            }
+        },
+        "output": {
+            "result": {
+                "programmer_agent": "LLMAgentBase instance from code_generate",
+                "thinking": "thought process from code generation",
+                "answer": "generated code or execution output (Info object)",
+                "code": "raw generated code",
+                "exec_status": "string ('Success' or 'Error')",
+                "exec_result": "execution output or error message",
+                "subtask_desc": "metadata with subtask_id, instruction, context, agent_collaboration ('CodeGenerate'), and response"
+            },
+            "logs": "dictionary with execution status and results"
+        },
+        "interface": "results, logs = await self.programmer(subtask_id, programmer_desc)"
+    }
+}

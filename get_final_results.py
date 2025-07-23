@@ -1,7 +1,7 @@
 import os
 import json
 
-directory = "results/workflow_search/gpqa_diamond/dev19_attemp4/o4-mini_o4-mini"
+directory = "results/workflow_search/gpqa_diamond/dev_31_refactored/gpt-4.1-mini_gpt-4.1-mini"
 total_score = 0
 total_time = 0
 total_execution_time = 0
@@ -11,6 +11,8 @@ max_execution_cost = float('-inf')
 cnt = 0
 
 file_name = [0] * 198
+
+failed_cases = []
 
 for filename in os.listdir(directory):
     if filename.endswith(".json"):
@@ -31,8 +33,9 @@ for filename in os.listdir(directory):
             data = json.load(f)
             max_score = 0
             for dat in data:
-                # if dat.get("score", 0) == 0:
-                #     print(dat.get("example_id", 0))
+                if dat.get("score", 0) == 0:
+                    # print(dat.get("example_id", 0))
+                    failed_cases.append(dat.get("example_id", 0))
                 max_score = max(dat.get("score", 0), max_score)
                 # if (max_score == 0):
                 #     print(filepath)
@@ -54,3 +57,4 @@ print(f"Average Execution time: {total_execution_time / cnt}")
 print(f"Average cost: {max_cost / cnt}")
 print(f"Average Execution cost: {max_execution_cost / cnt}")
 print(f"Max cost: {max_cost}")
+print(f"Failed Case: ", failed_cases)

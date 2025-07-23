@@ -1,28 +1,34 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Determine the maximum number of rows and columns that can be filled with chips of a single color without violating the conditions.",
-    "supporting_info": "The grid is 5x5, and each cell can contain at most one chip. Chips in the same row and column must be of the same color.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Calculate the total number of chips that can be placed without violating the conditions based on the output of sub-task 1.",
-    "supporting_info": "The output from sub-task 1 provides the maximum number of rows and columns that can be filled, which is essential for calculating the total chip placement.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Verify that the placement is optimal and that any additional chip would violate the conditions based on the outputs of sub-tasks 1 and 2.",
-    "supporting_info": "The outputs from sub-tasks 1 and 2 are necessary to assess the optimality of the chip placement and to ensure that adding more chips would breach the established conditions.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_1",
-      "subtask_2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Determine the maximum number of rows and columns that can be filled with chips of a single color without violating the conditions.",
+        "supporting_info": "The grid is 5x5, and each cell can contain at most one chip. Chips in the same row and column must be of the same color.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Compute the maximum counts for two distinct groups that satisfy uniformity and exclusivity constraints.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Calculate the total number of chips that can be placed without violating the conditions based on the output of sub-task 1.",
+        "supporting_info": "The output from sub-task 1 provides the maximum number of rows and columns that can be filled, which is essential for calculating the total chip placement.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Compute the aggregate total of elements based on provided group counts under exclusivity constraints.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Verify that the placement is optimal and that any additional chip would violate the conditions based on the outputs of sub-tasks 1 and 2.",
+        "supporting_info": "The outputs from sub-tasks 1 and 2 are necessary to assess the optimality of the chip placement and to ensure that adding more chips would breach the established conditions.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1",
+            "subtask_2"
+        ],
+        "abstracted_objective": "Validate that the current configuration is optimal by verifying that adding any further element would breach the established constraints.",
+        "subtask_name": "validate_result"
+    }
 ]

@@ -1,99 +1,121 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a single candidate answer to the problem using step-by-step reasoning to produce an initial answer and thought process.",
-    "supporting_info": "Input problem statement requiring an answer; ability to perform chain-of-thought reasoning with randomness to produce diverse solutions.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple candidate answers to select the most consistent and best solution.",
-    "supporting_info": "A set of candidate answers generated independently for the same problem; criteria for consistency and quality among answers.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Check the best aggregated answer for missing specific information relevant to the problem.",
-    "supporting_info": "The problem statement and the best aggregated answer; criteria to identify if the answer lacks necessary details.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Infer missing information to complete the answer when the missing information check indicates insufficiency.",
-    "supporting_info": "The problem statement and the response indicating missing information; ability to infer plausible missing details to improve the answer.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_3"
-    ]
-  },
-  {
-    "subtask_id": "subtask_5",
-    "objective": "Extract names or key entities from the best answer to facilitate further disambiguation.",
-    "supporting_info": "The problem statement and the current best answer; knowledge of entity extraction techniques.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_4"
-    ]
-  },
-  {
-    "subtask_id": "subtask_6",
-    "objective": "Disambiguate extracted entities to clarify their identity and ensure the answer refers to the correct subjects.",
-    "supporting_info": "The problem statement and the name-extracted answer; context for resolving ambiguities in entity references.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_5"
-    ]
-  },
-  {
-    "subtask_id": "subtask_7",
-    "objective": "Verify the identity of entities mentioned in the disambiguated answer to confirm correctness.",
-    "supporting_info": "The problem statement and the disambiguated answer; criteria for identity verification.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_6"
-    ]
-  },
-  {
-    "subtask_id": "subtask_8",
-    "objective": "Fact-check the identity-verified answer to ensure factual accuracy.",
-    "supporting_info": "The problem statement and the identity-checked answer; access to factual knowledge or verification methods.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_7"
-    ]
-  },
-  {
-    "subtask_id": "subtask_9",
-    "objective": "Check and improve the style and clarity of the fact-checked answer to ensure it is well-formed and readable.",
-    "supporting_info": "The problem statement and the fact-checked answer; stylistic guidelines and clarity criteria.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_8"
-    ]
-  },
-  {
-    "subtask_id": "subtask_10",
-    "objective": "Perform additional verification on the style-checked answer to further ensure its quality and correctness.",
-    "supporting_info": "The problem statement and the style-checked answer; additional verification heuristics or criteria.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_9"
-    ]
-  },
-  {
-    "subtask_id": "subtask_11",
-    "objective": "Refine and format the double-verified answer into the final response format required by the problem.",
-    "supporting_info": "The problem statement and the double-verified answer; formatting instructions and output requirements.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_10"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a single candidate answer to the problem using step-by-step reasoning to produce an initial answer and thought process.",
+        "supporting_info": "Input problem statement requiring an answer; ability to perform chain-of-thought reasoning with randomness to produce diverse solutions.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of logical operations on input data to generate an initial provisional output.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple candidate answers to select the most consistent and best solution.",
+        "supporting_info": "A set of candidate answers generated independently for the same problem; criteria for consistency and quality among answers.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Evaluate multiple provisional outputs against defined consistency and performance criteria, and select the most suitable candidate.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Check the best aggregated answer for missing specific information relevant to the problem.",
+        "supporting_info": "The problem statement and the best aggregated answer; criteria to identify if the answer lacks necessary details.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Assess a provisional output against predefined completeness conditions to detect missing information.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Infer missing information to complete the answer when the missing information check indicates insufficiency.",
+        "supporting_info": "The problem statement and the response indicating missing information; ability to infer plausible missing details to improve the answer.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Apply a defined transformation to augment a provisional output by inferring and adding necessary missing information.",
+        "subtask_name": "apply_transformation"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Extract names or key entities from the best answer to facilitate further disambiguation.",
+        "supporting_info": "The problem statement and the current best answer; knowledge of entity extraction techniques.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_4"
+        ],
+        "abstracted_objective": "Identify and extract elements from a provisional output based on specified selection criteria.",
+        "subtask_name": "filter_elements"
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Disambiguate extracted entities to clarify their identity and ensure the answer refers to the correct subjects.",
+        "supporting_info": "The problem statement and the name-extracted answer; context for resolving ambiguities in entity references.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "abstracted_objective": "Transform extracted elements to resolve ambiguity and standardize their representation.",
+        "subtask_name": "classify_representation"
+    },
+    {
+        "subtask_id": "subtask_7",
+        "objective": "Verify the identity of entities mentioned in the disambiguated answer to confirm correctness.",
+        "supporting_info": "The problem statement and the disambiguated answer; criteria for identity verification.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_6"
+        ],
+        "abstracted_objective": "Apply a verification procedure to confirm that standardized elements match intended identities.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_8",
+        "objective": "Fact-check the identity-verified answer to ensure factual accuracy.",
+        "supporting_info": "The problem statement and the identity-checked answer; access to factual knowledge or verification methods.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_7"
+        ],
+        "abstracted_objective": "Apply a verification procedure to assess the factual accuracy of a provided output against predefined correctness conditions.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_9",
+        "objective": "Check and improve the style and clarity of the fact-checked answer to ensure it is well-formed and readable.",
+        "supporting_info": "The problem statement and the fact-checked answer; stylistic guidelines and clarity criteria.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_8"
+        ],
+        "abstracted_objective": "Integrate evaluation outcomes and stylistic guidelines to refine a provided output for clarity and readability.",
+        "subtask_name": "refine_output"
+    },
+    {
+        "subtask_id": "subtask_10",
+        "objective": "Perform additional verification on the style-checked answer to further ensure its quality and correctness.",
+        "supporting_info": "The problem statement and the style-checked answer; additional verification heuristics or criteria.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_9"
+        ],
+        "abstracted_objective": "Apply a verification procedure to assess the quality of a refined output against defined correctness and style criteria.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_11",
+        "objective": "Refine and format the double-verified answer into the final response format required by the problem.",
+        "supporting_info": "The problem statement and the double-verified answer; formatting instructions and output requirements.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_10"
+        ],
+        "abstracted_objective": "Apply formatting instructions to transform a validated output into the final required format.",
+        "subtask_name": "format_output"
+    }
 ]

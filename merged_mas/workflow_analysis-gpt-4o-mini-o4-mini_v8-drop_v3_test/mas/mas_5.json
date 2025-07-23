@@ -1,36 +1,44 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a step-by-step answer solution for the given problem using chain-of-thought reasoning.",
-    "supporting_info": "Input problem statement requiring an answer; no prior solutions needed.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple independently generated answer solutions to select the most consistent and best solution.",
-    "supporting_info": "A set of multiple candidate answers generated from the problem; no additional inputs required.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Refine the aggregated best solution to improve its accuracy and quality based on a refinement prompt.",
-    "supporting_info": "The aggregated best solution and the original problem statement; a refinement instruction prompt.",
-    "agent_collaboration": "Revise",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Review the refined answer to evaluate its correctness and provide final feedback for the answer.",
-    "supporting_info": "The refined answer and the original problem statement; a review instruction prompt.",
-    "agent_collaboration": "Review",
-    "dependencies": [
-      "subtask_3"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a step-by-step answer solution for the given problem using chain-of-thought reasoning.",
+        "supporting_info": "Input problem statement requiring an answer; no prior solutions needed.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [],
+        "abstracted_objective": "Produce a structured sequence of intermediate steps leading to an initial solution based on given inputs.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple independently generated answer solutions to select the most consistent and best solution.",
+        "supporting_info": "A set of multiple candidate answers generated from the problem; no additional inputs required.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Integrate multiple candidate outputs to identify the most consistent and suitable result.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Refine the aggregated best solution to improve its accuracy and quality based on a refinement prompt.",
+        "supporting_info": "The aggregated best solution and the original problem statement; a refinement instruction prompt.",
+        "agent_collaboration": "Revise",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Enhance a selected output by applying defined improvement criteria to improve its precision and clarity.",
+        "subtask_name": "refine_output"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Review the refined answer to evaluate its correctness and provide final feedback for the answer.",
+        "supporting_info": "The refined answer and the original problem statement; a review instruction prompt.",
+        "agent_collaboration": "Review",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Assess the chosen result against defined criteria to ensure its correctness and reliability.",
+        "subtask_name": "validate_result"
+    }
 ]

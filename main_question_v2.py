@@ -289,6 +289,12 @@ async def run_main():
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
         ),
     }
+    
+    operator_desc_path = 'operator_desc.json'
+
+    # Open and load JSON data
+    with open(operator_desc_path, 'r') as file:
+        opeartor_desc = json.load(file)
 
     json_model = ['gpt', 'o']
     xml_model = ['qwen', 'llama-3.3']
@@ -324,7 +330,10 @@ async def run_main():
     print('global_no_decompose: ',args.no_decompose)
     
     # load abstract workflow
-    aw_desc_path = 'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3/abstracted_workflow/abstract_workflow_description.json'
+    abstract_mas_path = 'merged_mas'
+    save_file = "dev_31_refactored"
+    
+    aw_desc_path = f'{abstract_mas_path}/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
     
     with open(aw_desc_path, 'r', encoding='utf-8') as f:
@@ -353,8 +362,12 @@ async def run_main():
     debate_role = []
     examples = []
     patterns = ['cot', 'sc_cot', 'reflexion', 'debate']
+    specific_op_desc = {}
 
     if 'aime24' in args.dataset:
+        
+        operator = ['CoT', 'SC_CoT', 'Reflexion', 'Debate', 'AnswerGenerate', 'SpecificFormat', 'AggregateAgent', 'Review', 'Revise']
+        specific_op_desc = {pattern: opeartor_desc[pattern] for pattern in operator}
         # load mas_zero workflow
         with open('mas_zero_aime24.json', 'r') as file:
             mas_zero_workflow = json.load(file)
@@ -466,22 +479,12 @@ async def run_main():
         set_global("global_use_oracle_verifier", use_oracle_verifier)
         set_global("global_dataset", args.dataset)
     else:
-        # load mas_zero workflow
-        with open('mas_zero_gpqa_diamond.json', 'r') as file:
-            mas_zero_workflow = json.load(file)
-
-        converted_mas_zero_workflow = []
-        for idx, workflow in enumerate(mas_zero_workflow):
-            converted_workflow = workflow
-            converted_workflow['code'] = transform_code(workflow['code'])
-            converted_workflow['code'] = fix_sync_func(converted_workflow['code'])
-            converted_mas_zero_workflow.append(converted_workflow)
-            
-        print("Total mas zero workflow: ", len(converted_mas_zero_workflow))
+        operator = ['CoT', 'SC_CoT', 'Reflexion', 'Debate', 'AnswerGenerate', 'SpecificFormat', 'AggregateAgent', 'Review', 'Revise']
+        specific_op_desc = {pattern: opeartor_desc[pattern] for pattern in operator}
 
         cot_instruction = "Please think step by step and then solve the task."
         # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
-        output_description = "Return ONLY the alphabet choice, A) or B) or C) or D)."
+        output_description = "If the question is asked for a multiple-choice result, Return ONLY the alphabet choice, i.e. A or B or C or D; If the question is asked for more than multiple-choice results, Return what the question asked and make sure the answer is complete."
         # need to consider sub-task output as well (no fixed form for sub-tasks)
         debate_role = ['Biology Expert', 'Physics Expert', 'Chemistry Expert', 'Science Generalist']
 
@@ -489,7 +492,7 @@ async def run_main():
         answers = [question.correct_index for question in questions]
 
         examples = [{'problem': questions[i], 'answer': answers[i]} for i in range(len(questions))]
-        # examples = examples[:170]
+        # examples = examples[:160]
         # examples = [examples[170]]
         set_global("global_output_description", output_description)
         set_global("global_score_compute", data_scorer.score)
@@ -514,7 +517,7 @@ async def run_main():
         if args.given_examples:
             if example_id not in args.given_examples: return
 
-        args.expr_name = f'dev_26_refactored/question/meta_agent/'
+        args.expr_name = f'{save_file}/question/meta_agent/'
         # args.expr_name = f'abstract_workflow_gpt_4o_chatgpt_o4_mini_v11/question/meta_agent/'
         # print('args.expr_name: ', args.expr_name)
 
@@ -546,7 +549,7 @@ async def run_main():
         retries = 0
         now = datetime.datetime.now()
         while retries < 2:
-            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now))
+            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now), save_file, abstract_mas_path, specific_op_desc)
             # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
             if score > -1:
                 break

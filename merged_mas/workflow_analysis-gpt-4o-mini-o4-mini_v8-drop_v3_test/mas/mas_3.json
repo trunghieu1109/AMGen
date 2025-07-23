@@ -1,27 +1,33 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a step-by-step answer solution for the given problem using detailed reasoning.",
-    "supporting_info": "Input problem statement requiring an answer; ability to perform step-by-step reasoning to produce an answer solution.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple independently generated step-by-step answer solutions to produce the most consistent and reliable ensemble solution.",
-    "supporting_info": "A set of multiple candidate solutions generated from the same problem; method to evaluate consistency among solutions.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Refine the best ensemble solution by improving its accuracy and clarity based on a custom refinement prompt.",
-    "supporting_info": "The best ensemble solution selected from multiple candidates; a refinement instruction prompt to guide improvement.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a step-by-step answer solution for the given problem using detailed reasoning.",
+        "supporting_info": "Input problem statement requiring an answer; ability to perform step-by-step reasoning to produce an answer solution.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [],
+        "abstracted_objective": "Produce a structured sequence of intermediate steps leading to an initial solution based on given inputs.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple independently generated step-by-step answer solutions to produce the most consistent and reliable ensemble solution.",
+        "supporting_info": "A set of multiple candidate solutions generated from the same problem; method to evaluate consistency among solutions.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Integrate and evaluate multiple candidate outputs to identify the most consistent and suitable result.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Refine the best ensemble solution by improving its accuracy and clarity based on a custom refinement prompt.",
+        "supporting_info": "The best ensemble solution selected from multiple candidates; a refinement instruction prompt to guide improvement.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Enhance a selected output by applying defined improvement criteria to improve its precision and clarity.",
+        "subtask_name": "refine_output"
+    }
 ]

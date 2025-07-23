@@ -1,36 +1,44 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a step-by-step answer solution for the given problem using chain-of-thought reasoning.",
-    "supporting_info": "Input problem statement requiring an answer; no prior solutions needed.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple candidate solutions to select the most consistent and best answer for the given problem.",
-    "supporting_info": "A set of multiple candidate answers generated independently for the same problem.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Refine the best solution by improving its quality and clarity based on a custom refinement prompt.",
-    "supporting_info": "The best aggregated solution and the original problem statement.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Correct the refined answer to ensure mathematical accuracy and correctness using a math correction prompt.",
-    "supporting_info": "The refined answer and the original problem statement.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_3"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a step-by-step answer solution for the given problem using chain-of-thought reasoning.",
+        "supporting_info": "Input problem statement requiring an answer; no prior solutions needed.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [],
+        "abstracted_objective": "Produce a structured sequence of intermediate operations leading to an initial result based on given inputs.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple candidate solutions to select the most consistent and best answer for the given problem.",
+        "supporting_info": "A set of multiple candidate answers generated independently for the same problem.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Integrate and evaluate multiple candidate outputs to identify the most consistent and suitable result.",
+        "subtask_name": "select_optimal_candidate"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Refine the best solution by improving its quality and clarity based on a custom refinement prompt.",
+        "supporting_info": "The best aggregated solution and the original problem statement.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Enhance a preliminary output by applying defined improvement criteria to increase its clarity and accuracy.",
+        "subtask_name": "refine_output"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Correct the refined answer to ensure mathematical accuracy and correctness using a math correction prompt.",
+        "supporting_info": "The refined answer and the original problem statement.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Assess a selected result against predefined criteria to ensure its correctness and apply any necessary adjustments.",
+        "subtask_name": "validate_result"
+    }
 ]

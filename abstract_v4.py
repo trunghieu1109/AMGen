@@ -304,57 +304,52 @@ class MASAbstraction():
         print("================== Extracting Workflow ==================")
 
         analysis_prompt = f"""
-You are an expert LLM assistant specializing in analyzing multi-agent system (MAS) workflows. Given a natural language query and an abstract workflow, your task is to produce a structured JSON analysis that abstracts the provided workflow and describes its implementation flow. The JSON output must include:
+You are an expert LLM assistant specializing in analyzing multi-agent system (MAS) workflows. Given a natural language query and an abstract workflow, your task is to produce a structured JSON analysis that abstracts the workflow and describes its implementation flow. The JSON output must include:
 
-- thought: A concise explanation of your analysis, summarizing how you interpreted the workflow and derived the subtasks and flow.
-- subtasks: An array of subtasks, each containing. Do not consider `return as a subtask`:
-    + subtask_id: A unique identifier (e.g., "subtask_1").
-    + objective: The full, standalone purpose of the subtask, stated clearly without phrases like "Based on subtask...".
-    + supporting_info: Assumptions, context, or inputs required to achieve the subtask's objective.
-    + agent_collaboration: If this subtask uses an agent collaboration pattern (e.g., CoT, SC_CoT, Review, Revise, Reflexion, Debate, ...), identify it in this field.
-    + dependencies: A list of subtask IDs (e.g., ["subtask_1"]) that the current subtask depends on.
-- flow: The implementation flow of the workflow, formatted as a string using control flow constructs:
-    + sequential: Subtasks executed in order.
-    + loop: Subtasks repeated until a condition is met (e.g., convergence or fixed iterations).
-    + conditional: Subtasks executed based on a condition, with true_branch and false_branch specifying alternative paths.
-Flows can be nested within each other (e.g., a loop inside a sequential flow).
+- **thought**: A concise explanation of your analysis, summarizing how you interpreted the workflow and derived the subtasks and flow.
+- **subtasks**: An array of subtasks, each containing:
+  - **subtask_id**: A unique identifier (e.g., "subtask_1").
+  - **objective**: The full, standalone purpose of the subtask, stated clearly without phrases like "Based on subtask...".
+  - **supporting_info**: Assumptions, context, or inputs required to achieve the subtask's objective.
+  - **agent_collaboration**: The agent collaboration pattern used (e.g., CoT, SC_CoT, Review, Revise, Reflexion, Debate, AnswerGenerate, SpecificFormat, Aggregate, CodeGenerator, Programmer).
+  - **dependencies**: A list of subtask IDs (e.g., ["subtask_1"]) that the current subtask depends on.
+- **flow**: A string describing the implementation flow using control structures:
+  - **sequential**: Subtasks executed in order.
+  - **loop**: Subtasks repeated until a condition is met (e.g., convergence or fixed iterations).
+  - **conditional**: Subtasks executed based on a condition, with `true_branch` and `false_branch` specifying alternative paths.
+  Flows can be nested (e.g., a loop inside a sequential flow).
 
 ## Input
+- **Query**: {query}
+- **Abstract Workflow**: {mas}
 
-[Query]: {query}
-[Abstract Workflow]: {mas}
+## Instructions
+1. **Subtask Extraction**:
+   - Identify all subtasks in the workflow, excluding return statements (e.g., "return result").
+   - For each subtask:
+     - **Objective**: Clearly state the full purpose of the subtask without referencing other subtasks.
+     - **Supporting Information**: Specify assumptions, context, or inputs required.
+     - **Agent Collaboration**: Select the appropriate pattern from: CoT, SC_CoT, Debate, Reflexion, AnswerGenerate, SpecificFormat, Aggregate, CodeGenerator, Programmer, Review, Revise.
+     - **Dependencies**: List subtask IDs that the current subtask depends on.
+   - For `for` loops, include only the subtasks for a single iteration in the `subtasks` array. Capture the iterative nature in the `flow` field using the `[loop]` construct.
 
-## Additional Notes
-- Do not treat return statements (e.g., return result) as subtasks. Ignore all return behaviors. If the workflow includes branches that are only used to determine which value to return, you do not need to model them as a `conditional` flow.
-- Ensure the flow reflects the logical execution order and dependencies in the workflow.
-- When analyzing a for loop, include only the subtasks corresponding to a single iteration in the subtasks list. Do not create separate subtasks for each iteration of the loop. The iterative nature of the loop should be captured in the flow field using the [loop] construct, which lists the subtasks executed in one iteration.
+2. **Flow Derivation**:
+   - Analyze the workflow to identify control structures:
+     - **Sequential**: Subtasks executed one after another, indicated by linear dependencies.
+     - **Loop**: Subtasks repeated, indicated by iterative processes. List subtasks for one iteration in the `[loop]` construct.
+     - **Conditional**: Subtasks executed based on a condition, with `[true_branch]` and `[false_branch]` specifying paths.
+   - Nest flows as needed to reflect the workflow's structure.
+   - Format the `flow` as a string with proper indentation, using `[sequential]`, `[loop]`, or `[conditional]` with subtask IDs (e.g., `[subtask_1]`).
+   - Do not include conditional control flow with `return` in true_branch or false_branch
+3. **Additional Notes**:
+   - Ignore return statements or branches used solely to determine return values when modeling the flow.
+   - Ensure the flow reflects the logical execution order and dependencies.
+   - For loops, do not duplicate subtasks for multiple iterations in the `subtasks` array.
 
-# Instruction
-You must extract the following information for each subtask:
-
-- Objective: Clearly state the full objective of each subtask in the workflow. Do not include phrases like "Based on subtask..." — state the purpose directly and completely.
-- Supporting Information: List any assumptions, context, or inputs required by each subtask to achieve its objective.
-- Agent Collaboration: Specify the reasoning pattern used in the subtask, which is included in the following list:Agent Collaboration Patterns: {DESCRIPTION_FOR_OPERATOR}
-- Dependency: Identify which previous subtasks the current subtask depends on. Use subtask IDs (e.g., "subtask_1") in a list.
-- For a `for` loop, identify the subtasks within a single iteration and list them only once in the subtasks array. Avoid duplicating subtasks for multiple iterations, even if the loop runs multiple times.
-
-# Extracting Implementation Flow
-To derive the flow field, analyze the abstract workflow to identify the control structures (sequential, loop, conditional) based on the relationships and execution order of subtasks:
-- Detect Control Patterns:
-    + Sequential: Subtasks executed one after another, often indicated by linear dependencies (e.g., subtask_2 depends on subtask_1).
-    + Loop: Subtasks repeated multiple times, often indicated by iterative processes. For a for loop, include only the subtasks within a single iteration and indicate the loop structure in the flow.
-    + Conditional: Subtasks executed based on a condition, with true_branch and false_branch specifying alternative paths.
-
-- Nest Flows: If a subtask involves iterative or conditional logic within a larger sequence, nest the corresponding flow (e.g., a loop inside a sequential flow).
-- Format the Flow: Write the flow as a string with proper indentation, using:
-    + [sequential] for ordered subtasks.
-    + [loop] for repeated subtasks, specifying the subtasks inside for a single iteration.
-    + [conditional] with [true_branch] and [false_branch] for condition-based execution.
-Include subtask IDs (e.g., [subtask_1]) within the appropriate flow constructs.
-
-# Output Format
+## Output Format
+```json
 {{
-    "thought": "Explanation of the analysis, including how subtasks and flow were derived.",
+    "thought": "Explanation of how subtasks and flow were derived from the workflow.",
     "subtasks": [
         {{
             "subtask_id": "subtask_1",
@@ -568,7 +563,7 @@ Return your result in valid JSON format with the following structure:
         
     async def clustering(self, embeddings):
         sse = []  # Sum of Squared Errors
-        k_range = range(1, min(100, len(embeddings)))
+        k_range = range(1, min(200, len(embeddings)))
         
         normalized_embeddings = normalize(embeddings, norm="l2")
         dim_90, dim_95 = await self.find_optimal_k(normalized_embeddings)
@@ -729,6 +724,11 @@ Be precise, logical, and abstraction-focused.
             return cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain 
         
         mas_json, flow_json = self.utils.read_mas_flow_json_from_directory(workflow_path)
+        
+        # print(len(mas_json))
+        # print(len(flow_json))
+        
+        # return None, None, None, None, None, None
     
         subtasks = {
             'objective': [],
@@ -839,7 +839,6 @@ Be precise, logical, and abstraction-focused.
         print("Set length: ", len(mas_set))
         print("Len Clusters: ", len(subtasks['clusters']))
         print("Len Dependencies: ", len(subtasks['dependencies']))
-        # return None, None, None, None, None, None
 
         for idx, cluster_id in enumerate(subtasks['clusters']):
             if str(cluster_id) not in self.abstracted_tasks:
@@ -981,7 +980,8 @@ Be precise, logical, and abstraction-focused.
             for idx, subtask_id in enumerate(mas_chain[0]):
                 merged_chain.append(str(subtask_id))
                 if subtask_id.startswith("start") or subtask_id.startswith("end") or not subtask_id.isdigit():
-                    merged_workflow.append(flow_desc[subtask_id])
+                    if subtask_id in flow_desc:
+                        merged_workflow.append(flow_desc[subtask_id])
                     continue
                 merged_workflow.append({
                     "subtask_id": f"subtask_{cnt_idx}",
@@ -1107,6 +1107,8 @@ Return your result in valid JSON format with the following structure:
         return merged_workflow['merged_workflow'], merged_workflow['merged_chain'] 
             
     async def clustering_workflow(self, workflow_path, cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain):
+        print("============ Structure-level abstraction ==============")
+        
         abstract_workflow_description = []
         results = {}
         visited = set()
@@ -1151,8 +1153,11 @@ Return your result in valid JSON format with the following structure:
             sub_mas_chain.append(list(key))
             for match in val:
                 sub_mas_chain.append(match)
-                
             print(sub_mas_chain)
+            if os.path.exists(f'{workflow_path}/abstracted_workflow/abstracted_workflow_desc_{mas_idx}.json'):
+                idx += 1
+                mas_idx += 1
+                continue
             merged_workflow, merged_chain = await self.merge_each_group(cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, sub_mas_chain)
             merged_workflow_chains.append(merged_chain)
             print("Merged chain: ", merged_chain)
@@ -1234,30 +1239,44 @@ Return your result in valid JSON format with the following structure:
                 'code_path': f'{workflow_path}/abstracted_workflow/abstracted_workflow_{mas_idx}.json',
                 'chain': merged_chain
             })
-            with open(f'{workflow_path}/abstracted_workflow/abstract_workflow_description.json', 'w', encoding='utf-8') as f:
+            with open(f'{workflow_path}/abstracted_workflow/abstract_workflow_description2.json', 'w', encoding='utf-8') as f:
                 json.dump(abstract_workflow_description, f, ensure_ascii=False, indent=4)
                 
             with open(f'{workflow_path}/abstracted_workflow/abstracted_workflow_desc_{mas_idx}.json', 'w', encoding='utf-8') as f:
                 json.dump(abstract_subtask_list, f, ensure_ascii=False, indent=4)
                 
-            with open(f'{workflow_path}/abstracted_workflow/workflow_chains.json', 'w', encoding='utf-8') as f:
+            with open(f'{workflow_path}/abstracted_workflow/workflow_chains2.json', 'w', encoding='utf-8') as f:
                 json.dump(merged_workflow_chains, f, ensure_ascii=False, indent=4)
             
             mas_idx += 1
             # break
+            
+    async def extract_subtask(self, query: str, mas: str):
+        subtasks, flow = await self.analyze(query, mas)
+        
+        return subtasks, flow
+    
+    async def abstract_subtask(self, query, subtasks):
+        abstracted_subtasks = await self.abstract_task_decomposition(query, subtasks)
+        
+        for idx, subtask in enumerate(subtasks):
+            abstracted_subtask = abstracted_subtasks[idx]
+            if subtask['subtask_id'] == abstracted_subtask['subtask_id']:
+                subtasks[idx]['abstracted_objective'] = abstracted_subtask['abstracted_objective']
+                subtasks[idx]['subtask_name'] = abstracted_subtask['subtask_name']
+                
+        return subtasks
 
     async def __call__(self,  query: str, mas: str):
         subtasks, flow = await self.analyze(query, mas)
         
-        # subtasks = [{'subtask_id': 'subtask_1', 'objective': "Calculate Aya's walking speed s based on the information that when she walks at s km/h, the walk takes 4 hours including t minutes spent in the coffee shop.", 'supporting_info': 'Aya walks 9 kilometers at speed s, taking a total of 4 hours, which includes t minutes spent in the coffee shop.', 'agent_collaboration': 'CoT', 'dependencies': []}, {'subtask_id': 'subtask_2', 'objective': 'Determine the time spent in the coffee shop t using the information that when she walks at s+2 km/h, the walk takes 2 hours and 24 minutes including t minutes in the coffee shop.', 'supporting_info': 'The output from Sub-task 1 provides the value of s, which is necessary to calculate t. The total time for the walk at s+2 km/h is 2 hours and 24 minutes.', 'agent_collaboration': 'SC_CoT', 'dependencies': ['subtask_1']}, {'subtask_id': 'subtask_3', 'objective': 'Calculate the time it takes for Aya to walk 9 km at s+1/2 km/h, including the t minutes spent in the coffee shop.', 'supporting_info': 'The outputs from Sub-task 1 and Sub-task 2 provide the values of s and t, which are necessary to calculate the total time for the walk at the adjusted speed.', 'agent_collaboration': 'Reflexion', 'dependencies': ['subtask_1', 'subtask_2']}]
+        abstracted_subtasks = await self.abstract_task_decomposition(query, subtasks)
         
-        # abstracted_subtasks = await self.abstract_task_decomposition(query, subtasks)
-        
-        # for idx, subtask in enumerate(subtasks):
-        #     abstracted_subtask = abstracted_subtasks[idx]
-        #     if subtask['subtask_id'] == abstracted_subtask['subtask_id']:
-        #         subtasks[idx]['abstracted_objective'] = abstracted_subtask['abstracted_objective']
-        #         subtasks[idx]['subtask_name'] = abstracted_subtask['subtask_name']
+        for idx, subtask in enumerate(subtasks):
+            abstracted_subtask = abstracted_subtasks[idx]
+            if subtask['subtask_id'] == abstracted_subtask['subtask_id']:
+                subtasks[idx]['abstracted_objective'] = abstracted_subtask['abstracted_objective']
+                subtasks[idx]['subtask_name'] = abstracted_subtask['subtask_name']
         
         return subtasks, flow
         
@@ -1269,10 +1288,10 @@ async def main():
     available_workflow = []
     
     source_list = {
+        'drop': 'aflow_DROP.json',
         'aime24': 'mas_zero_aime24.json',
         'gpqa-diamond': 'mas_zero_gpqa_diamond.json',
         'gsm8k': 'aflow_GSM8K.json',
-        'drop': 'aflow_DROP.json',
         'hotpotqa': 'aflow_HotpotQA.json'
     }
     
@@ -1295,31 +1314,62 @@ async def main():
                 continue 
             print(f"Workflow {idx}")
             
-            if idx != 14:
+            if idx == 17 and source_name == 'gsm8k':
                 continue
             
-            subtask_list, flow = await abstractor(mas['problem'], mas['code'])
+            if idx == 0 and source_name == 'drop':
+                continue
+            
+            subtask_list, flow = await abstractor.extract_subtask(mas['problem'], mas['code'])
     
             with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/mas/mas_{idx}.json", "w", encoding="utf-8") as f:
                 json.dump(subtask_list, f, ensure_ascii=False, indent=4)
                 
             with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/flow/flow_{idx}.json", "w", encoding="utf-8") as f:
                 json.dump(flow, f, ensure_ascii=False, indent=4)
-    
-    # workflow_path = [
-    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v3_test',
-    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-drop_v3_test',
-    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3_test',
-    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3_test',
-    #     'workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3_test'
-    # ]
+                
+        for idx, mas in enumerate(mas_zero_workflow):
+            print(f"Workflow {idx}")
             
-    # cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list(workflow_path, "merged_workflow_analysis_v3_test")
-    # # await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3")
-    # cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
-    # cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
-    # cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
-    # await abstractor.clustering_workflow("merged_workflow_analysis_v3_test", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
+            if idx == 17 and source_name == 'gsm8k':
+                continue
+            
+            if idx == 0 and source_name == 'drop':
+                continue
+            
+            with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/mas/mas_{idx}.json", 'r', encoding='utf-8') as f:
+                subtask_list = json.load(f)
+                
+            if 'abstracted_objective' in subtask_list[0]:
+                continue
+            
+            print(f"Read subtasks list from [{source_name}] benchmark, example_id: {idx}\n")
+            
+            subtask_list = await abstractor.abstract_subtask(mas['problem'], subtask_list)
+    
+            with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/mas/mas_{idx}.json", "w", encoding="utf-8") as f:
+                json.dump(subtask_list, f, ensure_ascii=False, indent=4)
+                
+        with open(f"merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-{source_name}_v3_test/subtask_names.txt", "w", encoding="utf-8") as f:
+            for item in abstractor.subtask_names_set:
+                f.write(str(item) + "\n")
+        
+        # break
+    
+    workflow_path = [
+        'merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-aime24_v3_test',
+        'merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-drop_v3_test',
+        'merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3_test',
+        'merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-gsm8k_v3_test',
+        'merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3_test'
+    ]
+            
+    cluster_to_subtask, subtask_to_cluster, kmeans, pca, abstracted_subtasks_list, mas_chain = await abstractor.clustering_subtasks_list(workflow_path, "merged_mas")
+    # await abstractor.clustering_subtasks_list("workflow_analysis-gpt-4o-mini-o4-mini_v8-hotpotqa_v3")
+    cluster_to_agent_collaboration = {str(idx): subtask.agent_collaboration for idx, subtask in enumerate(abstracted_subtasks_list)}
+    cluster_to_subtask_name = {str(idx): subtask.name for idx, subtask in enumerate(abstracted_subtasks_list)}
+    cluster_to_dependencies = {str(idx): subtask.dependencies for idx, subtask in enumerate(abstracted_subtasks_list)}
+    await abstractor.clustering_workflow("merged_mas", cluster_to_subtask, cluster_to_agent_collaboration, cluster_to_subtask_name, cluster_to_dependencies, mas_chain)
     
 if __name__ == "__main__":
     model_sampler_map = {

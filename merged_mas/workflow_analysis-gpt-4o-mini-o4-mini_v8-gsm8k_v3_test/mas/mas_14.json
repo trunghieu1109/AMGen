@@ -1,27 +1,33 @@
 [
     {
         "subtask_id": "subtask_1",
-        "objective": "Generate a single candidate solution to the math problem using a custom solver with step-by-step reasoning.",
-        "supporting_info": "Input math problem as a string; uses a predefined math solving prompt to guide reasoning.",
-        "agent_collaboration": "CoT",
-        "dependencies": []
+        "objective": "Generate a candidate solution for the given math problem using a custom solver with a specific math-solving prompt.",
+        "supporting_info": "Input problem statement and a predefined math-solving prompt to guide the custom solver.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of operations on provided input to produce a provisional output.",
+        "subtask_name": "construct_intermediate_steps"
     },
     {
         "subtask_id": "subtask_2",
-        "objective": "Aggregate multiple candidate solutions to select the most consistent and reliable final solution for the math problem.",
-        "supporting_info": "Input is the set of candidate solutions generated independently from the problem; no additional inputs required.",
+        "objective": "Aggregate multiple candidate solutions into a final consensus solution using a self-consistency ensemble method.",
+        "supporting_info": "A list of candidate solutions generated from multiple iterations of the custom solver and the original problem statement.",
         "agent_collaboration": "Aggregate",
         "dependencies": [
             "subtask_1"
-        ]
+        ],
+        "abstracted_objective": "Combine multiple provisional outputs into a consolidated result that meets defined evaluation criteria.",
+        "subtask_name": "refine_output"
     },
     {
         "subtask_id": "subtask_3",
-        "objective": "Review the aggregated final solution for correctness and provide feedback or improvements using a Programmer agent.",
-        "supporting_info": "Input is the original math problem and the aggregated solution; requires ability to analyze and potentially improve the solution.",
+        "objective": "Review the aggregated final solution for correctness and quality using a Programmer agent to analyze and potentially improve the solution.",
+        "supporting_info": "The original problem statement and the aggregated final solution to be reviewed.",
         "agent_collaboration": "Programmer",
         "dependencies": [
             "subtask_2"
-        ]
+        ],
+        "abstracted_objective": "Assess a consolidated result against specified correctness conditions and produce a validation outcome.",
+        "subtask_name": "validate_result"
     }
 ]

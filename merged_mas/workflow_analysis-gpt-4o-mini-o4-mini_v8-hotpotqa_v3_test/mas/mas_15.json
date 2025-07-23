@@ -1,45 +1,55 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate an initial answer to the problem through step-by-step reasoning.",
-    "supporting_info": "Input problem statement requiring an answer; no prior solutions are used in this subtask.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple candidate answers to select the most consistent and best solution.",
-    "supporting_info": "A set of initial answers generated independently for the same problem.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Fact-check the best aggregated answer against the original problem to ensure accuracy.",
-    "supporting_info": "The original problem and the best answer selected from aggregation.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Perform an additional verification of the fact-checked answer to further ensure correctness.",
-    "supporting_info": "The original problem and the fact-checked answer.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_3"
-    ]
-  },
-  {
-    "subtask_id": "subtask_5",
-    "objective": "Refine and format the double-verified answer into the final response format.",
-    "supporting_info": "The original problem and the double-verified answer from the previous verification step.",
-    "agent_collaboration": "AnswerGenerate",
-    "dependencies": [
-      "subtask_4"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate an initial answer to the problem through step-by-step reasoning.",
+        "supporting_info": "Input problem statement requiring an answer; no prior solutions are used in this subtask.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of logical operations on input to produce an initial provisional solution with documented reasoning.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple candidate answers to select the most consistent and best solution.",
+        "supporting_info": "A set of initial answers generated independently for the same problem.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Integrate multiple provisional solutions into a consolidated output by evaluating their consistency and selecting the most coherent solution.",
+        "subtask_name": "aggregate_inputs"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Fact-check the best aggregated answer against the original problem to ensure accuracy.",
+        "supporting_info": "The original problem and the best answer selected from aggregation.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Assess the selected solution against the input criteria to confirm its accuracy and consistency.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Perform an additional verification of the fact-checked answer to further ensure correctness.",
+        "supporting_info": "The original problem and the fact-checked answer.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Apply an additional verification procedure on the refined solution to further ensure correctness against defined standards.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Refine and format the double-verified answer into the final response format.",
+        "supporting_info": "The original problem and the double-verified answer from the previous verification step.",
+        "agent_collaboration": "AnswerGenerate",
+        "dependencies": [
+            "subtask_4"
+        ],
+        "abstracted_objective": "Apply presentation and formatting rules to convert the double-verified solution into the required final output structure.",
+        "subtask_name": "format_output"
+    }
 ]

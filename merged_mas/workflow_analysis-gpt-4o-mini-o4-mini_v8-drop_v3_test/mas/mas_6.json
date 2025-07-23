@@ -1,27 +1,33 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate a step-by-step solution for the given problem using chain-of-thought reasoning.",
-    "supporting_info": "Input problem statement requiring a detailed reasoning process to produce an initial solution with intermediate thoughts and a preliminary answer.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Refine the initially generated step-by-step solution and initial answer to improve accuracy and clarity based on a custom refinement prompt.",
-    "supporting_info": "The initial step-by-step solution and answer generated in subtask_1, along with a predefined refinement instruction prompt.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Aggregate multiple refined solutions to select the most consistent and accurate final answer.",
-    "supporting_info": "A collection of refined solutions produced by repeated generation and refinement cycles.",
-    "agent_collaboration": "Aggregate",
-    "dependencies": [
-      "subtask_2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate a step-by-step solution for the given problem using chain-of-thought reasoning.",
+        "supporting_info": "Input problem statement requiring a detailed reasoning process to produce an initial solution with intermediate thoughts and a preliminary answer.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Produce a structured sequence of intermediate operations leading to an initial result based on given inputs.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Refine the initially generated step-by-step solution and initial answer to improve accuracy and clarity based on a custom refinement prompt.",
+        "supporting_info": "The initial step-by-step solution and answer generated in subtask_1, along with a predefined refinement instruction prompt.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Enhance an existing result by applying defined improvement criteria to increase its clarity and accuracy.",
+        "subtask_name": "refine_output"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Aggregate multiple refined solutions to select the most consistent and accurate final answer.",
+        "supporting_info": "A collection of refined solutions produced by repeated generation and refinement cycles.",
+        "agent_collaboration": "Aggregate",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Integrate multiple result variations to identify the most consistent and suitable final output.",
+        "subtask_name": "select_optimal_candidate"
+    }
 ]

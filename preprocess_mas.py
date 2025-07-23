@@ -26,4 +26,4 @@ def clean_json_files(folder_path):
                 print(f"❌ Failed to process {filename}: {e}")
 
 # Ví dụ sử dụng
-clean_json_files("merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v3_test/mas")
+clean_json_files("merged_mas/workflow_analysis-gpt-4o-mini-o4-mini_v8-drop_v3_test/mas")

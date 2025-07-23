@@ -1,27 +1,33 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Determine the mass of the nucleus X (Li with 3 neutrons) by calculating its atomic mass.",
-    "supporting_info": "The atomic mass of Lithium (Li) with 3 neutrons needs to be known or calculated based on standard atomic mass values.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Calculate the relativistic energy of the nucleus X at 0.96c using the relativistic energy-momentum relation.",
-    "supporting_info": "The mass obtained from subtask 1 is required to compute the relativistic energy using the formula E = γmc², where γ is the Lorentz factor for the speed 0.96c.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Compare the calculated energy with the given choices and select the closest match with a precision of 1e-4.",
-    "supporting_info": "The calculated energy from subtask 2 and the provided choices (A, B, C, D) are needed to determine the closest match.",
-    "agent_collaboration": "Reflexion",
-    "dependencies": [
-      "subtask_2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Determine the mass of the nucleus X (Li with 3 neutrons) by calculating its atomic mass.",
+        "supporting_info": "The atomic mass of Lithium (Li) with 3 neutrons needs to be known or calculated based on standard atomic mass values.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Compute a base attribute measure for an entity using known reference values.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Calculate the relativistic energy of the nucleus X at 0.96c using the relativistic energy-momentum relation.",
+        "supporting_info": "The mass obtained from subtask 1 is required to compute the relativistic energy using the formula E = γmc², where γ is the Lorentz factor for the speed 0.96c.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Apply a defined transformation process to an input measure to calculate a derived measure.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Compare the calculated energy with the given choices and select the closest match with a precision of 1e-4.",
+        "supporting_info": "The calculated energy from subtask 2 and the provided choices (A, B, C, D) are needed to determine the closest match.",
+        "agent_collaboration": "Reflexion",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "From a set of candidate values, select the one whose difference from a target value falls within a specified tolerance and is minimal.",
+        "subtask_name": "select_optimal_candidate"
+    }
 ]

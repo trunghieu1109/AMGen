@@ -1,0 +1,85 @@
+async def forward_21(self, taskInfo):
+    logs = []
+
+    cot_instruction_0_1 = (
+        "Sub-task 1: Identify and summarize the properties of the regular dodecagon, including vertices, sides, and diagonals relevant to rectangle formation. "
+        "Input: taskInfo containing the problem query and detailed analysis."
+    )
+    cot_agent_desc_0_1 = {
+        "instruction": cot_instruction_0_1,
+        "input": [taskInfo],
+        "temperature": 0.0,
+        "context_desc": ["user query"]
+    }
+    results_0_1, log_0_1 = await self.cot(
+        subtask_id="stage_0.subtask_1",
+        cot_agent_desc=cot_agent_desc_0_1
+    )
+    logs.append(log_0_1)
+
+    cot_instruction_0_2 = (
+        "Sub-task 2: Extract and clarify constraints on rectangles, such as side alignment with polygon sides or diagonals and vertex/intersection point conditions. "
+        "Input: taskInfo and outputs (thinking and answer) from stage_0.subtask_1."
+    )
+    cot_agent_desc_0_2 = {
+        "instruction": cot_instruction_0_2,
+        "input": [taskInfo, results_0_1['thinking'], results_0_1['answer']],
+        "temperature": 0.0,
+        "context_desc": ["user query", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1"]
+    }
+    results_0_2, log_0_2 = await self.cot(
+        subtask_id="stage_0.subtask_2",
+        cot_agent_desc=cot_agent_desc_0_2
+    )
+    logs.append(log_0_2)
+
+    cot_instruction_1_1 = (
+        "Sub-task 1: Enumerate possible line segments (sides and diagonals) and their intersections to form candidate rectangle edges. "
+        "Input: taskInfo and outputs (thinking and answer) from stage_0.subtask_2."
+    )
+    cot_agent_desc_1_1 = {
+        "instruction": cot_instruction_1_1,
+        "input": [taskInfo, results_0_2['thinking'], results_0_2['answer']],
+        "temperature": 0.0,
+        "context_desc": ["user query", "thinking of stage_0.subtask_2", "answer of stage_0.subtask_2"]
+    }
+    results_1_1, log_1_1 = await self.cot(
+        subtask_id="stage_1.subtask_1",
+        cot_agent_desc=cot_agent_desc_1_1
+    )
+    logs.append(log_1_1)
+
+    cot_instruction_1_2 = (
+        "Sub-task 2: Analyze geometric relationships to identify sets of four segments that can form rectangles with right angles and parallel opposite sides. "
+        "Input: taskInfo and outputs (thinking and answer) from stage_1.subtask_1."
+    )
+    cot_agent_desc_1_2 = {
+        "instruction": cot_instruction_1_2,
+        "input": [taskInfo, results_1_1['thinking'], results_1_1['answer']],
+        "temperature": 0.0,
+        "context_desc": ["user query", "thinking of stage_1.subtask_1", "answer of stage_1.subtask_1"]
+    }
+    results_1_2, log_1_2 = await self.cot(
+        subtask_id="stage_1.subtask_2",
+        cot_agent_desc=cot_agent_desc_1_2
+    )
+    logs.append(log_1_2)
+
+    cot_instruction_2_1 = (
+        "Sub-task 1: Evaluate candidate rectangles against all constraints and count the total number of valid rectangles formed inside the dodecagon. "
+        "Input: taskInfo and outputs (thinking and answer) from stage_0.subtask_2 and stage_1.subtask_2."
+    )
+    cot_agent_desc_2_1 = {
+        "instruction": cot_instruction_2_1,
+        "input": [taskInfo, results_0_2['thinking'], results_0_2['answer'], results_1_2['thinking'], results_1_2['answer']],
+        "temperature": 0.0,
+        "context_desc": ["user query", "thinking of stage_0.subtask_2", "answer of stage_0.subtask_2", "thinking of stage_1.subtask_2", "answer of stage_1.subtask_2"]
+    }
+    results_2_1, log_2_1 = await self.cot(
+        subtask_id="stage_2.subtask_1",
+        cot_agent_desc=cot_agent_desc_2_1
+    )
+    logs.append(log_2_1)
+
+    final_answer = await self.make_final_answer(results_2_1['thinking'], results_2_1['answer'])
+    return final_answer, logs

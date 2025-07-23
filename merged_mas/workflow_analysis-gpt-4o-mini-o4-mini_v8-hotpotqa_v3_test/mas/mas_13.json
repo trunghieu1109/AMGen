@@ -1,63 +1,77 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Generate an initial answer to the problem with a step-by-step reasoning process, producing both the thought process and the answer.",
-    "supporting_info": "Input problem statement requiring an answer; ability to perform chain-of-thought reasoning to produce intermediate thoughts and a final answer.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Combine multiple independently generated candidate answers to select the most consistent and best solution.",
-    "supporting_info": "A set of multiple candidate answers generated from the same problem; no prior solutions used as input, only the problem statement.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3",
-    "objective": "Perform fact-checking on the best answer by verifying its correctness against the original problem.",
-    "supporting_info": "The original problem and the best answer selected from aggregation; a fact-checking prompt or instruction to guide verification.",
-    "agent_collaboration": "Review",
-    "dependencies": [
-      "subtask_2"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Check and improve the style of the fact-checked answer to ensure clarity and appropriateness.",
-    "supporting_info": "The original problem and the fact-checked answer; a style-checking prompt or instruction to guide stylistic improvements.",
-    "agent_collaboration": "Review",
-    "dependencies": [
-      "subtask_3"
-    ]
-  },
-  {
-    "subtask_id": "subtask_5",
-    "objective": "Perform additional verification on the style-checked answer to further ensure its accuracy and reliability.",
-    "supporting_info": "The original problem and the style-checked answer; an additional verification prompt or instruction.",
-    "agent_collaboration": "Review",
-    "dependencies": [
-      "subtask_4"
-    ]
-  },
-  {
-    "subtask_id": "subtask_6",
-    "objective": "Conduct numerical verification on the additionally verified answer to confirm any quantitative or numeric details.",
-    "supporting_info": "The original problem and the additionally verified answer; a numerical verification prompt or instruction.",
-    "agent_collaboration": "Review",
-    "dependencies": [
-      "subtask_5"
-    ]
-  },
-  {
-    "subtask_id": "subtask_7",
-    "objective": "Refine and format the final verified answer to meet the required output format and presentation standards.",
-    "supporting_info": "The original problem and the numerically verified answer; a formatting prompt or instruction to produce the final output.",
-    "agent_collaboration": "SpecificFormat",
-    "dependencies": [
-      "subtask_6"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Generate an initial answer to the problem with a step-by-step reasoning process, producing both the thought process and the answer.",
+        "supporting_info": "Input problem statement requiring an answer; ability to perform chain-of-thought reasoning to produce intermediate thoughts and a final answer.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Perform a structured sequence of logical operations on provided input to produce an initial provisional result along with documented reasoning.",
+        "subtask_name": "construct_intermediate_steps"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Combine multiple independently generated candidate answers to select the most consistent and best solution.",
+        "supporting_info": "A set of multiple candidate answers generated from the same problem; no prior solutions used as input, only the problem statement.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Integrate multiple provisional inputs into a consolidated output by assessing their coherence and selecting the most consistent solution.",
+        "subtask_name": "aggregate_inputs"
+    },
+    {
+        "subtask_id": "subtask_3",
+        "objective": "Perform fact-checking on the best answer by verifying its correctness against the original problem.",
+        "supporting_info": "The original problem and the best answer selected from aggregation; a fact-checking prompt or instruction to guide verification.",
+        "agent_collaboration": "Review",
+        "dependencies": [
+            "subtask_2"
+        ],
+        "abstracted_objective": "Apply a verification procedure to assess a selected result against predefined correctness criteria.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Check and improve the style of the fact-checked answer to ensure clarity and appropriateness.",
+        "supporting_info": "The original problem and the fact-checked answer; a style-checking prompt or instruction to guide stylistic improvements.",
+        "agent_collaboration": "Review",
+        "dependencies": [
+            "subtask_3"
+        ],
+        "abstracted_objective": "Enhance the clarity and adherence to presentation guidelines of a verified result.",
+        "subtask_name": "refine_output"
+    },
+    {
+        "subtask_id": "subtask_5",
+        "objective": "Perform additional verification on the style-checked answer to further ensure its accuracy and reliability.",
+        "supporting_info": "The original problem and the style-checked answer; an additional verification prompt or instruction.",
+        "agent_collaboration": "Review",
+        "dependencies": [
+            "subtask_4"
+        ],
+        "abstracted_objective": "Apply a secondary verification to confirm the reliability of a refined result against defined criteria.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_6",
+        "objective": "Conduct numerical verification on the additionally verified answer to confirm any quantitative or numeric details.",
+        "supporting_info": "The original problem and the additionally verified answer; a numerical verification prompt or instruction.",
+        "agent_collaboration": "Review",
+        "dependencies": [
+            "subtask_5"
+        ],
+        "abstracted_objective": "Apply a verification procedure to confirm any quantitative details within the refined result.",
+        "subtask_name": "validate_result"
+    },
+    {
+        "subtask_id": "subtask_7",
+        "objective": "Refine and format the final verified answer to meet the required output format and presentation standards.",
+        "supporting_info": "The original problem and the numerically verified answer; a formatting prompt or instruction to produce the final output.",
+        "agent_collaboration": "SpecificFormat",
+        "dependencies": [
+            "subtask_6"
+        ],
+        "abstracted_objective": "Apply formatting rules to transform a verified result into the specified final presentation structure.",
+        "subtask_name": "format_output"
+    }
 ]

@@ -1,46 +1,56 @@
 [
-  {
-    "subtask_id": "subtask_1",
-    "objective": "Calculate the relativistic gamma factor (γ) for the particle X^0 using its energy (27 GeV) and mass (3.41 GeV).",
-    "supporting_info": "The energy of the particle is 27 GeV and its mass is 3.41 GeV.",
-    "agent_collaboration": "CoT",
-    "dependencies": []
-  },
-  {
-    "subtask_id": "subtask_2",
-    "objective": "Calculate the dilated lifetime (τ) using the proper lifetime (8 × 10^{-16} s) and the output from subtask 1.",
-    "supporting_info": "The proper lifetime of X^0 is 8 × 10^{-16} s and the gamma factor calculated in subtask 1.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3.1",
-    "objective": "Calculate the speed of the particle X^0 assuming it travels close to the speed of light, based on the output from subtask 1.",
-    "supporting_info": "The gamma factor from subtask 1 is needed to calculate the speed.",
-    "agent_collaboration": "SC_CoT",
-    "dependencies": [
-      "subtask_1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_3.2",
-    "objective": "Calculate the minimum decay length (L_min) using the formula L_min = v * τ, based on the outputs from subtasks 2 and 3.1.",
-    "supporting_info": "The dilated lifetime from subtask 2 and the speed from subtask 3.1 are required for this calculation.",
-    "agent_collaboration": "CoT",
-    "dependencies": [
-      "subtask_2",
-      "subtask_3.1"
-    ]
-  },
-  {
-    "subtask_id": "subtask_4",
-    "objective": "Determine the correct choice among the given options based on the output from subtask 3.2.",
-    "supporting_info": "The minimum decay length calculated in subtask 3.2 is needed to evaluate the options provided.",
-    "agent_collaboration": "Debate",
-    "dependencies": [
-      "subtask_3.2"
-    ]
-  }
+    {
+        "subtask_id": "subtask_1",
+        "objective": "Calculate the relativistic gamma factor (γ) for the particle X^0 using its energy (27 GeV) and mass (3.41 GeV).",
+        "supporting_info": "The energy of the particle is 27 GeV and its mass is 3.41 GeV.",
+        "agent_collaboration": "CoT",
+        "dependencies": [],
+        "abstracted_objective": "Compute a scaling measure from two input values using a defined operation.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_2",
+        "objective": "Calculate the dilated lifetime (τ) using the proper lifetime (8 × 10^{-16} s) and the output from subtask 1.",
+        "supporting_info": "The proper lifetime of X^0 is 8 × 10^{-16} s and the gamma factor calculated in subtask 1.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Apply a previously computed scaling measure to a base input value to derive an adjusted measure.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_3.1",
+        "objective": "Calculate the speed of the particle X^0 assuming it travels close to the speed of light, based on the output from subtask 1.",
+        "supporting_info": "The gamma factor from subtask 1 is needed to calculate the speed.",
+        "agent_collaboration": "SC_CoT",
+        "dependencies": [
+            "subtask_1"
+        ],
+        "abstracted_objective": "Compute a transformed measure by applying a defined transformation combining a scaling factor and a reference input value.",
+        "subtask_name": "derive_values"
+    },
+    {
+        "subtask_id": "subtask_3.2",
+        "objective": "Calculate the minimum decay length (L_min) using the formula L_min = v * τ, based on the outputs from subtasks 2 and 3.1.",
+        "supporting_info": "The dilated lifetime from subtask 2 and the speed from subtask 3.1 are required for this calculation.",
+        "agent_collaboration": "CoT",
+        "dependencies": [
+            "subtask_2",
+            "subtask_3.1"
+        ],
+        "abstracted_objective": "Combine two numerical values through a defined arithmetic operation to compute a composite measure.",
+        "subtask_name": "aggregate_inputs"
+    },
+    {
+        "subtask_id": "subtask_4",
+        "objective": "Determine the correct choice among the given options based on the output from subtask 3.2.",
+        "supporting_info": "The minimum decay length calculated in subtask 3.2 is needed to evaluate the options provided.",
+        "agent_collaboration": "Debate",
+        "dependencies": [
+            "subtask_3.2"
+        ],
+        "abstracted_objective": "Evaluate a set of candidate options against a computed reference measure and select the option that best aligns.",
+        "subtask_name": "select_optimal_candidate"
+    }
 ]
