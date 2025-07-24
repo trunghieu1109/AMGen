@@ -11,6 +11,7 @@ import re
 
 Example = namedtuple('Example', ['question', 'choice1', 'choice2', 'choice3', 'choice4', 'correct_index'])
 ExampleDrop = namedtuple('ExampleDrop', ['question', 'answer'])
+ExampleCodeGen = namedtuple('ExampleCodeGen', ['prompt', 'entrypoint', 'test', 'test_imports', 'test_list'])
 
 LANG_TO_INSTRUCTIONS = {
     "en": """Solve this math problem.
@@ -199,3 +200,15 @@ def load_questions_hotpotqa(path: str, seed: int) -> List[ExampleDrop]: #TODO: m
         return example_drop
 
     return [compose_data(row) for _, row in question_df.iterrows()]
+
+def load_questions_mbpp(path: str, seed: int) -> List[ExampleCodeGen]: #TODO: make answer
+    """Load questions from csv file and return a list of ExampleCodeGen namedtuples."""
+    question_df = pd.read_csv(path)
+    random.seed(seed)
+
+    def compose_data(row) -> ExampleCodeGen:
+        example_drop = ExampleCodeGen(prompt=row.prompt, entrypoint=row.entry_point, test=row.test, test_imports=row.test_imports, test_list=row.test_list)
+        return example_drop
+
+    return [compose_data(row) for _, row in question_df.iterrows()]
+

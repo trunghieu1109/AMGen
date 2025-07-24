@@ -18,4 +18,4 @@ def jsonl_to_csv(jsonl_file, csv_file):
             writer.writerow(entry)
 
 # Example usage
-jsonl_to_csv('data/hotpotqa_validate.jsonl', 'dataset/hotpotqa_validate.csv')
+jsonl_to_csv('data/mbpp_validate.jsonl', 'dataset/mbpp_validate.csv')

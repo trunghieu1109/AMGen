@@ -33,7 +33,7 @@ from shared_vars import set_global, get_global
 from pathlib import Path
 import asyncio
 
-Info = namedtuple('Info', ['name', 'author', 'content', 'prompt', 'sub_tasks', 'agents', 'iteration_idx'])
+Info = namedtuple('Info', ['name', 'author', 'content', 'prompt', 'sub_tasks', 'agents', 'iteration_idx', 'test', 'entrypoint'])
 
 ROLE_DESC = lambda role: f"You are a {role}."
 SYSTEM_MSG = ""
@@ -90,32 +90,32 @@ class LLMAgentBase():
         prev_extracted_question = ''
         for input_info in input_infos:
             if isinstance(input_info, Info):
-                (field_name, author, content, prompt, _, _, iteration_idx) = input_info
+                (field_name, author, content, prompt, _, _, iteration_idx, _, _) = input_info
             else:
                 continue
             if author == await self.__repr__():
                 author += ' (yourself)'
             if field_name == 'task':
                 if is_sub_task: 
-                    input_infos_text += f' Related original question:\n\n{content}.These are just pieces of information related to the question. You are not required to answer the question — just follow what is defined in the instruction: {instruction}.   \n\nRelated sub-task questions and answers:\n\n'
+                    input_infos_text += f' Related original question:\n\n{content}\n\nThese are just pieces of information related to the question. You are not required to answer the question — just follow what is defined in the instruction: {instruction}.   \n\nThese are many questions and answers that implemented before current subtasks:\n\n'
                 else:
                     input_infos_text += f'{content}\n\n'
             elif iteration_idx != -1:
                 if is_sub_task and prompt is not None: 
                     extracted_question =  await self.extract_pattern(prompt)
                     if extracted_question != prev_extracted_question:
-                        input_infos_text += f'### {extracted_question} \n\n ### {field_name} #{iteration_idx + 1} by {author}:\n{content}\n\n'
+                        input_infos_text += f'###Question: {extracted_question} \n\n ### {field_name} in interation: {iteration_idx + 1} by {author}:\n{content}\n\n'
                         prev_extracted_question = extracted_question
                     else:
-                        input_infos_text += f'### {field_name} #{iteration_idx + 1} by {author}:\n{content}\n\n'
+                        input_infos_text += f'###{field_name} in interation: {iteration_idx + 1} by {author}:\n{content}\n\n'
 
                 else:
-                    input_infos_text += f'### {field_name} #{iteration_idx + 1} by {author}:\n{content}\n\n'
+                    input_infos_text += f'###{field_name} in interation: {iteration_idx + 1} by {author}:\n{content}\n\n'
             else:
                 if is_sub_task and prompt is not None: 
                     extracted_question = await self.extract_pattern(prompt)
                     if extracted_question != prev_extracted_question:
-                        input_infos_text += f'### {extracted_question} \n\n ### {field_name} by {author}:\n{content}\n\n'
+                        input_infos_text += f'###Question: {extracted_question} \n\n ### {field_name} by {author}:\n{content}\n\n'
                         prev_extracted_question = extracted_question # we do not want to duplicate the prompt
                     else:
                         input_infos_text += f'### {field_name} by {author}:\n{content}\n\n'
@@ -126,10 +126,10 @@ class LLMAgentBase():
 
 
             if global_format_choice == 'json':
-                prompt = input_infos_text + f'''Given the above, answer the following question: {instruction} \n\n then justify completely and detailedly, step-by-step why you think so in the "thinking" entry. 
-                Consider all cases that are possible to happen.
-                Avoid some unclear explainations, such as "Using the circle equation or the condition for four points to be concyclic, we derive an equation in x. Solving this quadratic equation yields x=36.".
-                In default, return response in json format.
+                prompt = input_infos_text + f'''Given the above, answer the following question: {instruction}\n\n then justify completely and detailedly, step-by-step why you think so in the "thinking" entry. 
+Consider all cases that are possible to happen.
+Avoid some unclear explainations, such as "Using the circle equation or the condition for four points to be concyclic, we derive an equation in x. Solving this quadratic equation yields x=36.".
+In default, return response in json format.
                 '''
                 
             elif global_format_choice == 'xml':
@@ -155,6 +155,21 @@ class LLMAgentBase():
 
         else:
             prompt = input_infos_text + instruction
+            
+        with open("system_prompt.txt", "a+", encoding="utf-8") as f:
+        
+            phase = "system prompt"
+            content = system_prompt
+            f.write(f"\n============== {phase} ================\n")
+            f.write(str(content))
+            
+        with open("prompt1.txt", "a+", encoding="utf-8") as f:
+        
+            phase = "user prompt"
+            content = prompt
+            f.write(f"\n============== {phase} ================\n")
+            f.write(str(content))
+            
         return system_prompt, prompt
 
     async def query(self, input_infos: list, instruction, iteration_idx=-1, is_sub_task=False) -> dict:
@@ -172,7 +187,7 @@ class LLMAgentBase():
         output_infos = []
         cnt = 0
         for key, value in response_json.items():
-            info = Info(key, await self.__repr__(), str(value), prompt, None, None, iteration_idx)
+            info = Info(key, await self.__repr__(), str(value), prompt, None, None, iteration_idx, None, None)
             output_infos.append(info)
             cnt += 1
             if cnt == len(self.output_fields):

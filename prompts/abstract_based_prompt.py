@@ -2,8 +2,8 @@ INTERACTION_PATTERN = """
 Sample agent iteraction pattern:
 Chain-of-Thought: 
 ```python
-    # Sub-task 1: Analyze first expression/data component with self-consistency
-    cot_instruction1 = "Sub-task 1: Consider/calculate all possible cases of [problem #1], with context ...."
+    # Stage 0, Sub-task 1: Analyze first expression/data component with self-consistency
+    cot_instruction1 = "Stage 0, Sub-task 1: Consider/calculate all possible cases of [problem #1], with context ...."
     cot_agent_desc = {{
         'instruction': cot_instruction1, 
         'input': [taskInfo], 
@@ -20,8 +20,8 @@ Chain-of-Thought:
 
 Self-Consistency Chain-of-Thought:
 ```python
-    cot_sc_instruction2 = "Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
-    final_decision_instruction2 = "Sub-task 2: Synthesize and choose the most consistent answer for [problem]." # must contain if use this pattern
+    cot_sc_instruction2 = "Stage 1, Sub-task 2: Based on the output from Sub-task 1, consider/calculate potential cases of [problem #2], with context ....."
+    final_decision_instruction2 = "Stage 1, Sub-task 2, Final Decision: Synthesize and choose the most consistent answer for [problem]." # must contain if use this pattern
     N = self.max_sc
     
     cot_sc_desc2 = {{
@@ -43,8 +43,8 @@ Self-Consistency Chain-of-Thought:
 
 Reflexion:
 ```python
-    cot_reflect_instruction3 = "Sub-task 3: Your problem is ... [problem]."
-    critic_instruction3 = ""Please review and provide the limitations of provided solutions of ....."  # must contain if use this pattern
+    cot_reflect_instruction3 = "Stage 0, Sub-task 3: Your problem is ... [problem]."
+    critic_instruction3 = "Stage 0, Sub-task 3, Criticism: Please review and provide the limitations of provided solutions of ....."  # must contain if use this pattern
     cot_reflect_desc3 = {{
         'instruction': cot_reflect_instruction3, 
         'critic_instruction': critic_instruction3,  # must contain if use this pattern
@@ -64,8 +64,8 @@ Reflexion:
 
 Debate:
 ```python
-    debate_instruction5 = "Sub-task 5: Your problem is .... [instruction]."
-    final_decision_instruction5 = "Sub-task 5: [problem]" # must contain if use this pattern
+    debate_instruction5 = "Stage 3, Sub-task 5: Your problem is .... [instruction]."
+    final_decision_instruction5 = "Stage 3, Sub-task 5, Final Decision: [problem]" # must contain if use this pattern
 
     debate_desc5 = {{
         "instruction": debate_instruction5,
@@ -85,7 +85,7 @@ Debate:
 ```
 AnswerGenerate
 ```python
-    cot_agent_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    cot_agent_instruction1 = "Stage 0, Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
     cot_agent_desc = {{
         'instruction': cot_agent_instruction1, 
         'input': [taskInfo], 
@@ -102,7 +102,7 @@ AnswerGenerate
 
 SpecificFormat
 ```python
-    formatter_instruction1 = "Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
+    formatter_instruction1 = "Stage 0, Sub-task 1: Analyze [expression #1], determining its behavior, range, and key characteristics with context from [taskInfo]"
     formatter_desc = {{
         'instruction': formatter_instruction1, 
         'input': [taskInfo], 
@@ -120,7 +120,7 @@ SpecificFormat
 
 AggregateAgent
 ```python
-    aggregate_instruction2 = "Sub-task 2: From solutions generated in Subtask 1, aggregate these solutions and return the consistent and the best solution for [subtask]"
+    aggregate_instruction2 = "Stage 1, Sub-task 2: From solutions generated in Subtask 1, aggregate these solutions and return the consistent and the best solution for [subtask]"
     aggregate_desc = {{
         'instruction': aggregate_instruction2, 
         'input': [taskInfo] + [(previous solutions that need to be aggregated)], 
@@ -137,7 +137,7 @@ AggregateAgent
 
 CodeGenerate
 ```python
-    code_generate_instruction1 = "Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
+    code_generate_instruction1 = "Stage 3, Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
     code_generate_desc1 = {{
         'instruction': code_generate_instruction1, 
         'input': [taskInfo], 
@@ -155,7 +155,7 @@ CodeGenerate
 
 ProgrammerAgent
 ```python
-    programmer_instruction1 = "Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
+    programmer_instruction1 = "Stage 4, Sub-task 1: Generate Python runnable code that addresses the following problem: [problem1]"
     programmer_desc1 = {{
         'instruction': programmer_instruction1, 
         'input': [taskInfo], 
@@ -173,7 +173,7 @@ ProgrammerAgent
 
 ReviseAgent
 ```python
-    revise_instruction2 = "Subtask 2: Revise previous solutions of problem: [problem 1]"
+    revise_instruction2 = "Stage 0, Subtask 2: Revise previous solutions of problem: [problem 1]"
     revise_desc2 = {{
         'instruction': revise_instruction2,
         'input': [taskInfo, results1['thinking'], results1['answer']],
@@ -191,7 +191,7 @@ ReviseAgent
 
 ReviewAgent
 ```python
-    review_instruction2 = "Subtask 2: Review previous solutions of problem: [problem 1]"
+    review_instruction2 = "Stage 3, Subtask 2: Review previous solutions of problem: [problem 1]"
     review_desc2 = {{
         'instruction': review_instruction2,
         'input': [taskInfo, results1['thinking'], results1['answer']],
@@ -222,9 +222,9 @@ async def forward(self, taskInfo):
     """
     # --------------------------------------------------------------------------------------------------------------
 
-    # Sub-task 1: Analyze first expression/data component with self-consistency
+    # Stage 1, Sub-task 1: Analyze first expression/data component with self-consistency
     cot_instruction1 = (
-        "Sub-task 1: Analyze [expression #1], determining its behavior, range, "
+        "Stage 1, Sub-task 1: Analyze [expression #1], determining its behavior, range, "
         "and key characteristics with context from [taskInfo]"
     )
     cot_agent_desc1 = {

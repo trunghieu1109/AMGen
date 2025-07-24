@@ -101,9 +101,9 @@ class AgentSystem():
             sub_tasks, agents = agents, sub_tasks
 
         if sub_tasks is None and agents is None:
-            final_answer = Info(name, author, f'{thinking.content}\n\nAnswer:{answer_content}', prompt, None, None, iteration_idx)
+            final_answer = Info(name, author, f'{thinking.content}\n\nAnswer:{answer_content}', prompt, None, None, iteration_idx, None, None)
         else:
-            final_answer = Info(name, author, f'{thinking.content}\n\nAnswer:{answer_content}', prompt, '\n<SEPERATOR>\n'.join(sub_tasks), '\n<SEPERATOR>\n'.join(agents), iteration_idx)
+            final_answer = Info(name, author, f'{thinking.content}\n\nAnswer:{answer_content}', prompt, '\n<SEPERATOR>\n'.join(sub_tasks), '\n<SEPERATOR>\n'.join(agents), iteration_idx, None, None)
         return final_answer
     
     async def cot(self, subtask_id, cot_agent_desc):
@@ -121,7 +121,7 @@ class AgentSystem():
             "answer": answer
         }
         
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'cot_agent': cot_agent,
@@ -145,7 +145,7 @@ class AgentSystem():
         
         for i in range(n_repeat):
             # Each CoT-SC agent tries to calculate all possible cases independently
-            thinking, answer = await cot_agents[i](cot_agent_desc.get('input', []), subtask_desc['instruction'], is_sub_task=True)
+            thinking, answer = await cot_agents[i](cot_agent_desc.get('input', []), subtask_desc['instruction'], iteration_idx=i, is_sub_task=True)
             list_thinking.append(thinking)
             list_answer.append(answer)
             
@@ -160,7 +160,7 @@ class AgentSystem():
             "answer": answer
         }
         
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'cot_agent': cot_agents,
@@ -198,14 +198,14 @@ class AgentSystem():
                 break
             
             cot_inputs.extend([thinking, answer, feedback])
-            thinking, answer = await cot_agent(cot_inputs, subtask_desc['instruction'], i + 1, is_sub_task=True)
+            thinking, answer = await cot_agent(cot_inputs, subtask_desc['instruction'], iteration_idx=i + 1, is_sub_task=True)
             
         subtask_desc['response'] = {
             # "thinking": thinking,
             "answer": answer
         }
         
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'cot_agent': cot_agent,
@@ -239,11 +239,11 @@ class AgentSystem():
                 # Each agent proposes its solution
                 if r == 0:
                     thinking, answer = await agent(debate_desc.get('input', []), 
-                                            subtask_desc['instruction'], r, is_sub_task=True)
+                                            subtask_desc['instruction'], iteration_idx=r, is_sub_task=True)
                 else:
                     # Generate next solution based on comments and counter-arguments from other debaters
                     input_infos = debate_desc.get('input', []) + all_thinking[r-1] + all_answer[r-1]
-                    thinking, answer = await agent(input_infos, subtask_desc['instruction'], r, is_sub_task=True)
+                    thinking, answer = await agent(input_infos, subtask_desc['instruction'], iteration_idx=r, is_sub_task=True)
                 
                 all_thinking[r].append(thinking)
                 all_answer[r].append(answer)
@@ -259,7 +259,7 @@ class AgentSystem():
             "answer": answer
         }
         
-        print(f"Subtask {subtask_id} answer: thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id} answer: thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'debate_agent': debate_agents,
@@ -282,7 +282,7 @@ class AgentSystem():
             # "thinking": thinking,
             "answer": answer
         }
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'cot_agent': cot_agent,
@@ -306,7 +306,7 @@ class AgentSystem():
             # "thinking": thinking,
             "answer": answer
         }
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'formatter_agent': formatter_agent,
@@ -331,7 +331,7 @@ class AgentSystem():
             # "thinking": thinking,
             "answer": answer
         }
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'aggregate_agent': aggregate_agent,
@@ -358,7 +358,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
             # "thinking": thinking,
             "code": code
         }
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}")
         print(f"Code: {str(code.content)}")
         
         return {
@@ -399,7 +399,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
                 logs['exec_result'] = "No code generated"
                 results['answer'].content = "No code generated"
                 results['answer'] = Info(results['answer'].name, results['answer'].author, "No code generated", results['answer'].prompt, results['answer'].sub_tasks, results['answer'].agents, results['answer'].iteration_idx)
-                print(f"Subtask {subtask_id}, generated code: {str(code)}, status: No code generated")
+                print(f"\n\nSubtask {subtask_id}, generated code: {str(code)}, status: No code generated")
                 
                 return {
                     "programmer_agent": results['code_generate_agent'], 
@@ -416,7 +416,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
                 logs['exec_status'] = status
                 logs['exec_result'] = output
                 results['answer'] = Info(results['answer'].name, results['answer'].author, output, results['answer'].prompt, results['answer'].sub_tasks, results['answer'].agents, results['answer'].iteration_idx)
-                print(f"Subtask {subtask_id}, generated code: {str(code)}, status: {str(status)}, output: {str(output)}")
+                print(f"\n\nSubtask {subtask_id}, generated code: {str(code)}, status: {str(status)}, output: {str(output)}")
                 
                 return {
                     "programmer_agent": results['code_generate_agent'], 
@@ -445,7 +445,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
             logs['exec_result'] = output
             results['answer'] = Info(results['answer'].name, results['answer'].author, output, results['answer'].prompt, results['answer'].sub_tasks, results['answer'].agents, results['answer'].iteration_idx)
 
-        print(f"Subtask {subtask_id}, generated code: {str(code)}, status: {str(status)}, output: {str(output)}")
+        print(f"\n\nSubtask {subtask_id}, generated code: {str(code)}, status: {str(status)}, output: {str(output)}")
 
         return {
             "programmer_agent": results['code_generate_agent'], 
@@ -472,7 +472,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
             "answer": answer
         }
         
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(answer.content)}")
         
         return {
             'review_agent': review_agent, 
@@ -496,7 +496,7 @@ Please ensure your code is efficient, well-commented, and follows Python best pr
             "revised_solution": revised_solution
         }
         
-        print(f"Subtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(revised_solution.content)}")
+        print(f"\n\nSubtask {subtask_id}, thinking: {str(thinking.content)}, answer: {str(revised_solution.content)}")
         
         return {
             'revise_agent': revise_agent,

@@ -7,13 +7,13 @@ import apply_abstract_workflow_v3
 import re
 import os
 import common
-from common import ANSWER_PATTERN, check_equality
+from common import ANSWER_PATTERN, check_equality, check_solution
 from sampler.chat_completion_sampler import ChatCompletionSampler
 from sampler.o_chat_completion_sampler import OChatCompletionSampler
 from sampler.together_completion_sampler import ChatCompletionSampler as ToChatCompletionSampler
 from sampler.vllm_completion_sampler import ChatCompletionSampler as VllmChatCompletionSampler
 import json
-from utils import load_questions, load_questions_drop, load_questions_gsm8k, load_questions_hotpotqa
+from utils import load_questions, load_questions_drop, load_questions_gsm8k, load_questions_hotpotqa, load_questions_mbpp
 from prompts.swe.patch_oracle import AGENTLESS_REPAIR
 from swe_utils import run_swebench_evaluation, sanity_check
 from utils import  extract_xml
@@ -153,12 +153,28 @@ class DataScorer:
         else:
             raise NotImplementedError
 
-    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, instance_id, code_snippet):
-
+    async def score(self, example_id, n, prompt_message, question, response_text, answer, sub_tasks_text, use_oracle_verifier, judge_path, instance_id, code_snippet, entrypoint="", test=""):
+        print(response_text)
         if 'swe_bench' in self.dataset:
             extracted_answer = response_text.split('\n\nAnswer:', 1)[-1].strip()
             if '<patch>' in extracted_answer:
-                extracted_answer = extract_xml(extracted_answer, 'patch').strip()   
+                extracted_answer = extract_xml(extracted_answer, 'patch').strip()  
+        elif 'mbpp' in self.dataset:
+            ret = check_solution(response_text, test, entrypoint)
+            test_case_details = ret[1]
+            score = 1.0 if ret[0] == "PASS" else 0.0
+            print("Test case details: ", test_case_details)
+                
+            html = common.jinja_env.from_string(HTML_JINJA).render(
+                prompt_messages=prompt_message,
+                next_message=dict(content=response_text, role="assistant"),
+                score=score,
+                correct_answer=answer,
+                extracted_answer="",
+            )
+            convo = prompt_message + [dict(content=response_text, role="assistant")]
+            results = SingleEvalResult(html=html, score=score, convo=convo)
+            return score, 0, results
         else:
             match = re.search(ANSWER_PATTERN, response_text)
             extracted_answer = match.group(1) if match else None    
@@ -331,7 +347,7 @@ async def run_main():
     
     # load abstract workflow
     abstract_mas_path = 'merged_mas'
-    save_file = "dev_31_refactored"
+    save_file = "dev_34_refactored"
     
     aw_desc_path = f'{abstract_mas_path}/abstracted_workflow/abstract_workflow_description.json'
     abstract_workflow = []
@@ -478,6 +494,30 @@ async def run_main():
         set_global("global_node_model", node_model)
         set_global("global_use_oracle_verifier", use_oracle_verifier)
         set_global("global_dataset", args.dataset)
+    elif 'mbpp' in args.dataset:
+        operator = ['CoT', 'Reflexion', 'Debate', 'CodeGenerate', 'Review', 'Revise']
+        specific_op_desc = {pattern: opeartor_desc[pattern] for pattern in operator}
+        
+        cot_instruction = "Please think step by step and then solve the task."
+        # output_description = "Return ONLY the alphabet choice, i.e. A or B or C or D."
+        output_description = "A valid Python return value produced by the function, consistent with the problem specification and input. The output may be of type int, float, bool, str, list, or other standard data structures, depending on the task. The format and semantics of the output must exactly satisfy the requirements described in the problem statement and pass the associated test cases."
+        # need to consider sub-task output as well (no fixed form for sub-tasks)
+        debate_role = ['Senior Software Engineering', 'Gold Prize Contestant of IOI / ICPC']
+        
+        questions = load_questions_mbpp('dataset/mbpp_validate.csv', seed=0)
+
+        examples = [{'problem': questions[i].prompt, 'entrypoint': questions[i].entrypoint, 'test': questions[i].test} for i in range(len(questions))]
+        examples = examples[:10]
+        # examples = [examples[0]]
+        set_global("global_output_description", output_description)
+        set_global("global_score_compute", data_scorer.score)
+        set_global("global_max_round", max_round)
+        set_global("global_max_sc", max_sc)
+        set_global("global_debate_role", debate_role)
+        set_global("global_cot_instruction", cot_instruction)
+        set_global("global_node_model", node_model)
+        set_global("global_use_oracle_verifier", use_oracle_verifier)
+        set_global("global_dataset", args.dataset)
     else:
         operator = ['CoT', 'SC_CoT', 'Reflexion', 'Debate', 'AnswerGenerate', 'SpecificFormat', 'AggregateAgent', 'Review', 'Revise']
         specific_op_desc = {pattern: opeartor_desc[pattern] for pattern in operator}
@@ -522,12 +562,12 @@ async def run_main():
         # print('args.expr_name: ', args.expr_name)
 
         questions = [example['problem']]
-        answers = [example['answer']]
+        answers = [example['test']]
 
         # print("Question: ", questions)
         # print("Answer: ", answers)
 
-        task_queue = [('task', 'User', q, None, None, None, -1) for q in questions]
+        task_queue = [('task', 'User', q, None, None, None, -1, example['test'], example['entrypoint']) for q in questions]
 
         global_questions = get_global("global_questions")
         global_questions[str(example_id)] = questions
@@ -549,8 +589,8 @@ async def run_main():
         retries = 0
         now = datetime.datetime.now()
         while retries < 2:
-            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now), save_file, abstract_mas_path, specific_op_desc)
-            # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
+            # score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.apply_abstract_workflow_enhance(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow, str(now), save_file, abstract_mas_path, specific_op_desc)
+            score, total_time, total_execution_time, save_path = await apply_abstract_workflow_v3.recheck_mas(args, args.expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow)
             if score > -1:
                 break
             retries += 1

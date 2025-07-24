@@ -59,7 +59,7 @@ SYSTEM_MSG = ""
 PRINT_LLM_DEBUG = False
 SEARCHING_MODE = True
 
-async def evaluate_forward_fn(args, example_id, forward_str):
+async def evaluate_forward_fn(args, example_id, forward_str, entrypoint="", test=""):
     # dynamically define forward()
     # modified from https://github.com/luchris429/DiscoPOP/blob/main/scripts/launch_evo.py
 
@@ -101,7 +101,6 @@ async def evaluate_forward_fn(args, example_id, forward_str):
     agentSystem.dataset = get_global("global_dataset")
     agentSystem.example_id = example_id
     agentSystem.instance_id = get_global("global_instance_id")
-    
     results = None
 
     print("Global Task Queue: ", global_task_queue)
@@ -159,7 +158,10 @@ async def evaluate_forward_fn(args, example_id, forward_str):
             global_use_oracle_verifier,
             global_judge_path, 
             global_instance_id,
-            global_code_snippet) 
+            global_code_snippet,
+            entrypoint=entrypoint,
+            test=test
+        ) 
         for response_text_id, response_text in enumerate(response_texts)
         ]
     
@@ -178,8 +180,8 @@ async def evaluate_forward_fn(args, example_id, forward_str):
             
 async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None, date_time="", save_file="", abstract_mas_path="", specific_op_desc={}):
 
-    # if example_id != 160:
-    #     return 0, 0, 0, ""
+    if example_id < 150:
+        return 0, 0, 0, ""
 
     start_time_ = time.time()
     total_execution_time = 0
@@ -219,6 +221,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     
     verifier_hub = [
         'o4-mini',
+        'gpt-4.1-mini'
     ]
     
     operator_list = {pattern: {'description': specific_op_desc[pattern]['description'], 'characteristics': specific_op_desc[pattern]['unique_characteristics']} for pattern in specific_op_desc}
@@ -239,7 +242,6 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     # load subtask name from offline mas abstraction
     subtask_names = set()
     for aw in abstract_workflow:
-        # print(aw['flow'])
         for stage_id, stage in aw['flow'].items():
             if 'Title' in stage:
                 if isinstance(stage['Title'], list):
@@ -377,9 +379,9 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
             mas for dist, mas in distance_mas_pairs if dist == min_distance
         ]
 
-        if min_distance > distance_threshold:
-            print("Cannot find the suitable MAS")
-            return None
+        # if min_distance > distance_threshold:
+        #     print("Cannot find the suitable MAS")
+        #     return None
 
         sorted_chains = sorted(min_distance_candidates, key=lambda mas: -len(mas['mas']))
 
@@ -400,7 +402,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
 
         if len(workflow_index) == 0:
             workflow_index = [mas_chain_no_flow_list[random.randint(0, len(mas_chain_no_flow_list) - 1)]['id']]
-
+        # workflow_index = [83]
         print("workflow index: ", workflow_index)
         # return 1, 1, 1, ""
         
@@ -412,6 +414,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
 
     # choose the most similar sequential only mas
     filtered_sequential_workflow = await choose_the_most_similar_mas(mas_chain, sequential_only_mas, abstract_workflow)
+    # filtered_sequential_workflow = None
     if filtered_sequential_workflow:
         with open(log_path, "a+", encoding="utf-8") as f:
             
@@ -449,21 +452,11 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
     global_n = global_n[str(example_id)]
     global_ns.append(global_n)
     
-    task_detail_analysis = await operator_templates.task_analysis(meta_model, task_queue[0].content)
-    print(f"\n================== Query analysis: {task_detail_analysis}========================\n")
-    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, str(task_content) + "\n\nDetailed Analysis: \n" + str(task_detail_analysis), task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
+    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, str(task_content), task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
     global_task_queue = get_global('global_task_queue')
     global_task_queue[str(example_id)] = task_queue_tmp    
     set_global("global_task_queue", global_task_queue)
-    with open(log_path, "a+", encoding="utf-8") as f:
-        
-        phase = "Task detailed analysis"
-        content = task_detail_analysis
-        
-        f.write(f"\n============== {phase} ================\n")
-        f.write(str(content))
-    # return 1, 1, 1, ""
-    
+
     '''
     ================================================== CONCRETIZE WORKFLOW ======================================================
     '''
@@ -676,7 +669,7 @@ async def apply_abstract_workflow_enhance(args, expr_name, example_id, task_queu
 
 async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verifier_model, abstract_workflow = None):
 
-    if example_id != 166:
+    if example_id != 0:
         return 0, 0, 0, ""
 
     start_time_ = time.time()
@@ -689,13 +682,15 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     print(f"problem length: {len(questions)}")
     max_workers = min(len(questions), args.max_workers) if args.multiprocessing else 1
     
-    with open('workflow_analysis-gpt-4o-mini-o4-mini_v8-gpqa-diamond_v2/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
+    with open('merged_mas/abstracted_workflow/workflow_chains.json', 'r', encoding='utf-8') as f:
         default_mas_chain = json.load(f)
     result_path = expr_name + f"{args.dataset}"
     expr_name = expr_name + f"{args.dataset}/{example_id}/{meta_model}_{args.node_model}_{verifier_model}"
 
     if 'gpqa_diamond' in args.dataset:
         task_queue = [Info(field_name, author, {"question": content.question, "choice1": content.choice1, "choice2": content.choice2, "choice3": content.choice3, "choice4": content.choice4}, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
+    elif 'mbpp' in args.dataset:
+        task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx, test, entrypoint) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx, test, entrypoint in task_queue]
     else:
         task_queue = [Info(field_name, author, content, prompt, sub_tasks, agnets, iteration_idx) for field_name, author, content, prompt, sub_tasks, agnets, iteration_idx in task_queue]
 
@@ -756,38 +751,10 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
         set_global("global_response_dict", global_response_dict)
 
     global_use_oracle_verifier = get_global("global_use_oracle_verifier")
-
+    
     global_ns = []
-    detailed_analysis = '''
-1. Extract and Summarize Given Information:
-- The quantum state |psi> is defined as a superposition: |psi> = (cos(phi)|alpha> + sin(phi)|-alpha>)/N.
-- Parameters: alpha (amplitude), phi (phase), and N (normalization constant).
-- Normalization constant: N = sqrt(1 + sin(2*phi)*exp(-2*alpha^2)).
-- The measure of non-Gaussianity (nG) is given by the relative entropy difference: del_b = trace(rho ln rho) - trace(tau ln tau), where rho is the density matrix of the non-Gaussian state |psi><psi|, and tau is the density matrix of a reference Gaussian state.
-- Specific values for calculation: phi = -π/4, alpha = 0.5.
-
-2. Analyze Relationships Between Components:
-- The state |psi> is a linear combination of coherent states |alpha> and |-alpha>, weighted by trigonometric functions of phi and normalized by N.
-- The normalization constant N depends on both phi and alpha, ensuring |psi> is a valid quantum state.
-- The relative entropy measure compares the entropy of the non-Gaussian state rho to that of the Gaussian reference tau, quantifying the deviation from Gaussianity.
-- The choice of phi and alpha fixes the specific form of the state and thus the density matrix rho.
-- The problem implicitly requires constructing rho and tau, computing their logarithms and traces, which are linked through quantum information theory.
-
-3. Identify the Field of Study:
-- The problem lies in quantum physics, specifically quantum information theory.
-- Subfields include quantum optics (coherent states, Schrödinger cat states), quantum state characterization, and quantum entropy measures.
-- Mathematical tools involve linear algebra (density matrices), functional analysis (trace and logarithm of operators), and probability theory (entropy).
-- Applications include quantum computing, quantum communication, and studies of quantum non-classicality.
-
-4. Highlight Aspects Needing Clarification:
-- The explicit form or construction of the reference Gaussian state tau is not provided; assumptions about tau may be necessary.
-- The method to compute the logarithm of density matrices and their traces is not detailed, which can be computationally challenging.
-- The problem does not specify whether the coherent states |alpha> are normalized or any basis representation.
-- Potential ambiguity in the phase phi's domain and its effect on normalization and state properties.
-- The problem assumes familiarity with quantum states, density matrices, and relative entropy without elaboration on computational techniques
-'''
     # task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, "Problem: Write a function to find the minimum cost path to reach (m, n) from (0, 0) for the given cost matrix cost[][] and a position (m, n) in cost[][]. Entry_point: min_cost", task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
-    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, str(task_queue[0].content) + "\n\nDetailed Analysis: \n" + str(detailed_analysis), task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx)]
+    task_queue_tmp = [Info(task_queue[0].name, task_queue[0].author, task_queue[0].content, task_queue[0].prompt, task_queue[0].sub_tasks, task_queue[0].agents, task_queue[0].iteration_idx, None, task_queue[0].entrypoint)]
     global_task_queue = get_global('global_task_queue')
     global_task_queue[str(example_id)] = task_queue_tmp    
     set_global("global_task_queue", global_task_queue)
@@ -808,97 +775,24 @@ async def recheck_mas(args, expr_name, example_id, task_queue, meta_model, verif
     
     next_solution = {
         'code': '''
-async def forward_166(self, taskInfo):
+async def forward(self, taskInfo):
     logs = []
-    loop_results = {"stage_0": {"subtask_0": [], "subtask_1": [], "subtask_2": [], "subtask_3": []}}
-
-    for iteration in range(3):
-        cot_instruction_0_0 = (
-            "Sub-task 0: Construct the density matrix rho of the Schrödinger cat state |psi> for given phi and alpha, "
-            "including calculation of normalization constant N. Use phi = -pi/4 and alpha = 0.5 from taskInfo. "
-            "Provide detailed step-by-step reasoning and final expression for rho."
-        )
-        cot_agent_desc_0_0 = {
-            "instruction": cot_instruction_0_0,
-            "input": [taskInfo],
-            "temperature": 0.5,
-            "context": ["user query"]
-        }
-        results_0_0, log_0_0 = await self.cot(
-            subtask_id="stage_0.subtask_0.iter_{}".format(iteration),
-            cot_agent_desc=cot_agent_desc_0_0
-        )
-        logs.append(log_0_0)
-        loop_results["stage_0"]["subtask_0"].append(results_0_0)
-
-        cot_instruction_0_1 = (
-            "Sub-task 1: Construct the reference Gaussian state density matrix tau corresponding to the Schrödinger cat state parameters. "
-            "Use the output from Sub-task 0 and taskInfo to guide the construction. Provide detailed reasoning and final form of tau."
-        )
-        cot_agent_desc_0_1 = {
-            "instruction": cot_instruction_0_1,
-            "input": [taskInfo, results_0_0["thinking"], results_0_0["answer"]],
-            "temperature": 0.5,
-            "context": ["user query", "thinking of stage_0.subtask_0", "answer of stage_0.subtask_0"]
-        }
-        results_0_1, log_0_1 = await self.cot(
-            subtask_id="stage_0.subtask_1.iter_{}".format(iteration),
-            cot_agent_desc=cot_agent_desc_0_1
-        )
-        logs.append(log_0_1)
-        loop_results["stage_0"]["subtask_1"].append(results_0_1)
-
-        cot_instruction_0_2 = (
-            "Sub-task 2: Compute the relative entropy measure del_b = trace(rho ln rho) - trace(tau ln tau) "
-            "using the constructed density matrices rho and tau from previous subtasks. Provide detailed calculation steps and numerical result."
-        )
-        cot_agent_desc_0_2 = {
-            "instruction": cot_instruction_0_2,
-            "input": [taskInfo, results_0_0["thinking"], results_0_0["answer"], results_0_1["thinking"], results_0_1["answer"]],
-            "temperature": 0.5,
-            "context": ["user query", "thinking of stage_0.subtask_0", "answer of stage_0.subtask_0", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1"]
-        }
-        results_0_2, log_0_2 = await self.cot(
-            subtask_id="stage_0.subtask_2.iter_{}".format(iteration),
-            cot_agent_desc=cot_agent_desc_0_2
-        )
-        logs.append(log_0_2)
-        loop_results["stage_0"]["subtask_2"].append(results_0_2)
-
-        cot_instruction_0_3 = (
-            "Sub-task 3: Refine and simplify the computed relative entropy result from Sub-task 2 to produce a clear intermediate numerical value for non-Gaussianity (nG). "
-            "Provide concise final numerical value with reasoning."
-        )
-        cot_agent_desc_0_3 = {
-            "instruction": cot_instruction_0_3,
-            "input": [taskInfo, results_0_2["thinking"], results_0_2["answer"]],
-            "temperature": 0.5,
-            "context": ["user query", "thinking of stage_0.subtask_2", "answer of stage_0.subtask_2"]
-        }
-        results_0_3, log_0_3 = await self.cot(
-            subtask_id="stage_0.subtask_3.iter_{}".format(iteration),
-            cot_agent_desc=cot_agent_desc_0_3
-        )
-        logs.append(log_0_3)
-        loop_results["stage_0"]["subtask_3"].append(results_0_3)
-
-    aggregate_instruction_1_0 = (
-        "Sub-task 0: Evaluate the collection of candidate nG values from stage_0 subtasks and select the best candidate that satisfies accuracy and consistency criteria. "
-        "Use all refined numerical values from stage_0.subtask_3 iterations."
-    )
-    aggregate_desc_1_0 = {
-        "instruction": aggregate_instruction_1_0,
-        "input": [taskInfo] + [res["thinking"] for res in loop_results["stage_0"]["subtask_3"]],
-        "temperature": 0.0,
-        "context": ["user query", "solutions generated from stage_0.subtask_3"]
+    code_generate_instruction1 = "Stage 0, Sub-task 1: Generate Python runnable code that addresses the following problem"
+    code_generate_desc1 = {
+        'instruction': code_generate_instruction1, 
+        'input': [taskInfo], 
+        'temperature': 0.0, 
+        'context': ["user query"],
+        'entry_point': "count_rotation"
     }
-    results_1_0, log_1_0 = await self.aggregate(
-        subtask_id="stage_1.subtask_0",
-        aggregate_desc=aggregate_desc_1_0
+    results1, log1 = await self.code_generate(
+        subtask_id="stage_0.subtask_1", 
+        code_generate_desc=code_generate_desc1
     )
-    logs.append(log_1_0)
-
-    final_answer = await self.make_final_answer(results_1_0["thinking"], results_1_0["answer"])
+    
+    logs.append(log1)
+    
+    final_answer = await self.make_final_answer(results1["thinking"], results1["answer"])
     return final_answer, logs
         '''
     }
@@ -916,7 +810,12 @@ async def forward_166(self, taskInfo):
 
     try:
         next_solution['code'] = next_solution['code'].replace("forward", f"forward_{example_id}")
-        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"])
+        entrypoint = ""
+        test = ""
+        if 'mbpp' in args.dataset:
+            entrypoint = task_queue[0].entrypoint
+            test = task_queue[0].test
+        acc_oracle_verifier_list, acc_model_verifier_list, results, _, _, final_reponse, raw_results, logs, current_ans, ground_truth, total_time = await evaluate_forward_fn(args, example_id, next_solution["code"], entrypoint=entrypoint, test=test)
         total_execution_time += total_time
     except Exception as e:
         print("Error: ", str(e))

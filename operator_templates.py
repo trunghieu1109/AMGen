@@ -96,9 +96,6 @@ Do not specify the objective / goal of this question.
     - Specify the mathematical domain(s) relevant to the problem (e.g., geometry, algebra, calculus, number theory, combinatorics).
     - Mention any subfields or specific concepts involved (e.g., 3D geometry, differential equations, graph theory).
     - Note potential applications or contexts where such problems arise (e.g., mathematical competitions, physics, computer science).
-4. Highlight Aspects Needing Clarification:
-    - Identify any ambiguous terms, conditions, or assumptions in the problem statement (e.g., undefined positions, unclear constraints).
-    - List potential challenges in interpreting or solving the problem (e.g., complex computations, multiple possible configurations).
 
 Note:
 - Do not answer or suggest solution to solve the query. Only analysis information in it.
@@ -149,60 +146,74 @@ async def specific_task_decomposition(meta_model, query, collaboration_dependenc
                 flow_range[flow_name[cnt]] = [f'stage_{st[cnt]}', f'stage_{ed}']
                 cnt -= 1
                 
+    # print(flow_range)
+                
     if not is_refinement:       
         user_prompt = f"""
 You are an agent specializing in task decomposition. Given a query, break it into stages and control flows, with each stage containing subtasks aligned with the provided abstract workflow, dependencies, and control flow structure.
-
-**\[Inputs]**
-
-* Query: {query}
-* Abstract Workflow: {aw_flow}
-* Control Flow Range: {flow_range} (stage_id of start and end stages)
-* Potential Agent Collaboration Pattern: {potential_op}
-
 **\[Instructions]**
 
-1. Decompose the query into a plan based on the Abstract Workflow, with up to 5 subtasks total across all stages, avoiding trivial divisions.
-2. The plan includes:
-   2.1. **Stages**: Sets of subtasks with a shared role, each a dictionary with:
-      * `stage_id`: e.g., `stage_x`
-      * `title`: Common task of subtasks
-      * `subtasks`: Array of dictionaries, each with:
-        * `id`: Format `stage_x.subtask_y` (x, y start from 1)
-        * `objective`: Clear, actionable instruction
-        * `dependencies`: Array of subtask IDs (e.g., `stage_x.subtask_y`, `previous.stage_x.subtask_y` for prior loop iterations) that must be completed first. Ensure:
-          - Dependencies use outputs from prior subtasks/stages/iterations.
-          - Include dependencies from outside to inside loops, if applicable.
-          - Within loops, allow dependencies on any subtask in the same loop (current or prior iterations, using `previous.stage_x.subtask_y`).
-        * `agent_collaboration`: Collaboration pattern from provided options.
-   2.2. **Control Flows**: Define stage execution order:
-      * `control_flow_type`: `sequential` or `loop`
-      * `iteration_criteria`: For loops, specify repetition (default: `"2 iterations"` if unspecified)
-      * `range`: `[start_stage_id, end_stage_id]` (same ID for single stage)
-3. Strictly adhere to the **Abstract Workflow** structure:
-   3.1. Map all control flows (including loop flows) into the task decomposition, ensuring:
-     * Correct order of stages and control flows.
-     * Inclusion of loop flows as specified, even if the query does not inherently require looping, nesting stages inside the loop.
-     * Default `iteration_criteria` (e.g., `"2 iterations"`) if not specified.
-   3.2. Each stage may contain multiple subtasks contributing to the same general task.
-   3.3. Define dependencies when one subtask relies on another’s output, including:
-     * Dependencies from subtasks outside the loop to those inside.
-     * Dependencies within a loop, where a subtask could depend on any subtask in the same loop (current or previous iterations). Use `previous.stage_x.subtask_y` for prior iterations.
-     * One subtask could depend on a subtask from a previous iteration (if applicable) to enable iterative refinement.
+1. The plan includes:
+    1.1. **Stages**: Sets of subtasks with a shared role, each a dictionary with:
+        * `stage_id`: e.g., `stage_x`
+        * `title`: Common task of subtasks
+        * `subtasks`: Array of dictionaries, each with:
+            * `id`: Format `stage_x.subtask_y` (x, y start from 1)
+            * `objective`: Clear, actionable instruction
+            * `agent_collaboration`: Collaboration pattern from provided options from this list: {potential_op}.
+            * `dependencies`: Array of subtask IDs (e.g., `stage_x.subtask_y`, `previous.stage_x.subtask_y` for prior loop iterations) that must be completed first. Ensure:
+            - Dependencies use outputs from prior subtasks/stages/iterations.
+            - Include dependencies from outside to inside loops, if applicable.
+            - Within loops, allow dependencies on any subtask (both previous and next subtasks) in the same loop (current or prior iterations, using `previous.stage_x.subtask_y`).
 **\[Example]**
-For a query calculating a physical quantity iteratively, suppose the Abstract Workflow specifies a loop over `stage_0` (compute quantity) and `stage_1` (evaluate results) for 2 iterations. The decomposition might include:
-- `stage_0.subtask_1`: Compute initial value, depends on `previous.stage_1.subtask_1` (evaluation from prior iteration).
-- `stage_0.subtask_2`: Refine computation, depends on `stage_0.subtask_1` and `previous.stage_1.subtask_1` (evaluation from prior iteration).
-- `stage_1.subtask_1`: Evaluate accuracy, depends on `stage_0.subtask_2`.
-This ensures `stage_0.subtask_1` and `stage_0.subtask_2` in iteration 2 uses `previous.stage_1.subtask_1` from iteration 1 to refine its computation.
-4. Ensure subtasks use outputs from prior steps/iterations to support others, creating dependencies where applicable, including within loops.
-5. Align subtasks with query details and Abstract Workflow.
+For a query calculating a physical quantity iteratively, suppose the Abstract Workflow specifies a loop over `stage_0` (compute quantity) and `stage_1` (evaluate results) for 3 iterations. The decomposition might include:
+- `stage_0.subtask_1`: Compute initial value, depends on `previous.stage_x.subtask_y`, `previous.stage_x2.subtask_y2` (evaluations from prior iteration).
+- `stage_0.subtask_2`: Refine computation, depends on `stage_0.subtask_1` and `previous.stage_x.subtask_y`, `previous.stage_x2.subtask_y2` (evaluations from prior iteration).
+- `stage_x.subtask_y`: Evaluate, assess accuracy and provide feedback, depends on `stage_0.subtask_1`, `stage_0.subtask_2`.
+- `stage_x2.subtask_y2`: Evaluate, assess the logical process, refer, reasoning, ...... and provide feedback, depends on `stage_0.subtask_1`, `stage_0.subtask_2`.
+This ensures `stage_0.subtask_1` and `stage_0.subtask_2` in iteration 2 uses `previous.stage_x.subtask_y` and `previous.stage_x2.subtask_y2` from iteration 1 to refine their computation.
 
+    1.2. **Control Flows**: Define stage execution order:
+        * `control_flow_type`: `sequential` or `loop`
+        * `iteration_criteria`: For loops, specify repetition (default: `"3 iterations"` if unspecified)
+        * `range`: `[start_stage_id, end_stage_id]` (same ID for single stage)
+    Current control flow range: {flow_range} (stage_id of start and end stages)
+
+2. Decompose the query: {query} into a plan based on objectives of each stage of this Abstract Workflow:
+{aw_flow}
+- Align subtasks with query details and Abstract Workflow.
+- Avoiding trivial divisions.
+- Maximum 5 subtasks.     
+- Strictly adhere to the **Abstract Workflow** structure:
+    2.1. Map all control flows (including loop flows) into the task decomposition, ensuring:
+        * Correct order of stages and control flows.
+        * Inclusion of loop flows as specified, even if the query does not inherently require looping, nesting stages inside the loop.
+        * maximum iteration_criteria = 3 iterations.
+    2.2. Each stage may contain multiple subtasks contributing to the same general task.
+    2.3. Define dependencies when one subtask relies on another’s output, including:
+        * Điều chỉnh các instruction của subtask để phù hợp với agent collaboration patterns được sử dụng và dependencies với cac subtasks khác.
+        * Dependencies from subtasks outside the loop to those inside.
+        * Dependencies within a loop, where a subtask could depend on any subtask in the same loop (current or previous iterations). Use `previous.stage_x.subtask_y` for prior iterations.
+        * Ensure subtasks use outputs from prior steps/iterations to support others, creating dependencies where applicable, including within loops.
+        * One subtask could depend on a subtask from a previous iteration (if applicable) to enable iterative refinement.
+**\[Example]**
+For a query calculating a physical quantity iteratively, suppose the Abstract Workflow specifies a loop over `stage_0` (compute quantity) and `stage_1` (evaluate results) for 3 iterations. The decomposition might include:
+- `stage_0.subtask_1`: Compute initial value, depends on `previous.stage_x.subtask_y`, `previous.stage_x2.subtask_y2` (evaluations from prior iteration).
+- `stage_0.subtask_2`: Refine computation, depends on `stage_0.subtask_1` and `previous.stage_x.subtask_y`, `previous.stage_x2.subtask_y2` (evaluations from prior iteration).
+- `stage_x.subtask_y`: Evaluate, assess accuracy and provide feedback, depends on `stage_0.subtask_1`, `stage_0.subtask_2`.
+- `stage_x2.subtask_y2`: Evaluate, assess the logical process, refer, reasoning, ...... and provide feedback, depends on `stage_0.subtask_1`, `stage_0.subtask_2`.
+This ensures `stage_0.subtask_1` and `stage_0.subtask_2` in iteration 2 uses `previous.stage_x.subtask_y` and `previous.stage_x2.subtask_y2` from iteration 1 to refine their computation.
+    
+    2.4. In default, the Aggregate pattern is used for "select the best solutions / aggregate solutions" subtasks.
+    2.5. Dependencies within loops can reference any subtask in the same loop (current or prior iterations, using `previous.stage_x.subtask_y`).
+    2.6. Subtasks cannot depend on themselves, even in prior iterations.
+    2.7. Concretize steps using query details, ensuring dependencies reflect output usage.
+    2.8. Với các tác vụ liên quan tới đánh giá, nhận xét hay refine, cần nhìn nhận, đánh giá một cách nghiêm ngặt, gay gắt, tìm ra các điểm yếu trong solutions.
 **\[Output Format — JSON]**
 
 ```json
 {{
-  "thought": "<Brief reasoning on query breakdown, control flow interpretation, loop dependencies (e.g., previous.stage_x.subtask_y), and past feedback>",
+  "thought": "<Brief reasoning on query breakdown, control flow interpretation, loop dependencies (e.g., previous.stage_x.subtask_y), and past feedback. Tại sao dependencies của subtask 1 lại rỗng? nó hoàn toàn có thể nhận dữ liệu đánh giá ở các iteration trước đó mà?>",
   "task_decomposition": {{
     "stages": [
       {{
@@ -223,7 +234,7 @@ This ensures `stage_0.subtask_1` and `stage_0.subtask_2` in iteration 2 uses `pr
     "control_flow": [
       {{
         "control_flow_type": "sequential | loop",
-        "iteration_criteria": "<e.g., '2 iterations'>",
+        "iteration_criteria": "<e.g., '3 iterations'>",
         "range": ["<start_stage_id>", "<end_stage_id>"]
       }},
       ...
@@ -231,13 +242,6 @@ This ensures `stage_0.subtask_1` and `stage_0.subtask_2` in iteration 2 uses `pr
   }}
 }}
 ```
-
-**Additional Notes:**
-
-- Maximum 5 subtasks total across all stages. Do not decompose too deeply.
-- Dependencies within loops can reference any subtask in the same loop (current or prior iterations, using `previous.stage_x.subtask_y`).
-- Subtasks cannot depend on themselves, even in prior iterations.
-- Concretize steps using query details, ensuring dependencies reflect output usage.
 """
     else:
         failure_reason = [eva.get("failure_reason", "") for eva in evaluation]
@@ -303,7 +307,7 @@ This ensures `stage_0.subtask_1` and `stage_0.subtask_2` in iteration 2 uses `pr
     "control_flow": [
       {{
         "control_flow_type": "sequential | loop",
-        "iteration_criteria": "<For loop: e.g., '2 iterations' or 'until convergence'>",
+        "iteration_criteria": "<For loop: e.g., '3 iterations' or 'until convergence'>",
         "range": ["<start_stage_id>", "<end_stage_id>"]
       }},
       ...
@@ -341,11 +345,11 @@ Additional Note:
                     
                     deps_set.add(dep[pos:])    
                     
-    for stage_idx, stage in enumerate(customized_task_decomposition['stages']):
-        for subtask_idx, subtask in enumerate(stage['subtasks']):
-            deps = customized_task_decomposition['stages'][stage_idx]['subtasks'][subtask_idx]['dependencies']
-            if len(deps) > 0:
-                customized_task_decomposition['stages'][stage_idx]['subtasks'][subtask_idx]['objective'] += "\nInput content are results (both thinking and answer) from: " + " & ".join([st_dep.replace("previous.", "former iterations of ") for st_dep in deps]) + ", respectively."
+    # for stage_idx, stage in enumerate(customized_task_decomposition['stages']):
+    #     for subtask_idx, subtask in enumerate(stage['subtasks']):
+    #         deps = customized_task_decomposition['stages'][stage_idx]['subtasks'][subtask_idx]['dependencies']
+    #         if len(deps) > 0:
+    #             customized_task_decomposition['stages'][stage_idx]['subtasks'][subtask_idx]['objective'] += "\nInput content are results (both thinking and answer) from: " + " & ".join([st_dep.replace("previous.", "former iterations of ") for st_dep in deps]) + ", respectively."
     task_decomposition['task_decomposition'] = customized_task_decomposition
     print("\n =================== Planner Thought ================\n", task_decomposition['thought'])
     return task_decomposition['task_decomposition']
@@ -370,55 +374,26 @@ Ensure this code is runnable. Double-check many times.
   "code": "Python code implementing the concrete agentic workflow."
 }}
 2. For each subtask:
-   - Ensure that each subtask strictly follows the instruction defined in the task decomposition and incorporates relevant evaluation feedback and suggestions. Thêm cả phần mô tả input trong instruction (giống như trong task decomposition) để bổ trợ cho việc reasoning.
+   - Ensure that each subtask strictly follows the instruction defined in the task decomposition. Thêm cả phần mô tả input trong instruction (giống như trong task decomposition) để bổ trợ cho việc reasoning.
    - Apply the exactly agent collaboration patterns to each subtask as specified in task decomposition.
    - Pass the outputs from Subtask A to Subtask B in accordance with the defined dependencies between the subtasks.
    - Follow the task decomposition strictly (stage, order, dependencies).
    - Implement using appropriate agent collaboration pattern (CoT, SC-CoT, Reflexion, Debate).
    - Replace any placeholder with task-specific content grounded in the query.
-   
+   - For subtasks in loop:
+        - Set temperature = 0.1->0.5 in subtasks that generate potential solutions for aggregating.
+        - Set temperature = 0.0 in subtasks that generate solutions and iteratively refine.
+    - For subtasks out of loop: Use the default temperature.
 3. For each control flow:
    - range defines the stage_id of the starting and ending stages of the control flow. All stages between (and including) these will be grouped together.
    - Sequential control flow: Execute the subtasks in the defined range of stages sequentially.
    - Loop control flow:
         + Group all subtasks from the stages defined in the range, and execute them using a for loop. The iteration_criterias field defines the loop condition or the number of iterations.
         + You must maintain a dictionary to store the results of the subtasks in this control flow so they can be used later.
-        + If a subtask A has a dependency on another subtask B that is located inside a loop control flow, it means that the current subtask A requires access to all outputs produced by that inner subtask B across every iteration of the loop, not just the latest one.
-        + Đối với dependencies dạng previous của các subtask trong loop, điều này tức là tất cả kết quả của subtasks đó (cả thinking và answer) từ các iterations trước đó sẽ được sử dụng làm input.
-Ex:
--> Wrong cases: Only get the latest iteration results of subtask 1.
-```python
-loop_results = {{}} # save results of iterations.
-
-for i in range(0, n_iteration):
-    results1, logs1 = await self.cot(...) # subtask 1
-    loop_results[<subtask_id of subtask 1>]['answer'].append(results1['answer'])
-    loop_results[<subtask_id of subtask 1>]['thinking'].append(results1['thinking'])
-    
-    cot_agent_desc_2 = {{
-        "instruction": "..."
-        "input": [taskInfo, results1['thinking'], results1['answer']],
-        ...
-    }}
-    results2, logs2 = await self.cot(..., cot_agent_desc=cot_agent_desc_2, ....) # subtask 2
-```
-
--> Correct cases: Use the results from all previous iterations instead of the latest one of the subtask 1.
-```python
-loop_results = {{}} # save results of iterations.
-
-for i in range(0, n_iteration):
-    results1, logs1 = await self.cot(...) # subtask 1
-    loop_results[<subtask_id of subtask 1>]['answer'].append(results1['answer'])
-    loop_results[<subtask_id of subtask 1>]['thinking'].append(results1['thinking'])
-    
-    cot_agent_desc_2 = {{
-        "instruction": "..."
-        "input": [taskInfo] + loop_results[<subtask_id of subtask 1>]['answer'] + loop_results[<subtask_id of subtask 1>]['thinking'], 
-        ...
-    }}
-    results2, logs2 = await self.cot(..., cot_agent_desc=cot_agent_desc_2, ....) # subtask 2
-```
+        + For subtasks in loop:
+            - dependency: previous.stage_x.subtask_y -> use full results:  loop_results['stage_x.subtask_y'] (thinking and answer)
+            - dependency: stage_x.subtaks_y -> use the latest result: loop_results['stage_x.subtask_y'][-1] (thinking and answer)
+        + For subtasks out of loop: Use full results: loop_results['stage_x.subtask_y'] (thinking and answer)
 
 4. Preserve logic from abstract workflow:
     - Use same number of stages.
@@ -434,18 +409,20 @@ final_answer = await self.make_final_answer(resultsn['thinking'], resultsn['answ
 return final_answer, logs
 ```
 9. Do not write instruction in possessive form.
+10. Chú thích subtask_id từ 1 -> n bằng comment.
 
 [Goal]
 Ensure all subtasks are well-structured, grounded, and correctly executed. Output a fully working Python-based workflow.
 Do not use `\` to break line.
-
     """
     
     msg_list = [
         {"role": "user", "content": user_prompt_generate_workflow},
     ]
+    
     next_solution ,_ = await get_json_response_from_gpt(copy.deepcopy(msg_list), meta_model, ['thought', 'code'], 0.0)
     print("================ Generated Multi-agent system ================\n", next_solution['code'])
+    print("Code generator thought: ", next_solution['thought'])
     # next_solution['code'] = next_solution['code'].replace("{{", "{")
     # next_solution['code'] = next_solution['code'].replace("}}", "}")
     
@@ -587,7 +564,7 @@ You will be given **two workflows**, each represented as a list of stages in JSO
 - `stage_id`: unique identifier
 - `stage_name`: human-readable name
 - `abstracted_objective`: a concise description of what the stage accomplishes
-- `agent_collaboration`: either a string (e.g., "logic code") or a list of collaboration methods (e.g., `["CoT", "AnswerGenerate"]`)
+- `agent_collaboration`: either a string (e.g., "logic code") or a list of collaboration methods. Prefer using patterns other than CoT.
 - `dependencies` (optional): list of stage_id that this stage depends on.
 
 Each workflow may also contain **control flow markers**:
@@ -649,13 +626,13 @@ While merging, follow these reasoning steps:
         "Stage 0": {{
             "stage_id": "stage_0",
             "objective": "...",
-            "agent_collaboration": [CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | Programmer | Review | Revise"],
+            "agent_collaboration": [SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | Programmer | Review | Revise | CoT],
             "dependencies": []
         }},
         "Stage 1": {{
             "stage_id": "stage_1",
             "objective": "...",
-            "agent_collaboration": [CoT | SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | Programmer | Review | Revise"],
+            "agent_collaboration": [SC_CoT | Debate | Reflexion | AnswerGenerate | SpecificFormat | Aggregate | Programmer | Review | Revise | CoT],
             "dependencies": [stage_0, ....]
         }},
         .....

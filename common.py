@@ -1,7 +1,8 @@
 import os
 from collections import defaultdict
 from multiprocessing.pool import ThreadPool
-from typing import Any
+from typing import Any, Callable, Dict, List, Optional, Tuple
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import io
@@ -39,6 +40,7 @@ from datasets import load_dataset
 import pandas as pd
 import common
 import json
+import threading
 
 import os
 from collections import defaultdict
@@ -64,10 +66,14 @@ from sampler.vllm_completion_sampler import ChatCompletionSampler as VllmChatCom
 
 import copy
 from shared_vars import set_global, get_global, add_to_global_cost, add_to_global_cost_execution
+from sanitize import sanitize
 
 
 Message = dict[str, Any]  # keys role, content
 MessageList = list[Message]
+
+class TimeoutError(Exception):
+    pass
 
 # as of 02/25 https://platform.openai.com/docs/pricing
 # note that o3 mini is cheaper
@@ -1075,3 +1081,72 @@ def url_to_fileobj(url: str, binary=False) -> Any:
     response = requests.get(url)
     response.raise_for_status()
     return io.BytesIO(response.content) if binary else io.StringIO(response.text)
+
+def run_with_timeout(func, timeout):
+    result = []
+    stop_event = threading.Event()
+
+    def target():
+        try:
+            result.append(func())
+        except Exception as e:
+            result.append(e)
+        finally:
+            stop_event.set()
+
+    thread = threading.Thread(target=target)
+    thread.start()
+    is_timeout = not stop_event.wait(timeout)
+
+    if is_timeout:
+        raise self.TimeoutError("Function execution timed out")
+
+    if not result:
+        return None
+    if isinstance(result[0], Exception):
+        raise result[0]
+    return result[0]
+
+def check_solution(solution, test, entry_point):
+    solution = sanitize(code=solution, entrypoint=entry_point) # HIDDEN
+    try:
+        global_dict = {
+            "math": __import__("math"),
+            "hashlib": __import__("hashlib"),
+            "re": __import__("re"),
+            "List": List,
+            "Dict": Dict,
+            "Tuple": Tuple,
+            "Optional": Optional,
+            "Any": Any,
+        }
+        
+        print(solution)
+
+        exec(solution, global_dict)
+
+        if entry_point not in global_dict:
+            raise ValueError(f"Function {entry_point} is not defined in the solution.")
+
+        exec(test, global_dict)
+
+        check = global_dict["check"]
+
+        result = run_with_timeout(check, 15)
+
+        if result is None:
+            result = ("PASS", "The solution passed all test cases.")
+
+    except TimeoutError:
+        result = (
+            "FAIL",
+            "Execution timed out. Please check if your solution contains infinite loops or overly time-consuming operations.",
+        )
+    except Exception as e:
+        error_message = f"Error: {str(e)}.\n Solution: {solution}.\n Test: {test}"
+        result = ("FAIL", error_message)
+
+        with open("error.log", "a", encoding="utf-8") as log_file:
+            log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {error_message}\n")
+
+    return result

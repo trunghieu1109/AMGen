@@ -1,9 +1,9 @@
 async def forward_25(self, taskInfo):
     logs = []
 
+    # stage_0.subtask_1
     cot_instruction_0_1 = (
-        "Sub-task 1: Summarize the given problem information, define variables for the hexagon and the triangle formed by extended lines, "
-        "and clarify assumptions including vertex ordering and convexity. Input content are results (both thinking and answer) from: none."
+        "Stage 0, Sub-task 1: Derive the relationship among the three directions of lines AB, CD, and EF imposed by the hexagon being equilateral with opposite sides parallel, specifically proving that the sum of the three external angles between these lines is 2π. This subtask must avoid conflating vector sums with line intersections and explicitly justify the angular constraints from the hexagon's geometry. Input content are results (both thinking and answer) from: none."
     )
     cot_agent_desc_0_1 = {
         "instruction": cot_instruction_0_1,
@@ -17,104 +17,65 @@ async def forward_25(self, taskInfo):
     )
     logs.append(log_0_1)
 
-    cot_instruction_0_2 = (
-        "Sub-task 2: Establish vector representations for the hexagon sides and express the parallelism and equilateral conditions as vector equations, "
-        "explicitly defining vectors u, v, w corresponding to sides AB, CD, EF. Input content are results (both thinking and answer) from: stage_0.subtask_1."
-    )
-    cot_agent_desc_0_2 = {
-        "instruction": cot_instruction_0_2,
-        "input": [taskInfo, results_0_1['thinking'], results_0_1['answer']],
-        "temperature": 0.0,
-        "context": ["user query", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1"]
+    loop_results = {
+        "stage_1.subtask_1": {"thinking": [], "answer": []},
+        "stage_2.subtask_1": {"thinking": [], "answer": []}
     }
-    results_0_2, log_0_2 = await self.cot(
-        subtask_id="stage_0.subtask_2",
-        cot_agent_desc=cot_agent_desc_0_2
-    )
-    logs.append(log_0_2)
 
-    cot_instruction_0_3 = (
-        "Sub-task 3: From the vector closure condition u + v + w = 0, rigorously derive the correct angle sum constraint for the directions of u, v, w, "
-        "explicitly proving that the turning angles sum to 2π (not π), correcting the previous error where α + β + γ = π was incorrectly assumed. "
-        "Input content are results (both thinking and answer) from: stage_0.subtask_2."
+    for iteration in range(2):
+        cot_instruction_1_1 = (
+            f"Stage 1, Sub-task 1: Using the angular relationships from stage_0.subtask_1, correctly express each side length of the triangle formed by the extensions of AB, CD, and EF in terms of the hexagon side length s and the three external angles. Apply the law of sines and/or cosines appropriately to the intersections of the lines, avoiding the incorrect assumption that triangle sides equal vector sums of hexagon sides. Input content are results (both thinking and answer) from: stage_0.subtask_1, respectively. Iteration {iteration+1} of 2."
+        )
+        cot_agent_desc_1_1 = {
+            "instruction": cot_instruction_1_1,
+            "input": [taskInfo, results_0_1['thinking'], results_0_1['answer']],
+            "temperature": 0.5,
+            "context_desc": ["user query", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1"]
+        }
+        results_1_1, log_1_1 = await self.cot(
+            subtask_id="stage_1.subtask_1",
+            cot_agent_desc=cot_agent_desc_1_1
+        )
+        logs.append(log_1_1)
+        loop_results["stage_1.subtask_1"]["thinking"].append(results_1_1['thinking'])
+        loop_results["stage_1.subtask_1"]["answer"].append(results_1_1['answer'])
+
+        cot_sc_instruction_2_1 = (
+            f"Stage 2, Sub-task 1: Formulate and solve the system of equations derived from the expressions of the triangle side lengths (200, 240, 300) in terms of s and the angles from stage_1.subtask_1. Validate the solution for s by checking consistency with all geometric constraints and the given triangle side lengths. This subtask must explicitly avoid assuming classical results without proof and instead rely on derived formulas. Input content are results (both thinking and answer) from: stage_0.subtask_1 & stage_1.subtask_1, respectively. Iteration {iteration+1} of 2."
+        )
+        final_decision_instruction_2_1 = (
+            "Stage 2, Sub-task 1, Final Decision: Synthesize and choose the most consistent answer for solving the system of equations for s."
+        )
+        cot_sc_desc_2_1 = {
+            "instruction": cot_sc_instruction_2_1,
+            "final_decision_instruction": final_decision_instruction_2_1,
+            "input": [taskInfo, results_0_1['thinking'], results_0_1['answer'], results_1_1['thinking'], results_1_1['answer']],
+            "temperature": 0.5,
+            "context_desc": ["user query", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1", "thinking of stage_1.subtask_1", "answer of stage_1.subtask_1"]
+        }
+        results_2_1, log_2_1 = await self.sc_cot(
+            subtask_id="stage_2.subtask_1",
+            cot_agent_desc=cot_sc_desc_2_1,
+            n_repeat=self.max_sc
+        )
+        logs.append(log_2_1)
+        loop_results["stage_2.subtask_1"]["thinking"].append(results_2_1['thinking'])
+        loop_results["stage_2.subtask_1"]["answer"].append(results_2_1['answer'])
+
+    cot_instruction_2_2 = (
+        "Stage 2, Sub-task 2: Derive the final numeric value of the hexagon side length s by applying geometric constraints and algebraic simplifications to the validated solution from stage_2.subtask_1. Ensure the final answer is consistent with all prior deductions and clearly justified. Input content are results (both thinking and answer) from: stage_0.subtask_1 & stage_1.subtask_1 & stage_2.subtask_1, respectively."
     )
-    cot_agent_desc_0_3 = {
-        "instruction": cot_instruction_0_3,
-        "input": [taskInfo, results_0_2['thinking'], results_0_2['answer']],
+    cot_agent_desc_2_2 = {
+        "instruction": cot_instruction_2_2,
+        "input": [taskInfo, results_0_1['thinking'], results_0_1['answer'], loop_results["stage_1.subtask_1"]["thinking"], loop_results["stage_1.subtask_1"]["answer"], loop_results["stage_2.subtask_1"]["thinking"], loop_results["stage_2.subtask_1"]["answer"]],
         "temperature": 0.0,
-        "context": ["user query", "thinking of stage_0.subtask_2", "answer of stage_0.subtask_2"]
+        "context_desc": ["user query", "thinking of stage_0.subtask_1", "answer of stage_0.subtask_1", "thinking of stage_1.subtask_1", "answer of stage_1.subtask_1", "thinking of stage_2.subtask_1", "answer of stage_2.subtask_1"]
     }
-    results_0_3, log_0_3 = await self.cot(
-        subtask_id="stage_0.subtask_3",
-        cot_agent_desc=cot_agent_desc_0_3
+    results_2_2, log_2_2 = await self.cot(
+        subtask_id="stage_2.subtask_2",
+        cot_agent_desc=cot_agent_desc_2_2
     )
-    logs.append(log_0_3)
+    logs.append(log_2_2)
 
-    cot_instruction_0_4 = (
-        "Sub-task 4: Derive exact formulas relating the side lengths of the triangle formed by the extended lines (200, 240, 300) to the hexagon side length s and the angles between vectors u, v, w, "
-        "using the corrected angle sum and vector geometry principles. Avoid assumptions invalidated in previous attempts. "
-        "Input content are results (both thinking and answer) from: stage_0.subtask_3."
-    )
-    cot_agent_desc_0_4 = {
-        "instruction": cot_instruction_0_4,
-        "input": [taskInfo, results_0_3['thinking'], results_0_3['answer']],
-        "temperature": 0.0,
-        "context": ["user query", "thinking of stage_0.subtask_3", "answer of stage_0.subtask_3"]
-    }
-    results_0_4, log_0_4 = await self.cot(
-        subtask_id="stage_0.subtask_4",
-        cot_agent_desc=cot_agent_desc_0_4
-    )
-    logs.append(log_0_4)
-
-    cot_instruction_1_1 = (
-        "Sub-task 1: Formulate a system of equations from the relations derived in stage_0.subtask_4 that link the hexagon side length s and the triangle side lengths, "
-        "ensuring consistency with the vector closure and angle sum constraints. Input content are results (both thinking and answer) from: stage_0.subtask_4."
-    )
-    cot_agent_desc_1_1 = {
-        "instruction": cot_instruction_1_1,
-        "input": [taskInfo, results_0_4['thinking'], results_0_4['answer']],
-        "temperature": 0.0,
-        "context": ["user query", "thinking of stage_0.subtask_4", "answer of stage_0.subtask_4"]
-    }
-    results_1_1, log_1_1 = await self.cot(
-        subtask_id="stage_1.subtask_1",
-        cot_agent_desc=cot_agent_desc_1_1
-    )
-    logs.append(log_1_1)
-
-    cot_instruction_1_2 = (
-        "Sub-task 2: Solve the system of equations to find the numerical value of the hexagon side length s, carefully verifying each step to avoid propagation of previous errors. "
-        "Input content are results (both thinking and answer) from: stage_1.subtask_1."
-    )
-    cot_agent_desc_1_2 = {
-        "instruction": cot_instruction_1_2,
-        "input": [taskInfo, results_1_1['thinking'], results_1_1['answer']],
-        "temperature": 0.0,
-        "context": ["user query", "thinking of stage_1.subtask_1", "answer of stage_1.subtask_1"]
-    }
-    results_1_2, log_1_2 = await self.cot(
-        subtask_id="stage_1.subtask_2",
-        cot_agent_desc=cot_agent_desc_1_2
-    )
-    logs.append(log_1_2)
-
-    cot_instruction_2_1 = (
-        "Sub-task 1: Independently verify the derived angle relations and the candidate hexagon side length s by checking the vector closure condition u + v + w = 0 numerically or analytically, "
-        "and confirm that the triangle side lengths and angle sums satisfy all geometric constraints, preventing the logical gaps from the previous attempt. "
-        "Input content are results (both thinking and answer) from: stage_1.subtask_2 & stage_0.subtask_3 & stage_0.subtask_4."
-    )
-    cot_agent_desc_2_1 = {
-        "instruction": cot_instruction_2_1,
-        "input": [taskInfo, results_1_2['thinking'], results_1_2['answer'], results_0_3['thinking'], results_0_3['answer'], results_0_4['thinking'], results_0_4['answer']],
-        "temperature": 0.0,
-        "context": ["user query", "thinking of stage_1.subtask_2", "answer of stage_1.subtask_2", "thinking of stage_0.subtask_3", "answer of stage_0.subtask_3", "thinking of stage_0.subtask_4", "answer of stage_0.subtask_4"]
-    }
-    results_2_1, log_2_1 = await self.cot(
-        subtask_id="stage_2.subtask_1",
-        cot_agent_desc=cot_agent_desc_2_1
-    )
-    logs.append(log_2_1)
-
-    final_answer = await self.make_final_answer(results_2_1['thinking'], results_2_1['answer'])
+    final_answer = await self.make_final_answer(results_2_2['thinking'], results_2_2['answer'])
     return final_answer, logs
